@@ -1,6 +1,12 @@
-# DubsiBhai
+# DubsiBhai - Drainage Waterlogging Management for Dhaka
 
-Urban waterlogging and drainage management for Dhaka.
+<p align="center">
+  <img src="docs/icon.png" alt="Logo" width="180" height="180"/>
+  <br>
+  <strong>Collaborative Community Platform</strong>
+</p>
+
+Urban waterlogging and drainage management for Dhaka. This repository contains the frontend, backend, and machine learning service for the DubsiBhai project. The frontend is built with Next.js, while the backend and ML service are built with FastAPI.
 
 The repository root is `CSE-4113-Project/`.
 
@@ -69,5 +75,10 @@ From either Python app directory:
 uv run pytest
 ```
 
-Authentication, complaints, maps, model inference, databases, queues, Docker, and CI are still planned.
+The ML service now supports Bengali complaint classification using the synthetic dataset.
+Before the first ML run on a new checkout, enter `apps/ml-service` and run `./train.ps1`.
+After replacing the CSV with real data, run `./train.ps1 -DataSource real` and restart the service.
+See the [ML service guide](apps/ml-service/README.md) for inference and evaluation details.
+
+Authentication, complaints, maps, duplicate detection, clustering, databases, queues, Docker, and CI are still planned.
 Docker launch options will be added later. The planned web routes currently display coming-soon pages.

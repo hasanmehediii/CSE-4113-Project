@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "DubsiBhai ML Service"
+    model_path: Path = REPO_ROOT / "apps/ml-service/weights/classifier.joblib"
 
 
 @lru_cache
