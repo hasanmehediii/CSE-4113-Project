@@ -1,5 +1,11 @@
 # DubsiBhai — System Design
 
+Detailed implementation plans: [Core API and roles](API_LOW_LEVEL_DESIGN.md),
+[ML service and integration](ML_SERVICE_DESIGN.md), and [UI and user flows](UI_DESIGN.md).
+These documents distinguish current implementation from planned behavior and resolve alternatives
+in this overview, including resident-only public registration, four explicit account roles,
+manual verification, and API-worker HTTP integration with API-owned ML result persistence.
+
 **Urban Waterlogging & Drainage Management for Dhaka** Architecture: Monolith (core application) + separate ML microservice (Bengali NLP)
 
 ---

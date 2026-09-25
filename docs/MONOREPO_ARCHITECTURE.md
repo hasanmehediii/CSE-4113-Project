@@ -1,5 +1,10 @@
 # DubsiBhai — Monorepo Architecture
 
+For the detailed implementation decisions, see [API design](API_LOW_LEVEL_DESIGN.md),
+[ML service design](ML_SERVICE_DESIGN.md), and [UI design](UI_DESIGN.md).
+The initial integration in those documents supersedes this plan's ML-side queue consumer and
+ML-owned database write sketch: an API worker calls ML over HTTP and persists the result.
+
 This extends `SYSTEM_DESIGN.md` with the actual repo layout, tooling, and conventions for keeping web, api, and ml-service in one repository.
 
 ---
