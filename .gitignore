@@ -1,0 +1,33 @@
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# JavaScript / Next.js
+node_modules/
+.next/
+out/
+.pnpm-store/
+*.tsbuildinfo
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Build output and local tools
+dist/
+build/
+.cache/
+*.log
+.DS_Store
+Thumbs.db
+
+# Downloaded model weights
+apps/ml-service/weights/*
+!apps/ml-service/weights/.gitkeep
