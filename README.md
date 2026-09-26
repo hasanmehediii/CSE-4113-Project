@@ -80,5 +80,9 @@ Before the first ML run on a new checkout, enter `apps/ml-service` and run `./tr
 After replacing the CSV with real data, run `./train.ps1 -DataSource real` and restart the service.
 See the [ML service guide](apps/ml-service/README.md) for inference and evaluation details.
 
-Authentication, complaints, maps, duplicate detection, clustering, databases, queues, Docker, and CI are still planned.
-Docker launch options will be added later. The planned web routes currently display coming-soon pages.
+The API now includes email/password and Google authentication, revocable sessions,
+email verification and reset, database migrations, and Redis leaky-bucket limits.
+See [the API guide](apps/api/README.md) for the local Docker/Nginx stack. Phone
+verification, complaints, maps, duplicate detection, clustering, queues, and
+full production deployment are still planned. The planned web routes currently
+display coming-soon pages.
