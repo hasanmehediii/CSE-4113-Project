@@ -1,5 +1,6 @@
-import ComingSoon from "@/components/ComingSoon";
+import DhakaMapPreview from "@/components/map/DhakaMapPreview";
+export const metadata = { title: "Dhaka map" };
 
 export default function MapPage() {
-  return <ComingSoon title="Complaint map" />;
+  return <main id="main"><DhakaMapPreview /></main>;
 }

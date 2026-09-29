@@ -1,6 +1,7 @@
 import ipaddress
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -25,6 +26,7 @@ class Settings(BaseSettings):
     session_absolute_seconds: int = 86400
     csrf_seconds: int = 3600
     google_client_id: str = ""
+    frontend_url: str = "http://localhost:3000"
     trusted_proxy_cidrs: list[str] = []
     smtp_host: str = "localhost"
     smtp_port: int = 1025
@@ -43,9 +45,22 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_security(self):
+        frontend = urlsplit(self.frontend_url)
+        if (
+            frontend.scheme not in {"http", "https"}
+            or not frontend.hostname
+            or frontend.username
+            or frontend.password
+            or frontend.query
+            or frontend.fragment
+            or frontend.path not in {"", "/"}
+        ):
+            raise ValueError("FRONTEND_URL must be an HTTP(S) origin without credentials or a path")
         if min(self.session_idle_seconds, self.session_absolute_seconds, self.csrf_seconds) <= 0:
             raise ValueError("Auth expiry settings must be positive")
         if self.environment == "production":
+            if frontend.scheme != "https":
+                raise ValueError("Production requires an HTTPS FRONTEND_URL")
             if (
                 not self.cookie_secure
                 or len(self.auth_secret) < 32

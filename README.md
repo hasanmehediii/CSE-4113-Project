@@ -84,5 +84,10 @@ The API now includes email/password and Google authentication, revocable session
 email verification and reset, database migrations, and Redis leaky-bucket limits.
 See [the API guide](apps/api/README.md) for the local Docker/Nginx stack. Phone
 verification, complaints, maps, duplicate detection, clustering, queues, and
-full production deployment are still planned. The planned web routes currently
-display coming-soon pages.
+full production deployment are still planned. The web app includes a bilingual
+landing page, light/dark themes, login/signup, email verification, password
+recovery, and account/session management. See the [web setup guide](apps/web/README.md)
+for connecting it to the API and configuring Google sign-in. Complaint, map,
+worker, and admin pages still display coming-soon content, except for the map:
+the landing page and `/map` now offer a Dhaka base-map preview. Live water-level
+readings will be connected in a later stage.

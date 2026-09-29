@@ -2,6 +2,7 @@
 
 import logging
 import smtplib
+from urllib.parse import quote
 from email.message import EmailMessage
 
 from app.core.config import get_settings
@@ -15,10 +16,14 @@ def send_action_email(email: str, token: str, purpose: str):
     message["From"] = settings.mail_from
     message["To"] = email
     message["Subject"] = "Reset your password" if purpose == "reset" else "Verify your email"
-    # Frontend links will be added when its routes exist. Never put tokens in API URLs/logs.
+    route = "reset-password" if purpose == "reset" else "verify-email"
+    # A fragment keeps the token out of HTTP access logs and referrer URLs.
+    link = f"{settings.frontend_url.rstrip('/')}/{route}#token={quote(token, safe='')}"
     message.set_content(
-        f"Your {purpose} token is:\n\n{token}\n\n"
-        "Submit this token in the application. If you did not request this, ignore this email."
+        f"{'Reset your password' if purpose == 'reset' else 'Verify your email'} for DubsiBhai:\n\n"
+        f"{link}\n\n"
+        f"Or paste this token in the application: {token}\n\n"
+        "If you did not request this, ignore this email. Do not share this link or token."
     )
     try:
         with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as smtp:

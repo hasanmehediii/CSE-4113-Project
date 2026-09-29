@@ -37,7 +37,10 @@ Send the returned token as `X-CSRF-Token` with every POST/DELETE request, an
 allowed `Origin`, and `credentials: 'include'`. After login the CSRF token
 rotates: call `/auth/csrf` again before the next mutation. The session cookie
 is HttpOnly and expires on idle/absolute deadlines. Email verification and reset
-tokens arrive in Mailpit in development. Password login accepts email only;
+links arrive in Mailpit in development. Set `FRONTEND_URL` to your web origin
+(default `http://localhost:3000`; HTTPS is required in production). Links target
+`/verify-email` or `/reset-password`, with the token in the URL fragment so it
+does not enter HTTP access logs. Password login accepts email only;
 phone login awaits a verified SMS channel. Google login uses a one-time nonce:
 POST `/auth/google/nonce`, pass its returned nonce to Google Identity Services,
 then POST the Google credential and nonce to `/auth/google`. Existing email
