@@ -176,10 +176,15 @@ em {
 }
 .nav-wrap {
   position:sticky;
-  top:18px;
+  top:0;
   z-index:30;
+  padding:18px 0 0;
+  background:radial-gradient(ellipse at 0% 0%,var(--wash-transparent-start),transparent 48%),radial-gradient(ellipse at 100% 12%,var(--wash-transparent-end),transparent 50%),var(--bg);
+  background-attachment:fixed
+}
+.nav-wrap .navbar {
   width:min(1240px,calc(100% - 48px));
-  margin:22px auto 0
+  margin:0 auto
 }
 .navbar {
   display:flex;
@@ -1023,9 +1028,10 @@ html[lang=bn] .hero h1 {
     width:calc(100% - 40px)
   }
   .nav-wrap {
-    width:calc(100% - 24px);
-    top:10px;
-    margin-top:12px
+    padding-top:10px
+  }
+  .nav-wrap .navbar {
+    width:calc(100% - 24px)
   }
   .navbar {
     padding:8px 10px;
