@@ -65,6 +65,25 @@ html[data-theme="dark"] .auth-story em { color: #b7beff; }
 .map-attribution a { text-decoration: underline; text-underline-offset: 3px; }
 .map-help { font-size: 11px; margin: 15px 0 0; }
 
+.dhaka-weather { padding-bottom: 22px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+.weather-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.weather-label { color: var(--gradient-start); background: var(--wash-transparent-start); padding: 4px 9px; border-radius: 20px; font-size: 10px; }
+.weather-current { display: flex; align-items: center; gap: 18px; margin-top: 20px; }
+.weather-icon { font-size: 46px; line-height: 1; color: var(--gradient-start); }
+.weather-temperature { font-size: 48px; line-height: 1.1; font-weight: 600; letter-spacing: -.04em; }
+.weather-temperature small { font-size: 21px; font-weight: 400; color: var(--muted); }
+.weather-current p { margin: 5px 0 0; font-size: 13px; color: var(--ink); }
+.weather-feels { margin: 12px 0 16px; font-size: 11px; }
+.weather-metrics { margin: 0; }
+.weather-metrics > div { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 11px; }
+.weather-metrics dt { color: var(--muted); }
+.weather-metrics dd { margin: 0; font-weight: 600; text-align: right; }
+.weather-updated, .weather-source { font-size: 10px; margin: 13px 0 0; }
+.weather-source a { text-decoration: underline; text-underline-offset: 3px; }
+.weather-placeholder { font-size: 13px; padding-block: 20px; }
+.weather-error p { font-size: 11px; margin-bottom: 8px; }
+.weather-error button { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 7px 12px; font-size: 11px; }
+
 .community-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
 .community-card { border: 1px solid var(--line); border-radius: 20px; padding: 30px; background: linear-gradient(140deg, var(--wash-transparent-start), transparent 65%), var(--surface); }
 .community-card:nth-child(2) { background: var(--surface); }

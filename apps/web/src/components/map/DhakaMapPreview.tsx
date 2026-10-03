@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApp } from "../Providers";
+import DhakaWeather from "./DhakaWeather";
 
 // Viewports only: these areas do not represent water-level monitoring coverage.
 const areas = [
@@ -28,7 +29,8 @@ export default function DhakaMapPreview() {
           <div className="map-canvas">
             <iframe key={area.en} title={t(`Interactive street map: ${area.en}`, `রাস্তার ইন্টার‌্যাক্টিভ মানচিত্র: ${area.bn}`)} src={`https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(area.bbox)}&layer=mapnik`} loading="lazy" referrerPolicy="no-referrer" allowFullScreen />
           </div>
-          <aside className="map-sidebar" aria-label={t("Water monitoring status", "পানির স্তর পর্যবেক্ষণের অবস্থা")}>
+          <aside className="map-sidebar" aria-label={t("Weather and water monitoring", "আবহাওয়া ও পানির স্তর পর্যবেক্ষণ")}>
+            <DhakaWeather />
             <span className="eyebrow">{t("ROAD WATER LEVELS", "রাস্তার পানির স্তর")}</span>
             <h3>{t("The map is ready. Live readings are next.", "মানচিত্র প্রস্তুত। এরপর আসবে লাইভ তথ্য।")}</h3>
             <div className="map-empty-reading"><span aria-hidden="true">≈</span><strong>{t("No readings yet", "এখনো কোনো পরিমাপ নেই")}</strong><p>{t("Monitoring is not connected. No road conditions are being reported.", "পর্যবেক্ষণ ব্যবস্থা যুক্ত হয়নি। কোনো রাস্তার বর্তমান অবস্থা দেখানো হচ্ছে না।")}</p></div>
