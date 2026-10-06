@@ -10,8 +10,8 @@ Urban waterlogging and drainage management for Dhaka. This repository contains t
 
 The repository root is `CSE-4113-Project/`.
 
-- [Project structure](docs/MONOREPO_ARCHITECTURE.md)
-- [System design](docs/SYSTEM_DESIGN.md)
+- [Project structure](docs/architecture/MONOREPO_ARCHITECTURE.md)
+- [System design](docs/architecture/SYSTEM_DESIGN.md)
 
 ## Run on Windows
 
