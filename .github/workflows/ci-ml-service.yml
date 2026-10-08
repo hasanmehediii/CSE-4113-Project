@@ -1,0 +1,15 @@
+name: ML Service CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder check
+        run: echo "Workflow placeholder passed."
