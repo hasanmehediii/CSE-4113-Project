@@ -1,0 +1,139 @@
+# Complete local development stack. Run ./start.ps1 from the repository root.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dubsibhai
+      POSTGRES_USER: dubsibhai
+      POSTGRES_PASSWORD: local-dev-only
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["auth_postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dubsibhai -d dubsibhai"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:6379:6379"]
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongodb:
+    image: mongo:8.0
+    ports: ["127.0.0.1:27017:27017"]
+    volumes: ["mongodb_data:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand({ping: 1}).ok ? 0 : 1)"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["127.0.0.1:8025:8025", "127.0.0.1:1025:1025"]
+
+  ml-service:
+    build:
+      context: ..
+      dockerfile: infra/docker/ml-service.Dockerfile
+    environment:
+      ML_MODEL_PATH: /workspace/apps/ml-service/weights/classifier.joblib
+    ports: ["127.0.0.1:8001:8001"]
+    volumes:
+      - ../apps/ml-service/app:/workspace/apps/ml-service/app
+      - ../docs/dataset:/workspace/docs/dataset:ro
+      - ml_weights:/workspace/apps/ml-service/weights
+    command:
+      - sh
+      - -c
+      - >-
+        if [ ! -f "$$ML_MODEL_PATH" ]; then uv run --no-sync python -m app.train; fi
+        && exec uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
+    healthcheck:
+      test: ["CMD", "/workspace/apps/ml-service/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/ready', timeout=5)"]
+      interval: 10s
+      timeout: 10s
+      start_period: 120s
+      retries: 12
+
+  api:
+    build:
+      context: ..
+      dockerfile: infra/docker/api.Dockerfile
+    env_file: ["../.env"]
+    environment:
+      ENVIRONMENT: development
+      COOKIE_SECURE: "false"
+      DATABASE_URL: postgresql+psycopg://dubsibhai:local-dev-only@db:5432/dubsibhai
+      REDIS_URL: redis://redis:6379/0
+      MONGODB_URL: mongodb://mongodb:27017/dubsibhai
+      ML_SERVICE_URL: http://ml-service:8001
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_USERNAME: ""
+      SMTP_PASSWORD: ""
+      SMTP_STARTTLS: "false"
+      MAIL_FROM: noreply@dubsibhai.local
+      FRONTEND_URL: http://localhost:3000
+      API_CORS_ORIGINS: '["http://localhost:3000","http://127.0.0.1:3000"]'
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-}}
+      TRUSTED_PROXY_CIDRS: '["172.16.0.0/12","192.168.0.0/16","10.0.0.0/8"]'
+    ports: ["127.0.0.1:8000:8000"]
+    volumes:
+      - ../apps/api/app:/workspace/apps/api/app
+      - ../apps/api/alembic:/workspace/apps/api/alembic
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      mongodb: {condition: service_healthy}
+      ml-service: {condition: service_healthy}
+      mailpit: {condition: service_started}
+    command: ["sh", "-c", "uv run --no-sync alembic upgrade head && exec uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"]
+    healthcheck:
+      test: ["CMD", "/workspace/apps/api/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)"]
+      interval: 5s
+      timeout: 10s
+      start_period: 30s
+      retries: 20
+
+  web:
+    build:
+      context: ..
+      dockerfile: infra/docker/web.Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-}}
+      NEXT_TELEMETRY_DISABLED: "1"
+      WATCHPACK_POLLING: "true"
+    ports: ["127.0.0.1:3000:3000"]
+    volumes:
+      - ../apps/web/src:/workspace/apps/web/src
+      - ../apps/web/public:/workspace/apps/web/public:ro
+    depends_on:
+      api: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/login').then(r => { if (!r.ok) process.exit(1); }).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 15s
+      start_period: 60s
+      retries: 20
+
+  nginx:
+    image: nginx:1.29-alpine
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: ["./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"]
+    depends_on:
+      api: {condition: service_healthy}
+
+volumes:
+  auth_postgres:
+  redis_data:
+  mongodb_data:
+  ml_weights:
