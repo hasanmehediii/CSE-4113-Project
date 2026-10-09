@@ -13,7 +13,92 @@ The repository root is `CSE-4113-Project/`.
 - [Project structure](docs/architecture/MONOREPO_ARCHITECTURE.md)
 - [System design](docs/architecture/SYSTEM_DESIGN.md)
 
+## High-level architecture
+
+The target architecture combines a FastAPI modular monolith with a separate ML
+service. The core API owns business data, authorization, and workflow decisions;
+an API-owned background worker calls ML over HTTP and saves versioned results.
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"background": "#0b1530", "primaryColor": "#cbd5e1", "primaryTextColor": "#0b1530", "primaryBorderColor": "#60a5fa", "lineColor": "#a8b4c7", "textColor": "#cbd5e1", "edgeLabelBackground": "#cbd5e1", "clusterBkg": "#132343", "clusterBorder": "#475569"}}}%%
+flowchart TB
+    subgraph CANVAS[" "]
+    direction TB
+    WEB("<b>Browser: Next.js web application</b><br/>Visitor · Resident · Worker · Ward admin · Super admin")
+    EDGE("<b>Nginx / HTTPS entry point</b><br/>Public web and API routing")
+    API("<b>Core FastAPI modular monolith</b><br/>Session auth and role / ward guards<br/>Complaint and photo workflows · Assignments and status history<br/>Publication · Notifications · Analytics")
+
+    subgraph DATA["Data services"]
+        direction LR
+        PG[("<b>PostgreSQL</b><br/>System of record<br/>Users · Complaints · Assignments<br/>History · ML jobs · Outbox")]
+        PHOTOS("<b>Private photo storage</b><br/>S3-compatible / MinIO<br/>Complaints and resolution evidence")
+        REDIS[("<b>Redis</b><br/>Auth rate limits<br/>Classification job delivery")]
+    end
+
+    subgraph PROCESSING["Background processing"]
+        direction LR
+        WORKER("<b>API dispatcher / worker</b><br/>Read outbox and claim jobs<br/>Save versioned ML results")
+        ML("<b>Separate FastAPI ML service</b><br/>Bengali classifier and model artifacts<br/>Planned duplicate / clustering operations")
+    end
+
+    EXTERNAL("<b>External services</b><br/>Google Identity: sign-in · OpenStreetMap: tiles · SMTP: email")
+
+    WEB -->|HTTPS| EDGE
+    EDGE -->|REST / session cookies| API
+    API -->|SQL| PG
+    API -->|Private uploads| PHOTOS
+    API -->|Rate limits| REDIS
+    PG <-->|Jobs / results| WORKER
+    REDIS <-->|Publish / consume jobs| WORKER
+    WORKER -->|Internal HTTP| ML
+    ML ~~~ EXTERNAL
+
+    classDef component fill:#cbd5e1,stroke:#60a5fa,stroke-width:1.5px,color:#0b1530;
+    classDef planned fill:#cbd5e1,stroke:#60a5fa,stroke-width:1.5px,stroke-dasharray:6 4,color:#0b1530;
+    classDef external fill:#b8c4d4,stroke:#94a3b8,stroke-width:1px,color:#0b1530;
+    class WEB,EDGE,API,PG,REDIS,ML component;
+    class PHOTOS,WORKER planned;
+    class EXTERNAL external;
+    style DATA fill:#132343,stroke:#475569,stroke-width:1px,color:#cbd5e1
+    style PROCESSING fill:#132343,stroke:#475569,stroke-width:1px,color:#cbd5e1
+    linkStyle default stroke:#a8b4c7,stroke-width:1.5px;
+    end
+    style CANVAS fill:#0b1530,stroke:#0b1530,color:#cbd5e1
+```
+
+Dashed boxes identify planned photo-storage and background-worker components.
+Other boxes may also contain planned capabilities: complaint workflows, live
+overlays, duplicate detection, clustering, and production HTTPS are not yet
+implemented. External integrations provide Google sign-in, map tiles, and email.
+
+The local Docker stack also includes **MongoDB** for future development and
+**Mailpit** for test emails. PostgreSQL remains the system of record; MongoDB has
+no business-data role in this baseline. PostGIS and pgvector are planned additions.
+
 ## Run on Windows
+
+### Run everything with Docker (recommended for local development)
+
+Install and start Docker Desktop with Linux containers, stop any manually running
+app servers, and run this from the repository root:
+
+```powershell
+.\start.ps1
+```
+
+This starts the frontend, API, ML service, PostgreSQL, Redis, MongoDB, Mailpit,
+and Nginx. Images and dependencies download automatically; migrations and initial
+synthetic ML training run automatically. Existing environment files are retained,
+and database/model data persists in Docker volumes.
+
+Open http://localhost:3000. Use `.\start.ps1 -Logs` to follow logs and
+`.\start.ps1 -Stop` to stop without deleting data. Teammates only need Docker
+Desktop and PowerShell for this path; host Node.js and Python are unnecessary.
+See [Docker development](docs/guideline/DOCKER_DEVELOPMENT.md) for ports, Google sign-in,
+retraining, and troubleshooting. MongoDB is available for future backend work;
+the current app uses PostgreSQL and Redis.
+
+### Run apps directly on the host
 
 Install Node.js 20.9+ (22 recommended), Python 3.11+, and [uv](https://docs.astral.sh/uv/), then open PowerShell.
 A global pnpm installation is not needed. First launch requires internet access to install dependencies.
