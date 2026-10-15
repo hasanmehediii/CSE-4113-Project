@@ -1,0 +1,77 @@
+.registration-shell {
+  max-width: 960px;
+  padding-block: 42px 76px;
+}
+.registration-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 28px;
+  padding: 0 8px 26px;
+}
+.registration-heading .text-link { display: inline-block; margin-bottom: 24px; }
+.registration-heading .eyebrow { display: block; font-size: 10px; }
+.registration-heading h1 { font-size: clamp(1.9rem, 3.4vw, 2.8rem); line-height: 1.15; margin: 12px 0; }
+.registration-heading p { margin: 0; font-size: .94rem; }
+.registration-heading img { flex-shrink: 0; object-fit: contain; }
+.registration-card { padding: 34px 40px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface); box-shadow: var(--shadow); }
+.registration-fields, .registration-section, .registration-role-choice { border: 0; padding: 0; margin: 0; min-width: 0; }
+.registration-fields { display: grid; gap: 28px; }
+.registration-role-choice > legend, .registration-section > legend { padding: 0; margin-bottom: 16px; font-size: 1rem; font-weight: 700; }
+.registration-role-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.registration-role-options > label { display: flex; align-items: flex-start; gap: 13px; padding: 21px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); cursor: pointer; }
+.registration-role-options > label.selected { border-color: var(--blue); background: var(--soft); box-shadow: 0 0 0 1px var(--blue); }
+.registration-role-options input { flex-shrink: 0; margin: 4px 0 0; width: 17px; height: 17px; accent-color: var(--blue); }
+.registration-role-options strong { display: block; font-size: 1rem; margin-bottom: 7px; }
+.registration-role-options small { display: block; color: var(--muted); font-size: .8rem; line-height: 1.65; }
+.registration-section { border-top: 1px solid var(--line); padding-top: 20px; }
+.registration-section > legend { float: left; width: 100%; margin-bottom: 16px; }
+.registration-section > legend + * { clear: both; }
+.registration-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 19px 22px; }
+.registration-grid .field-wide { grid-column: 1 / -1; }
+.registration-grid > label { display: flex; flex-direction: column; min-width: 0; gap: 8px; font-size: .83rem; font-weight: 600; }
+.registration-grid input, .registration-grid select { display: block; width: 100%; min-width: 0; min-height: 48px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); font: inherit; font-weight: 400; }
+.registration-grid input:focus-visible, .registration-grid select:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-color: var(--blue); }
+.registration-grid small, .registration-password-help small { font-size: .75rem; font-weight: 400; line-height: 1.65; color: var(--muted); }
+.registration-password-help { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.registration-password-help button { background: none; border: 0; color: var(--blue); padding: 3px 0; font-size: .75rem; }
+.registration-identity { background: var(--soft); padding: 22px; border: 1px solid var(--line); border-radius: 14px; }
+.registration-identity p { font-size: .84rem; line-height: 1.7; }
+.registration-identity input { background: var(--surface); }
+.registration-submit { display: flex; align-items: center; justify-content: space-between; gap: 24px; border-top: 1px solid var(--line); padding-top: 22px; }
+.registration-submit p { margin: 0; font-size: .8rem; max-width: 320px; }
+.registration-submit .button { flex-shrink: 0; min-height: 50px; }
+.registration-card .google-signin { max-width: 360px; margin-inline: auto; }
+.registration-signin { margin: 24px 0 0; text-align: center; font-size: .86rem; }
+.registration-success { max-width: 640px; margin: auto; padding: 20px 0; }
+.registration-success h2 { margin: 20px 0 14px; }
+.registration-approval-note { padding: 18px; border-radius: 12px; background: var(--soft); }
+.registration-actions { display: flex; gap: 12px; flex-wrap: wrap; margin: 22px 0; }
+.live-road-map-frame { min-width: 0; position: relative; }
+.map-load-notice { display: flex; flex-wrap: wrap; gap: 10px 18px; padding: 15px; margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: .82rem; line-height: 1.6; }
+.map-load-notice span { flex-basis: 100%; color: var(--muted); }
+.map-load-notice button, .map-load-notice a { border: 0; padding: 0; background: none; color: var(--blue); font-size: inherit; }
+@media (max-width: 680px) {
+  .registration-shell { padding-block: 28px 48px; }
+  .registration-heading { gap: 12px; padding-inline: 0; align-items: flex-start; }
+  .registration-heading img { width: 66px; height: 66px; margin-top: 32px; }
+  .registration-heading h1 { font-size: 1.9rem; }
+  .registration-card { padding: 24px 20px; border-radius: 18px; }
+  .registration-role-options { gap: 10px; }
+  .registration-role-options > label { padding: 15px 12px; gap: 9px; }
+  .registration-role-options strong { font-size: .9rem; }
+  .registration-role-options small { font-size: .74rem; }
+  .registration-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .registration-grid input, .registration-grid select { font-size: 16px; }
+  .registration-submit { flex-direction: column; align-items: stretch; gap: 16px; }
+  .registration-submit p { max-width: none; }
+  .registration-identity { padding: 18px 14px; }
+}
+@media (max-width: 400px) {
+  .registration-role-options { grid-template-columns: minmax(0, 1fr); }
+  .registration-heading img { display: none; }
+}
+.civic-file-control { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; position: relative; }
+.civic-file-control .civic-file-native { position: absolute; width: 1px; height: 1px; min-height: 0; padding: 0; border: 0; overflow: hidden; clip-path: inset(50%); }
+.civic-file-control > span { overflow-wrap: anywhere; color: var(--muted); font-size: .8rem; font-weight: 400; }
+.civic-file-control .button { padding: 10px 14px; font-size: .85rem; }

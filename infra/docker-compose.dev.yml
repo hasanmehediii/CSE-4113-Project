@@ -24,29 +24,55 @@ services:
       interval: 5s
       retries: 10
 
+  mongodb:
+    image: mongo:8.0
+    ports: ["127.0.0.1:27017:27017"]
+    volumes: ["mongodb_data:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand({ping: 1}).ok ? 0 : 1)"]
+      interval: 5s
+      retries: 20
+
   mailpit:
     image: axllent/mailpit:v1.27
     ports:
       - "127.0.0.1:8025:8025"
+      - "127.0.0.1:1025:1025"
 
   api:
     build:
       context: ../apps/api
+    env_file: ["../.env"]
     environment:
       DATABASE_URL: postgresql+psycopg://dubsibhai:local-dev-only@db:5432/dubsibhai
       REDIS_URL: redis://redis:6379/0
+      MONGODB_URL: mongodb://mongodb:27017/dubsibhai
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       AUTH_SECRET: development-only-change-before-deployment
       TRUSTED_PROXY_CIDRS: '["172.16.0.0/12"]'
     expose:
       - "8000"
+    volumes:
+      - civic_media:/app/media
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    command: ["sh", "-c", "uv run --no-sync alembic upgrade head && uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    command: ["sh", "-c", "uv run --no-sync alembic upgrade head && uv run --no-sync python -m app.workers.bootstrap && uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+
+  project-events:
+    build:
+      context: ../apps/api
+    environment:
+      DATABASE_URL: postgresql+psycopg://dubsibhai:local-dev-only@db:5432/dubsibhai
+      MONGODB_URL: mongodb://mongodb:27017/dubsibhai
+    depends_on:
+      api: {condition: service_started}
+      mongodb: {condition: service_healthy}
+    command: ["uv", "run", "--no-sync", "python", "-m", "app.workers.project_events"]
+    restart: unless-stopped
 
   nginx:
     image: nginx:1.29-alpine
@@ -59,3 +85,5 @@ services:
 
 volumes:
   auth_postgres:
+  mongodb_data:
+  civic_media:

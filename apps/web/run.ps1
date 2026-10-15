@@ -1,3 +1,4 @@
+param([switch]$SkipInstall)
 $ErrorActionPreference = 'Stop'
 
 if (-not (Get-Command node -ErrorAction SilentlyContinue) -or
@@ -7,8 +8,10 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue) -or
 
 Push-Location $PSScriptRoot
 try {
-    & npx.cmd --yes pnpm@10.34.5 install --frozen-lockfile
-    if ($LASTEXITCODE -ne 0) { throw 'Frontend dependency installation failed.' }
+    if (-not $SkipInstall) {
+        & npx.cmd --yes pnpm@10.34.5 install --frozen-lockfile
+        if ($LASTEXITCODE -ne 0) { throw 'Frontend dependency installation failed.' }
+    }
 
     & npx.cmd --yes pnpm@10.34.5 dev --hostname 127.0.0.1 --port 3000
     if ($LASTEXITCODE -ne 0) { throw "Next.js exited with code $LASTEXITCODE." }

@@ -5,18 +5,20 @@ from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from redis.exceptions import RedisError
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import get_settings
 from app.core.dependencies import CurrentSession, CurrentUser, Database, require_csrf
 from app.core.rate_limit import auth_ip_limit, enforce
 from app.core.security import digest, hasher, random_token, verify_password
-from app.models.user import AuthSession, Identity, User
+from app.models.civic import WorkerApplication
+from app.models.user import AuthSession, Identity, PasswordHistory, User
 from app.schemas.user import (
     EmailInput,
     GoogleInput,
     LoginInput,
+    RecoveryInput,
     RegisterInput,
     ResetInput,
     TokenInput,
@@ -24,6 +26,7 @@ from app.schemas.user import (
 )
 from app.services.auth_service import (
     audit,
+    change_password,
     clear_cookies,
     consume_action_token,
     create_action_token,
@@ -32,6 +35,7 @@ from app.services.auth_service import (
 )
 from app.services.email_service import send_action_email
 from app.services.google_provider import GoogleProvider, get_google_provider
+from app.services.worker_service import submit_application
 
 router = APIRouter(
     prefix="/auth",
@@ -39,6 +43,13 @@ router = APIRouter(
     dependencies=[Depends(auth_ip_limit), Depends(require_csrf)],
 )
 GENERIC = {"message": "If eligible, an email will be sent. Check your inbox."}
+
+
+def account_output(db, user):
+    output = UserOutput.model_validate(user)
+    application = db.get(WorkerApplication, user.id)
+    output.worker_application_status = application.status if application else None
+    return output
 
 
 def account_limit(request: Request, email: str, scope: str, capacity=5, period=900):
@@ -59,10 +70,19 @@ def register(data: RegisterInput, request: Request, db: Database, tasks: Backgro
     user = db.scalar(select(User).where(User.email == data.email))
     if user:
         return GENERIC
-    user = User(email=data.email, name=data.name, password_hash=password_hash)
+    user = User(
+        email=data.email,
+        name=data.name,
+        password_hash=password_hash,
+        phone=data.phone,
+        date_of_birth=data.date_of_birth,
+        blood_group=data.blood_group,
+    )
     db.add(user)
     try:
         db.flush()
+        if data.account_type == "worker":
+            submit_application(db, user.id, data.worker_identity)
         token = create_action_token(db, user, "verify")
         db.commit()
     except IntegrityError:
@@ -75,25 +95,29 @@ def register(data: RegisterInput, request: Request, db: Database, tasks: Backgro
 
 @router.post("/login", response_model=UserOutput)
 def login(data: LoginInput, request: Request, response: Response, db: Database):
-    account_limit(request, data.email, "login")
-    user = db.scalar(select(User).where(User.email == data.email).with_for_update())
+    account_limit(request, data.identifier, "login")
+    user = db.scalar(
+        select(User)
+        .where(or_(User.email == data.identifier, User.phone == data.identifier))
+        .with_for_update()
+    )
     if (
         not verify_password(user.password_hash if user else None, data.password)
         or not user
         or not user.is_active
     ):
         audit("login_failed")
-        raise HTTPException(401, "Invalid email or password")
+        raise HTTPException(401, "Invalid email/phone or password")
     if hasher.check_needs_rehash(user.password_hash):
         user.password_hash = hasher.hash(data.password)
         db.flush()
     start_session(db, user, request, response)
-    return user
+    return account_output(db, user)
 
 
 @router.get("/me", response_model=UserOutput)
-def me(user: CurrentUser):
-    return user
+def me(user: CurrentUser, db: Database):
+    return account_output(db, user)
 
 
 @router.post("/logout")
@@ -168,6 +192,32 @@ def forgot_password(data: EmailInput, request: Request, db: Database, tasks: Bac
     return request_email(data, request, db, tasks, "reset")
 
 
+@router.post("/recover", status_code=202)
+def recover(data: RecoveryInput, request: Request, db: Database, tasks: BackgroundTasks):
+    account_limit(request, data.email, "recovery", 3, 3600)
+    user = db.scalar(select(User).where(User.email == data.email).with_for_update())
+    history = (
+        db.scalars(
+            select(PasswordHistory)
+            .where(PasswordHistory.user_id == user.id)
+            .order_by(PasswordHistory.retired_at.desc())
+            .limit(4)
+        ).all()
+        if user
+        else []
+    )
+    # Always perform five Argon2 checks; never disclose which recovery factor matched.
+    hashes = [user.password_hash if user else None] + [row.password_hash for row in history]
+    hashes += [None] * (5 - len(hashes))
+    matches = [verify_password(stored, data.remembered_password) for stored in hashes]
+    matched = any(matches)
+    if user and user.is_active and user.date_of_birth == data.date_of_birth and matched:
+        token = create_action_token(db, user, "reset")
+        db.commit()
+        tasks.add_task(send_action_email, user.email, token, "reset")
+    return GENERIC
+
+
 @router.post("/resend-verification", status_code=202)
 def resend_verification(data: EmailInput, request: Request, db: Database, tasks: BackgroundTasks):
     return request_email(data, request, db, tasks, "verify")
@@ -184,7 +234,7 @@ def verify_email(data: TokenInput, db: Database):
 @router.post("/reset-password")
 def reset_password(data: ResetInput, db: Database, response: Response):
     user = consume_action_token(db, data.token, "reset")
-    user.password_hash = hasher.hash(data.password)
+    change_password(db, user, data.password)
     user.email_verified = True  # Possession of this email-delivered token proves ownership.
     db.execute(update(AuthSession).where(AuthSession.user_id == user.id).values(revoked=True))
     db.commit()
@@ -257,4 +307,4 @@ def google_login(
             db.rollback()
             raise HTTPException(409, "Account already exists; retry sign-in")
     start_session(db, user, request, response)
-    return user
+    return account_output(db, user)

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { mutate } from "@/lib/api-client";
 import type { User } from "@/lib/auth";
+import { accountHome } from "@/lib/auth";
 import { useApp } from "./Providers";
 type GoogleApi = { accounts: { id: { initialize: (options: { client_id: string; nonce: string; callback: (response: { credential: string }) => void }) => void; renderButton: (container: HTMLElement, options: { theme: string; size: string; shape: string; locale: string }) => void } } };
 export default function GoogleSignIn() {
@@ -25,7 +26,7 @@ export default function GoogleSignIn() {
       if (!google || !target.current) throw new Error("Google unavailable");
       google.accounts.id.initialize({ client_id: clientId!, nonce, callback: async ({ credential }) => {
         setBusy(true);
-        try { setUser(await mutate<User>("/auth/google", { credential, nonce })); router.replace("/account"); }
+        try { const user = await mutate<User>("/auth/google", { credential, nonce }); setUser(user); router.replace(accountHome(user)); }
         catch { setFailed(true); setStarted(false); target.current?.replaceChildren(); }
         finally { setBusy(false); }
       } });

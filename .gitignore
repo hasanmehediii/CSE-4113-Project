@@ -25,6 +25,7 @@ dist/
 build/
 .cache/
 *.log
+apps/api/media/
 .DS_Store
 Thumbs.db
 

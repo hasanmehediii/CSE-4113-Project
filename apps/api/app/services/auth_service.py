@@ -8,11 +8,29 @@ from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.security import digest, make_csrf, random_token
-from app.models.user import ActionToken, AuthSession, User
+from app.core.security import digest, hasher, make_csrf, random_token, verify_password
+from app.models.user import ActionToken, AuthSession, PasswordHistory, User
 
 logger = logging.getLogger("auth.audit")
 logger.setLevel(logging.INFO)
+
+
+def change_password(db: Session, user: User, password: str):
+    history = db.scalars(
+        select(PasswordHistory)
+        .where(PasswordHistory.user_id == user.id)
+        .order_by(PasswordHistory.retired_at.desc(), PasswordHistory.id)
+    ).all()
+    if any(
+        verify_password(stored, password)
+        for stored in [user.password_hash] + [entry.password_hash for entry in history]
+    ):
+        raise HTTPException(400, "Choose a password you have not recently used")
+    if user.password_hash:
+        db.add(PasswordHistory(user_id=user.id, password_hash=user.password_hash))
+    for entry in history[3:]:
+        db.delete(entry)
+    user.password_hash = hasher.hash(password)
 
 
 def audit(event: str, user_id: str | None = None):

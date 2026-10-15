@@ -1,5 +1,8 @@
 # Docker development
 
+For the complete developer guide, including host apps with Docker data services,
+see [DEVELOPMENT.md](../../DEVELOPMENT.md).
+
 Install Docker Desktop, enable its WSL 2/Linux-container backend, and start its
 engine. Clone the repository and open PowerShell in its root. Node.js, Python,
 PostgreSQL, Redis, and MongoDB do not need to be installed on the host.
@@ -40,17 +43,24 @@ Compose project so the existing PostgreSQL volume can be reused.
 
 These ports bind only to the local machine. This stack is for development and
 uses local database credentials; it is not a production deployment.
-The application currently uses PostgreSQL and Redis. MongoDB is provisioned for
-future features; no existing application data is migrated into it.
+PostgreSQL owns transactional data, Redis supplies rate limits/auth state, and
+the `project-events` worker projects PostgreSQL outbox events into MongoDB. The
+`classify-reports` worker calls ML and stores category suggestions in PostgreSQL.
 
 ## Daily work
 
 ```powershell
 .\start.ps1             # Build changed images and start everything
 .\start.ps1 -NoBuild    # Start using previously built images
+.\start.ps1 -Status     # Inspect containers
 .\start.ps1 -Logs       # Follow logs; Ctrl+C exits logs only
 .\start.ps1 -Stop       # Stop containers, retaining databases and ML artifacts
 ```
+
+For host development, `.\run.ps1` starts the four Docker data/email services and
+all host apps/workers together. You can also manage just those containers using
+`start.ps1 -DataOnly`, with `-Status`, `-Logs` or `-Stop` as needed. Data-only
+stop leaves any other containers untouched.
 
 API and ML `app` directories, API migrations, frontend `src` and `public`, and
 the ML dataset are mounted from the checkout. Source edits trigger the dev

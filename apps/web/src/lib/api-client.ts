@@ -10,7 +10,12 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     signal: options.signal ?? AbortSignal.timeout(15000),
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new ApiError(response.status, typeof body.detail === "string" ? body.detail : "Invalid request");
+  if (!response.ok) {
+    const detail = typeof body.detail === "string" ? body.detail : Array.isArray(body.detail)
+      ? body.detail.map((issue: { loc?: (string | number)[]; msg?: string }) => `${(issue.loc || []).filter(part => part !== "body").join(" · ")}: ${issue.msg || "Invalid value"}`).join(". ")
+      : "Invalid request";
+    throw new ApiError(response.status, detail);
+  }
   return body as T;
 }
 // Mutations are serialized because the server rotates session-bound CSRF cookies.
@@ -19,6 +24,22 @@ let csrfToken: string | null = null;
 async function csrf() {
   if (!csrfToken) csrfToken = (await api<{ csrf_token: string }>("/auth/csrf")).csrf_token;
   return csrfToken;
+}
+export function mediaUrl(url: string) {
+  return url.startsWith("/media/") ? `${origin.replace(/\/api\/v1$/, "")}${url}` : url;
+}
+export function uploadImage(file: File): Promise<string> {
+  const request = mutations.then(async () => {
+    const body = new FormData(); body.set("file", file);
+    const send = async () => fetch(`${base}/media`, { method: "POST", credentials: "include", headers: { "X-CSRF-Token": await csrf() }, body });
+    let response = await send();
+    if (response.status === 403) { csrfToken = null; response = await send(); }
+    const result = await response.json();
+    if (!response.ok) throw new ApiError(response.status, typeof result.detail === "string" ? result.detail : "Image upload failed");
+    return result.url as string;
+  });
+  mutations = request.catch(() => undefined);
+  return request;
 }
 export function mutate<T>(path: string, data?: unknown, method = "POST"): Promise<T> {
   const request = mutations.then(async () => {

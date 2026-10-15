@@ -1,5 +1,2 @@
-import ComingSoon from "@/components/ComingSoon";
-
-export default function WorkerPage() {
-  return <ComingSoon title="Worker dashboard" />;
-}
+import WorkerDashboard from "@/components/WorkerDashboard";
+export default WorkerDashboard;
