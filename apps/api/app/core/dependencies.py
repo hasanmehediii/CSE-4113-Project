@@ -49,6 +49,10 @@ def current_session(request: Request, db: Database) -> AuthSession:
         .where(AuthSession.id == session.id, AuthSession.last_seen_at < now)
         .values(last_seen_at=now)
     )
+    # Finish this activity-only transaction before domain locks are acquired.
+    # Otherwise block/logout-all (user -> sessions) can deadlock with a civic
+    # mutation (session -> complaint -> points account).
+    db.commit()
     return session
 
 

@@ -7,6 +7,9 @@ from functools import lru_cache
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
 
+PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 128
+
 hasher = PasswordHasher()
 
 

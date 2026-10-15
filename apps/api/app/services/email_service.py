@@ -2,8 +2,8 @@
 
 import logging
 import smtplib
-from urllib.parse import quote
 from email.message import EmailMessage
+from urllib.parse import quote
 
 from app.core.config import get_settings
 

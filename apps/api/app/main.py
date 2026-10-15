@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import router
 from app.core.config import get_settings
@@ -20,12 +21,13 @@ app.add_middleware(
     allow_headers=["Content-Type", "X-CSRF-Token"],
 )
 app.include_router(router)
+app.mount("/media", StaticFiles(directory=settings.media_directory, check_dir=False), name="media")
 
 
 @app.middleware("http")
 async def auth_response_headers(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith("/api/v1/auth"):
+    if request.url.path.startswith(("/api/v1/auth", "/api/v1/admin", "/api/v1/me", "/api/v1/workers")):
         response.headers["Cache-Control"] = "no-store"
         response.headers["Pragma"] = "no-cache"
     response.headers["X-Content-Type-Options"] = "nosniff"

@@ -12,6 +12,9 @@ The repository root is `CSE-4113-Project/`.
 
 - [Project structure](docs/architecture/MONOREPO_ARCHITECTURE.md)
 - [System design](docs/architecture/SYSTEM_DESIGN.md)
+- [Developer setup: run the complete project](DEVELOPMENT.md)
+- [Civic app setup and workflows](docs/guideline/CIVIC_DEVELOPMENT.md)
+- [Database schema, normalization and indexes](db/README.md)
 
 ## High-level architecture
 
@@ -21,18 +24,22 @@ an API-owned background worker calls ML over HTTP and saves versioned results.
 
 ![DubsiBhai high-level architecture](<docs/Client-Driven Next.js-2026-10-09-203929.svg>)
 
-Dashed boxes identify planned photo-storage and background-worker components.
-Other boxes may also contain planned capabilities: complaint workflows, live
-overlays, duplicate detection, clustering, and production HTTPS are not yet
-implemented. External integrations provide Google sign-in, map tiles, and email.
-
-The local Docker stack also includes **MongoDB** for future development and
-**Mailpit** for test emails. PostgreSQL remains the system of record; MongoDB has
-no business-data role in this baseline. PostGIS and pgvector are planned additions.
+The civic implementation includes authenticated reports and road updates, public
+map overlays, worker approval/assignment/completion, community verification,
+points, moderation and mayor analytics. Background workers project transactional
+events into **MongoDB** and obtain category suggestions from the existing ML service.
+PostgreSQL remains the source of truth; Redis provides shared rate limits and
+short-lived auth state. Duplicate detection, improved road-risk prediction,
+ML geographic clustering, IoT ingestion and production HTTPS remain future work.
+The diagram predates these additions; the linked database/workflow guides describe
+the implementation. External integrations provide Google sign-in, map tiles and email.
 
 ## Run on Windows
 
-### Run everything with Docker (recommended for local development)
+See [DEVELOPMENT.md](DEVELOPMENT.md) for first-time configuration, all services,
+logs, shutdown, migrations, training and troubleshooting. Choose one startup mode.
+
+### Run everything with Docker
 
 Install and start Docker Desktop with Linux containers, stop any manually running
 app servers, and run this from the repository root:
@@ -50,29 +57,29 @@ Open http://localhost:3000. Use `.\start.ps1 -Logs` to follow logs and
 `.\start.ps1 -Stop` to stop without deleting data. Teammates only need Docker
 Desktop and PowerShell for this path; host Node.js and Python are unnecessary.
 See [Docker development](docs/guideline/DOCKER_DEVELOPMENT.md) for ports, Google sign-in,
-retraining, and troubleshooting. MongoDB is available for future backend work;
-the current app uses PostgreSQL and Redis.
+retraining, and troubleshooting. Set server-only `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+and `ADMIN_NAME` in the root `.env` before the first mayor bootstrap.
 
 ### Run apps directly on the host
 
 Install Node.js 20.9+ (22 recommended), Python 3.11+, and [uv](https://docs.astral.sh/uv/), then open PowerShell.
 A global pnpm installation is not needed. First launch requires internet access to install dependencies.
 
-To start all three apps from the repository root:
+Start Docker Desktop, then run this from the repository root:
 
 ```powershell
-./scripts/run-all.ps1
+.\run.ps1 -Check
+.\run.ps1
 ```
 
-Or, from the `scripts` folder:
-
-```powershell
-./run-all.ps1
-```
-
-The launcher starts the apps together in the background and stays attached until you press Ctrl+C.
+The root launcher starts PostgreSQL, MongoDB, Redis and Mailpit in Docker,
+installs locked dependencies, migrates the database, bootstraps the configured
+mayor, prepares a missing ML model, and starts the three apps and both background
+workers. It waits for readiness, then supervises them until you press Ctrl+C.
 Logs are written to the unique `.cache/run-all/` directory printed in the terminal.
 If an app exits, the launcher stops the others. Occupied ports are reported before startup.
+Docker data services remain running after Ctrl+C; stop them with
+`.\start.ps1 -DataOnly -Stop`. Existing environment files and data are retained.
 
 To run just one app, enter its folder and use `./run.ps1` (the extension is `.ps1`):
 
@@ -89,16 +96,17 @@ and restores your working directory when it exits. Press Ctrl+C to stop an indiv
 | --- | --- | --- |
 | Next.js frontend | http://localhost:3000 | - |
 | Core FastAPI service | http://localhost:8000/health | http://localhost:8000/docs |
-| FastAPI ML service | http://localhost:8001/health | http://localhost:8001/docs |
+| FastAPI ML service | http://localhost:8001/ready | http://localhost:8001/docs |
 
 JavaScript tooling and dependencies live entirely inside `apps/web`.
 Each Python service has its own `.venv`, `pyproject.toml`, and `uv.lock`.
-The API also exposes `/api/v1/health`. Health endpoints check process liveness only.
+The API also exposes `/api/v1/health`. API `/health` checks process liveness;
+ML `/ready` checks that its classifier is loaded.
 
 ## Configuration and checks
 
-The starter runs without environment files. To customize settings, copy `.env.example` to `.env`
-at the root and `apps/web/.env.example` to `apps/web/.env.local`. The Python services read the root
+The root launchers create missing environment files from their examples. To customize settings,
+edit `.env` at the root and `apps/web/.env.local`. The Python services read the root
 `.env`; Next.js reads its app-local environment file. Restart the affected app after editing settings.
 
 From `apps/web`:
@@ -116,18 +124,17 @@ uv run pytest
 ```
 
 The ML service now supports Bengali complaint classification using the synthetic dataset.
-Before the first ML run on a new checkout, enter `apps/ml-service` and run `./train.ps1`.
+The launchers train a missing model automatically; existing artifacts are preserved.
 After replacing the CSV with real data, run `./train.ps1 -DataSource real` and restart the service.
 See the [ML service guide](apps/ml-service/README.md) for inference and evaluation details.
 
 The API now includes email/password and Google authentication, revocable sessions,
 email verification and reset, database migrations, and Redis leaky-bucket limits.
-See [the API guide](apps/api/README.md) for the local Docker/Nginx stack. Phone
-verification, complaints, maps, duplicate detection, clustering, queues, and
-full production deployment are still planned. The web app includes a bilingual
-landing page, light/dark themes, login/signup, email verification, password
-recovery, and account/session management. See the [web setup guide](apps/web/README.md)
-for connecting it to the API and configuring Google sign-in. Complaint, map,
-worker, and admin pages still display coming-soon content, except for the map:
-the landing page and `/map` now offer a Dhaka base-map preview. Live water-level
-readings will be connected in a later stage.
+See [the API guide](apps/api/README.md) for API configuration. The bilingual web app
+includes public road/complaint maps, citizen reporting, worker applications and
+workflows, community verification, mayor administration, login/signup, email
+verification, password recovery, and account/session management. See the
+[web setup guide](apps/web/README.md) for Google sign-in. Local verification and
+reset messages are captured at http://localhost:8025; they are not delivered to
+real inboxes. Phone verification, improved prediction/clustering, IoT readings,
+duplicate detection and production deployment remain future work.

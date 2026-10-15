@@ -9,6 +9,12 @@ let run = 0;
 const client = () => import(`data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}#${++run}`);
 const json = (body, status = 200) => new Response(JSON.stringify(body), { status });
 
+test("signup validation reports the invalid field so the user can correct it", async t => {
+  t.mock.method(globalThis, "fetch", async () => json({ detail: [{ loc: ["body", "worker_identity", "nid_number"], msg: "Use a valid NID number" }] }, 422));
+  const { api, ApiError } = await client();
+  await assert.rejects(api("/auth/register"), error => error instanceof ApiError && error.status === 422 && error.detail.includes("nid_number") && error.detail.includes("valid NID"));
+});
+
 test("cookies accompany reads; login rotates the CSRF token before logout", async t => {
   const calls = [];
   let issued = 0;

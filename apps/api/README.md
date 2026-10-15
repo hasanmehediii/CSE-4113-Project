@@ -12,6 +12,14 @@ Run `uv run pytest` in this directory for tests.
 Swagger UI: http://localhost:8000/docs. Liveness: `/health` and `/api/v1/health`.
 Configuration is in `app/core/config.py` and reads the root `.env`.
 CORS permits the local Next.js app on port 3000 by default.
+
+The civic API includes complaints/road updates, evidence uploads, community votes,
+worker approval and assignments, completion verification, points, moderation, and
+mayor analytics. See [local setup](../../docs/guideline/CIVIC_DEVELOPMENT.md) and
+[database design](../../db/README.md) for policies, migrations and background workers.
+Route handlers act as FastAPI controllers; shared business rules live in
+`services/civic_service.py`, contracts in `schemas/`, relational models in
+`models/`, and validation helpers in `utilities/`.
 Authentication is implemented under `/api/v1/auth`. Start PostgreSQL, Redis, Mailpit,
 the API, and Nginx together from the repository root:
 
@@ -40,8 +48,10 @@ is HttpOnly and expires on idle/absolute deadlines. Email verification and reset
 links arrive in Mailpit in development. Set `FRONTEND_URL` to your web origin
 (default `http://localhost:3000`; HTTPS is required in production). Links target
 `/verify-email` or `/reset-password`, with the token in the URL fragment so it
-does not enter HTTP access logs. Password login accepts email only;
-phone login awaits a verified SMS channel. Google login uses a one-time nonce:
+does not enter HTTP access logs. Password login accepts email or a normalized
+phone number. Phone enrollment does not yet verify SMS ownership; email verification
+is required to contribute. Remembered-password/DOB recovery still requires an email
+reset link. Google login uses a one-time nonce:
 POST `/auth/google/nonce`, pass its returned nonce to Google Identity Services,
 then POST the Google credential and nonce to `/auth/google`. Existing email
 accounts are deliberately not linked by matching email alone.

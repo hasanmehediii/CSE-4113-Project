@@ -18,8 +18,14 @@ class Settings(BaseSettings):
     api_cors_origins: list[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
     ml_service_url: str = "http://127.0.0.1:8001"
     environment: str = "development"
-    database_url: str = "postgresql+psycopg://dubsibhai:local-dev-only@localhost:5432/dubsibhai"
+    database_url: str = "postgresql+psycopg://dubsibhai:local-dev-only@127.0.0.1:5432/dubsibhai"
     redis_url: str = "redis://localhost:6379/0"
+    mongodb_url: str = "mongodb://localhost:27017/dubsibhai"
+    mongodb_database: str = "dubsibhai"
+    admin_email: str = ""
+    admin_password: str = ""
+    admin_name: str = "Mayor"
+    media_directory: Path = API_ROOT / "media"
     auth_secret: str = "development-only-change-before-deployment"
     cookie_secure: bool = False
     session_idle_seconds: int = 1800

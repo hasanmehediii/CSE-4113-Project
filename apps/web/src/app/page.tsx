@@ -1,5 +1,5 @@
 "use client";
-import Image from "next/image";
+import LandingHero from "@/components/LandingHero";
 import Link from "next/link";
 import { useApp } from "@/components/Providers";
 import DhakaMapPreview from "@/components/map/DhakaMapPreview";
@@ -8,20 +8,7 @@ import LandingCommunity from "@/components/LandingCommunity";
 export default function HomePage() {
   const { t, user } = useApp();
   return <main id="main">
-    <section className="hero container">
-      <div className="hero-copy">
-        <span className="eyebrow"><span className="status-dot" />{t("SMALL ACTIONS. BETTER NEIGHBOURHOODS.", "ছোট উদ্যোগে বদলে যাক আমাদের পাড়া।")}</span>
-        <h1>{t("Our city.", "আমাদের শহর।")}<br />{t("Our streets.", "আমাদের পথ।")}<br /><em>{t("Our responsibility.", "আমাদের দায়িত্ব।")}</em></h1>
-        <p className="hero-description">{t("A blocked drain shouldn’t bring life to a standstill. Connect everyday concerns with the people who can make a difference — one neighbourhood at a time.", "বন্ধ ড্রেনে থেমে থাকুক না জীবন। আপনার এলাকার সমস্যা পৌঁছে দিন সমাধানে কাজ করা মানুষদের কাছে। একসাথে বদলে দিই আমাদের পাড়া।")}</p>
-        <div className="hero-buttons"><Link className="button" href={user ? "/account" : "/register"}>{t("Be part of the change", "পরিবর্তনের অংশ হোন")} ↗</Link><a href="#how-it-works" className="text-link">{t("See how it works", "কীভাবে কাজ করে")} ↓</a></div>
-        <div className="hero-note"><span className="mini-avatars" aria-hidden="true"><i>ঢা</i><i>কা</i><i>♡</i></span><p>{t("Built for people. Built for Dhaka.", "মানুষের জন্য। ঢাকার জন্য।")}<small>{t("Community-led • Free to join", "সবার উদ্যোগে • বিনামূল্যে যোগ দিন")}</small></p></div>
-      </div>
-      <div className="hero-art"><div className="art-grid" /><span className="art-coordinate">23.8103° N / 90.4125° E</span><div className="orbit orbit-one" /><div className="orbit orbit-two" />
-        <span className="floating-label top-label"><span className="status-dot" />{t("A cleaner tomorrow", "আগামীর পরিচ্ছন্ন শহর")}</span>
-        <Image className="hero-mascot" src="/logo.png" alt={t("DubsiBhai water-drop mascot with Dhaka’s skyline", "ঢাকার আকাশরেখার সঙ্গে ডুবসিভাই মাসকট")} width={650} height={650} priority />
-        <div className="floating-card"><span className="check-icon">✓</span><div><strong>{t("Every voice matters.", "প্রতিটি মতামত গুরুত্বপূর্ণ।")}</strong><small>{t("Let’s keep Dhaka flowing.", "সচল থাকুক আমাদের ঢাকা।")}</small></div><span className="card-arrow">↗</span></div><span className="art-caption">{t("YOUR NEIGHBOURHOOD. YOUR IMPACT.", "আপনার পাড়া। আপনার অবদান।")}</span>
-      </div>
-    </section>
+    <LandingHero />
     <div className="principles"><div className="container"><span>{t("A city that cares starts with us", "যত্নের শহর শুরু হোক আমাদের হাতে")}</span><strong>◉ {t("Community first", "সবার আগে মানুষ")}</strong><strong>⌖ {t("Locally connected", "নিজ এলাকার পাশে")}</strong><strong>↗ {t("Visible progress", "দৃশ্যমান অগ্রগতি")}</strong></div></div>
     <DhakaMapPreview />
     <section className="section container" id="how-it-works"><div className="section-heading"><div><span className="eyebrow">{t("FROM CONCERN TO ACTION", "সমস্যা থেকে সমাধানের পথে")}</span><h2>{t("A small step. A clearer path.", "ছোট পদক্ষেপে, সুন্দর পথ।")}</h2></div><p>{t("The reporting experience we’re building puts your neighbourhood at the centre.", "আপনার এলাকাকে গুরুত্ব দিয়েই তৈরি হচ্ছে আমাদের অভিযোগ ব্যবস্থা।")}</p></div>
