@@ -10,7 +10,9 @@ export default function AuthLayout({ children, variant }: { children: ReactNode;
   return <main id="main" className="account-access-page">
     <div className={`container account-access-layout${variant === "register" ? " is-registration" : ""}`}>
       <aside className="account-access-story">
-        <Image src={variant === "register" ? "/dubsibhai-banner3.png" : "/dubsibhai-banner2.png"} alt="" fill sizes="(max-width: 860px) 1px, 40vw" className="account-access-photo" />
+        <div className="account-access-photo-container">
+          <Image src={variant === "register" ? "/dubsibhai-banner3.png" : "/dubsibhai-banner2.png"} alt="" fill sizes="(max-width: 860px) 1px, 40vw" className="account-access-photo" />
+        </div>
         <div className="account-access-shade" />
         <div className="account-access-story-content">
           <span className="account-access-wordmark">DubsiBhai<span>{t("DHAKA · COMMUNITY SERVICES", "ঢাকা · নাগরিক সেবা")}</span></span>
