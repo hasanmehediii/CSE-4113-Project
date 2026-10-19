@@ -1,7 +1,9 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 
 from app.api.classify import router as classify_router
 from app.api.health import router
@@ -32,11 +34,7 @@ app.include_router(router)
 app.include_router(classify_router)
 
 
-@app.get("/", tags=["Root"])
-def root() -> dict[str, str]:
-    """Root endpoint for the DubsiBhai ML service."""
-    return {
-        "message": "Welcome to the DubsiBhai ML service",
-        "status": "ok",
-        "service": "dubsibhai-ml-service",
-    }
+@app.get("/", include_in_schema=False)
+def root() -> FileResponse:
+    """Browser-friendly model overview and classification playground."""
+    return FileResponse(Path(__file__).parent / "static" / "index.html", media_type="text/html")

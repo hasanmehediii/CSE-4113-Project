@@ -155,8 +155,8 @@ Use **http://localhost:3000** consistently in the browser for auth and cookies.
 | Service | Address | Purpose |
 | --- | --- | --- |
 | Frontend | http://localhost:3000 | Next.js UI |
-| API | http://localhost:8000/docs | Core FastAPI Swagger documentation |
-| ML | http://localhost:8001/docs | Separate FastAPI classifier documentation |
+| API | http://localhost:8000/ | HTML overview, live process health and links to `/docs` |
+| ML | http://localhost:8001/ | HTML model overview and Bengali classification playground |
 | Mailpit | http://localhost:8025 | Development verification/reset email inbox |
 | PostgreSQL | `localhost:5432` | Accounts, reports, assignments, points and transactional source of truth |
 | MongoDB | `localhost:27017` | Flexible complaint/event projections |
@@ -164,7 +164,7 @@ Use **http://localhost:3000** consistently in the browser for auth and cookies.
 | SMTP | `localhost:1025` | Mailpit mail capture |
 | project-events worker | No HTTP port | Delivers PostgreSQL outbox events to MongoDB |
 | classify-reports worker | No HTTP port | Calls ML and saves complaint category suggestions/retry state |
-| Nginx (Docker mode only) | http://localhost:8080/api/v1/health | API reverse proxy |
+| Nginx (Docker mode only) | http://localhost:8080/ | HTML service hub; API reverse proxy under `/api/` |
 
 Local PostgreSQL database/user are `dubsibhai`, with the development password
 `local-dev-only`; MongoDB uses database `dubsibhai`; Redis uses database 0.

@@ -159,7 +159,9 @@ services:
   nginx:
     image: nginx:1.29-alpine
     ports: ["127.0.0.1:8080:8080"]
-    volumes: ["./nginx/nginx.conf:/etc/nginx/nginx.conf:ro"]
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/html/index.html:/usr/share/nginx/html/index.html:ro
     depends_on:
       api: {condition: service_healthy}
 

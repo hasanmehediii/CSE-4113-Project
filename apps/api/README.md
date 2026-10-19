@@ -9,7 +9,8 @@ Core FastAPI application. From this directory:
 The launcher installs locked dependencies before starting FastAPI with reload. Press Ctrl+C to stop.
 Run `uv run pytest` in this directory for tests.
 
-Swagger UI: http://localhost:8000/docs. Liveness: `/health` and `/api/v1/health`.
+HTML service overview and live process health: http://localhost:8000/.
+Swagger UI: http://localhost:8000/docs. Liveness JSON: `/health` and `/api/v1/health`.
 Configuration is in `app/core/config.py` and reads the root `.env`.
 CORS permits the local Next.js app on port 3000 by default.
 

@@ -1,5 +1,8 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.router import router
@@ -40,7 +43,7 @@ def health() -> dict[str, str]:
     return {"status": "ok", "service": "dubsibhai-api"}
 
 
-@app.get("/", tags=["Root"])
-def root() -> dict[str, str]:
-    """Root endpoint for the DubsiBhai API."""
-    return {"message": "Welcome to the DubsiBhai API", "status": "ok", "service": "dubsibhai-api"}
+@app.get("/", include_in_schema=False)
+def root() -> FileResponse:
+    """Browser-friendly service overview; health and API routes still return JSON."""
+    return FileResponse(Path(__file__).parent / "static" / "index.html", media_type="text/html")

@@ -95,8 +95,14 @@ and restores your working directory when it exits. Press Ctrl+C to stop an indiv
 | App | URL | API documentation |
 | --- | --- | --- |
 | Next.js frontend | http://localhost:3000 | - |
-| Core FastAPI service | http://localhost:8000/health | http://localhost:8000/docs |
-| FastAPI ML service | http://localhost:8001/ready | http://localhost:8001/docs |
+| Core FastAPI service | http://localhost:8000/ | http://localhost:8000/docs |
+| FastAPI ML service | http://localhost:8001/ | http://localhost:8001/docs |
+| Local service hub (Docker) | http://localhost:8080/ | - |
+
+The API root shows live process health and documentation links. The ML root
+shows model readiness and includes a Bengali complaint classification form.
+The Docker service hub links to all three apps. Health and data endpoints
+continue to return JSON for app clients and automated checks.
 
 JavaScript tooling and dependencies live entirely inside `apps/web`.
 Each Python service has its own `.venv`, `pyproject.toml`, and `uv.lock`.

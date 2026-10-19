@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>DubsiBhai · ML service</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f4f7f2; color:#173c37; font:16px/1.6 system-ui,sans-serif; }
+    main { max-width:1000px; margin:auto; padding:36px 24px 48px; }
+    header, .row, nav { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+    .brand { font-weight:750; font-size:21px; text-decoration:none; }
+    .tag { border:1px solid #d8e5de; border-radius:30px; padding:6px 12px; font-size:13px; }
+    .hero { margin:32px 0 24px; padding:40px; background:#153f36; color:white; border-radius:24px; }
+    .eyebrow { font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+    h1 { font-size:clamp(34px,5vw,50px); line-height:1.15; letter-spacing:-.04em; margin:12px 0 16px; }
+    .hero p { color:#cfdfd7; max-width:650px; margin-bottom:0; }
+    h2 { margin:0 0 10px; font-size:21px; letter-spacing:-.02em; }
+    p { margin:0 0 20px; }
+    a { color:#166653; text-underline-offset:4px; }
+    .button { display:inline-block; padding:10px 16px; border:1px solid #166653; border-radius:10px; background:#166653; color:white; font:600 14px/1.5 system-ui,sans-serif; text-decoration:none; cursor:pointer; }
+    .panel { padding:26px; border:1px solid #d8e5de; border-radius:20px; background:white; margin-bottom:20px; }
+    .muted { color:#5d716c; font-size:14px; }
+    .status { font-weight:650; }
+    .status[data-state="ok"] { color:#17644c; }
+    .status[data-state="error"] { color:#a13d28; }
+    .facts { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:20px 0 0; }
+    .facts div { padding:14px; background:#edf3ec; border-radius:12px; min-width:0; }
+    dt { color:#5d716c; font-size:12px; text-transform:uppercase; letter-spacing:.07em; }
+    dd { margin:6px 0 0; font-weight:600; overflow-wrap:anywhere; }
+    label { display:block; font-size:14px; font-weight:650; margin-bottom:8px; }
+    textarea { display:block; width:100%; resize:vertical; min-height:120px; padding:14px; border:1px solid #b9cdc0; border-radius:12px; color:#173c37; background:#fcfdfb; font:16px/1.8 system-ui,sans-serif; margin-bottom:10px; }
+    pre { background:#edf3ec; border-radius:12px; padding:18px; white-space:pre-wrap; overflow-wrap:anywhere; font:13px/1.6 ui-monospace,monospace; }
+    .links, nav { display:flex; justify-content:flex-start; gap:18px; flex-wrap:wrap; font-size:14px; }
+    .links { margin-top:20px; }
+    footer { margin-top:28px; font-size:13px; color:#5d716c; }
+    button:disabled { opacity:.6; cursor:wait; }
+    :focus-visible { outline:3px solid #ce9b21; outline-offset:4px; }
+    @media(max-width:600px) { main { padding:22px 16px; } .hero { padding:26px; } .panel { padding:20px; } .facts { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header><a class="brand" href="/">DubsiBhai <span aria-hidden="true">/</span> ML service</a><span class="tag">Complaint classifier · Port 8001</span></header>
+    <section class="hero">
+      <div class="eyebrow">From community reports to useful signals</div>
+      <h1>Give your complaint a category.</h1>
+      <p>Check the trained model and try Bengali complaint classification right here. Predictions include a category, confidence, and model version.</p>
+    </section>
+    <section class="panel" aria-labelledby="model-title">
+      <div class="row"><div><h2 id="model-title">Model readiness</h2><div id="status" class="status" role="status">Checking the classifier…</div></div><button id="refresh" class="button" type="button">Refresh status</button></div>
+      <dl class="facts"><div><dt>Model version</dt><dd id="model-version">Checking…</dd></div><div><dt>Training data source</dt><dd id="data-source">Checking…</dd></div></dl>
+      <div class="links"><a href="/ready">Readiness JSON</a><a href="/model">Model metadata</a><a href="/health">Process health</a></div>
+    </section>
+    <section class="panel" aria-labelledby="try-title">
+      <h2 id="try-title">Try a complaint</h2>
+      <p class="muted">Enter a Bengali description to send it to <code>POST /classify</code>. This demo does not create a community report.</p>
+      <form id="classify-form">
+        <label for="complaint">Complaint text</label>
+        <textarea id="complaint" name="text" lang="bn" required maxlength="5000" aria-describedby="text-help">ম্যানহোলের ঢাকনা নেই, বাচ্চারা পড়ে যেতে পারে।</textarea>
+        <p id="text-help" class="muted">Up to 5,000 characters. Replace the example with your own complaint.</p>
+        <button id="classify" class="button" type="submit">Classify complaint &rarr;</button>
+      </form>
+      <div id="result" role="status" aria-live="polite" style="margin-top:20px">
+        <p id="result-summary" class="muted">Your prediction will appear here.</p>
+        <pre id="result-json" aria-label="Classification response" hidden></pre>
+      </div>
+    </section>
+    <nav aria-label="Documentation and other local services"><a href="/docs">Interactive API docs &rarr;</a><a href="/redoc">API reference &rarr;</a><a href="http://localhost:8080/" data-port="8080">Service hub &rarr;</a><a href="http://localhost:8000/" data-port="8000">Core API &rarr;</a><a href="http://localhost:3000/" data-port="3000">Community app &rarr;</a></nav>
+    <noscript><p>The classifier form needs JavaScript. You can still check the JSON endpoints and try classification in the interactive API docs.</p></noscript>
+    <footer>DubsiBhai · Model readiness is separate from process health.</footer>
+  </main>
+  <script>
+    document.querySelectorAll('[data-port]').forEach(link => {
+      const url = new URL(link.href);
+      url.hostname = location.hostname;
+      url.protocol = location.protocol;
+      link.href = url.href;
+    });
+    const status = document.getElementById('status');
+    const refresh = document.getElementById('refresh');
+    const version = document.getElementById('model-version');
+    const source = document.getElementById('data-source');
+    async function fetchJSON(path, options = {}) {
+      const response = await fetch(path, { ...options, cache:'no-store', signal:AbortSignal.timeout(15000) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : 'Request failed (HTTP ' + response.status + ').');
+      return data;
+    }
+    async function checkModel() {
+      refresh.disabled = true;
+      status.textContent = 'Checking the classifier…';
+      status.dataset.state = '';
+      version.textContent = 'Checking…';
+      source.textContent = 'Checking…';
+      try {
+        const ready = await fetchJSON('/ready');
+        if (ready.status !== 'ready') throw new Error('Classifier is not ready.');
+        version.textContent = ready.model_version;
+        try {
+          const metadata = await fetchJSON('/model');
+          source.textContent = metadata.data_source || 'Not specified';
+        } catch { source.textContent = 'Metadata unavailable'; }
+        status.textContent = 'Classifier ready · Checked ' + new Date().toLocaleTimeString();
+        status.dataset.state = 'ok';
+      } catch (error) {
+        status.textContent = 'Model unavailable. ' + error.message;
+        status.dataset.state = 'error';
+        version.textContent = 'Unavailable';
+        source.textContent = 'Unavailable';
+      } finally { refresh.disabled = false; }
+    }
+    refresh.addEventListener('click', checkModel);
+    document.getElementById('classify-form').addEventListener('submit', async event => {
+      event.preventDefault();
+      const text = document.getElementById('complaint').value.trim();
+      const summary = document.getElementById('result-summary');
+      const output = document.getElementById('result-json');
+      const button = document.getElementById('classify');
+      output.hidden = true;
+      output.textContent = '';
+      if (!text) { summary.textContent = 'Please enter a complaint first.'; return; }
+      button.disabled = true;
+      summary.textContent = 'Classifying your complaint…';
+      try {
+        const data = await fetchJSON('/classify', {
+          method:'POST', headers:{ 'Content-Type':'application/json' }, body:JSON.stringify({ text })
+        });
+        summary.textContent = data.predicted_category.replaceAll('_', ' ') + ' · ' + (data.confidence * 100).toFixed(1) + '% confidence';
+        output.textContent = JSON.stringify(data, null, 2);
+        output.hidden = false;
+      } catch (error) { summary.textContent = 'Could not classify the complaint. ' + error.message; }
+      finally { button.disabled = false; }
+    });
+    checkModel();
+  </script>
+</body>
+</html>

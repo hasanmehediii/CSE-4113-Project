@@ -45,10 +45,12 @@ then choose **Run All**. Local predictions do not require the API server. The li
 test is optional and disabled by default. After running the service launcher, rerun the
 notebook dependency command if uv removed the optional group.
 
-Swagger UI: http://localhost:8001/docs.
+HTML model overview, readiness status and Bengali classification playground:
+http://localhost:8001/. Swagger UI: http://localhost:8001/docs.
 
 | Endpoint | Purpose |
 | --- | --- |
+| `GET /` | HTML model overview and classification playground |
 | `GET /health` | Process liveness, independent of the model |
 | `GET /ready` | Returns 200 only when a classifier is loaded; otherwise 503 |
 | `POST /classify` | Classify a complaint supplied as `{"text": "..."}` |

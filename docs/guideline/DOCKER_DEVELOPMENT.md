@@ -32,9 +32,9 @@ Compose project so the existing PostgreSQL volume can be reused.
 | Service | Host address |
 | --- | --- |
 | Frontend | http://localhost:3000 |
-| API and Swagger | http://localhost:8000/docs |
-| ML and Swagger | http://localhost:8001/docs |
-| API through Nginx | http://localhost:8080/api/v1/health |
+| API overview / Swagger | http://localhost:8000/ / http://localhost:8000/docs |
+| ML overview and classifier / Swagger | http://localhost:8001/ / http://localhost:8001/docs |
+| Service hub through Nginx | http://localhost:8080/ |
 | Development email inbox | http://localhost:8025 |
 | PostgreSQL | `localhost:5432`, database/user `dubsibhai`, password `local-dev-only` |
 | Redis | `localhost:6379` |
@@ -43,6 +43,9 @@ Compose project so the existing PostgreSQL volume can be reused.
 
 These ports bind only to the local machine. This stack is for development and
 uses local database credentials; it is not a production deployment.
+The API and ML roots are HTML pages with live status checks; the ML page also
+lets you classify a Bengali complaint. Health and data endpoints still return
+JSON, including the API check at http://localhost:8080/api/v1/health.
 PostgreSQL owns transactional data, Redis supplies rate limits/auth state, and
 the `project-events` worker projects PostgreSQL outbox events into MongoDB. The
 `classify-reports` worker calls ML and stores category suggestions in PostgreSQL.
