@@ -4,6 +4,15 @@ FastAPI service for Bengali complaint classification. The initial model uses the
 CSV in `docs/dataset/drainage_complaints_bn.csv` and predicts six categories:
 `blocked_drain`, `open_manhole`, `road_flooding`, `waterlogging_recurring`, `sewage_overflow`, and `other`.
 
+The service also hosts an independent **Dhaka road-risk model** for rainwater obstruction
+and traffic congestion. See [Live map and road-risk guide](../../docs/guideline/LIVE_MAP.md)
+for its architecture, synthetic dataset, provider switch and limitations. Train it with
+`uv run python -m app.train_road_risk`, then restart the service. The Windows launcher
+and local Docker stack train missing road-risk artifacts automatically.
+When `packages/new-data` is present, road-risk training uses its supplied bilingual
+CSVs and fixed temporal partitions. See [the dataset training guide](../../docs/guideline/ROAD_DATASET_TRAINING.md)
+for the 210-segment model, feature limits, metrics and Docker retraining commands.
+
 ## Train and run
 
 From this directory (`apps/ml-service`):

@@ -1,9 +1,17 @@
-from fastapi import APIRouter, Query
+import json
+from datetime import UTC, datetime
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import AwareDatetime
 from sqlalchemy import func, select
 
+from app.core.config import get_settings
 from app.core.dependencies import Database
 from app.models.civic import Area, Category, Complaint, Road, now
 from app.services.civic_service import OPEN
+from app.services.road_catalog import MAIN_ROADS
 
 router = APIRouter(tags=["Public map"])
 
@@ -30,8 +38,11 @@ def roads(
     area_id: str | None = None,
     limit: int = Query(default=500, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
+    main_only: bool = False,
 ):
     query = select(Road)
+    if main_only:
+        query = query.where(Road.id.in_(MAIN_ROADS))
     if area_id:
         query = query.where(Road.area_id == area_id)
     catalog = db.scalars(query.order_by(Road.name).offset(offset).limit(limit)).all()
@@ -51,6 +62,8 @@ def roads(
         grouped.setdefault(report.road_id, []).append(report)
     results = []
     for road in catalog:
+        geometry = MAIN_ROADS.get(road.id, {})
+        latitude, longitude = geometry.get("center", [road.latitude, road.longitude])
         rows = grouped.get(road.id, [])
         active = [r for r in rows if r.kind == "complaint" and r.status in OPEN]
         recent_updates = [
@@ -77,8 +90,8 @@ def roads(
                 "id": road.id,
                 "name": road.name,
                 "area_id": road.area_id,
-                "latitude": road.latitude,
-                "longitude": road.longitude,
+                "latitude": latitude,
+                "longitude": longitude,
                 "condition": condition,
                 "open_complaints": len(active),
                 "last_report_at": rows[0].created_at if rows else None,
@@ -86,9 +99,39 @@ def roads(
                 "sensitivity": "high" if historical >= 3 else "insufficient_data",
                 "sensitivity_source": "historical_report_count",
                 "prediction": None,
+                "path": geometry.get("path"),
+                "paths": geometry.get("paths"),
+                "segment_from": geometry.get("from"),
+                "segment_to": geometry.get("to"),
+                "geometry_source": geometry.get("geometry_source"),
+                "geometry_attribution": "© OpenStreetMap contributors" if geometry.get("osm_way_ids") else None,
             }
         )
     return results
+
+
+@router.get("/map/predictions")
+def predictions(
+    at: AwareDatetime,
+    rainfall_mm: float = Query(default=0, ge=0, le=150, allow_inf_nan=False),
+    forecast_horizon_min: int = Query(default=60, ge=30, le=120),
+):
+    """Public scenario inference; the browser never calls the internal ML service."""
+    if forecast_horizon_min not in (30, 60, 120):
+        raise HTTPException(422, "Forecast horizon must be 30, 60 or 120 minutes")
+    if abs(at.timestamp() - datetime.now(UTC).timestamp()) > 7 * 86400:
+        raise HTTPException(422, "Choose a time within seven days of now")
+    payload = json.dumps({"at": at.isoformat(), "rainfall_mm": rainfall_mm,
+                          "forecast_horizon_min": forecast_horizon_min}).encode()
+    request = Request(
+        get_settings().ml_service_url.rstrip("/") + "/road-risk/predict",
+        data=payload, headers={"Content-Type": "application/json"}, method="POST",
+    )
+    try:
+        with urlopen(request, timeout=10) as response:
+            return json.load(response)
+    except (HTTPError, URLError, TimeoutError, ValueError):
+        raise HTTPException(503, "Road prediction unavailable. Train the road-risk model and start the ML service.") from None
 
 
 @router.get("/map/hotspots")

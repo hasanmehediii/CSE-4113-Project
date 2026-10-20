@@ -1,0 +1,48 @@
+﻿column_name,explanation_en,explanation_bn,role
+record_id,Unique observation identifier,অনন্য রেকর্ড আইডি,key
+road_segment_id,Directed road segment reference to road_segments CSV,দিকনির্দেশসহ রাস্তার খণ্ডের আইডি; রোড সেগমেন্ট CSV-এর সঙ্গে যোগ হবে,key
+corridor_name_en,Corridor name in English,সড়কের ইংরেজি নাম,metadata
+corridor_name_bn,Corridor name in Bangla,সড়কের বাংলা নাম,metadata
+from_node_id,Start junction ID,শুরু মোড়ের আইডি,routing
+from_name_en,Start junction English name,শুরুর মোড়ের ইংরেজি নাম,metadata
+from_name_bn,Start junction Bangla name,শুরুর মোড়ের বাংলা নাম,metadata
+to_node_id,Destination junction ID,শেষ মোড়ের আইডি,routing
+to_name_en,Destination junction English name,শেষ মোড়ের ইংরেজি নাম,metadata
+to_name_bn,Destination junction Bangla name,শেষ মোড়ের বাংলা নাম,metadata
+zone,Approximate road zone,আনুমানিক শহুরে অঞ্চল,feature
+issue_time_dhaka,Time input features are available in UTC+6,"যে সময়ে পূর্বাভাসের ইনপুট পাওয়া যাবে, UTC+6",feature
+target_time_dhaka,"Future time for which blockage is predicted, UTC+6","যে ভবিষ্যৎ সময়ে রাস্তা বন্ধ কি না অনুমান করা হবে, UTC+6",feature
+forecast_horizon_min,Minutes from issue to prediction target,পূর্বাভাস দেওয়ার সময় থেকে লক্ষ্যমাত্রার সময়ের পার্থক্য (মিনিট),feature
+year,Target year (simulation scenarios),লক্ষ্যমাত্রার বছর (কাল্পনিক পরিস্থিতি),feature
+month,Target month 1-12,লক্ষ্যমাত্রার মাস ১-১২,feature
+day_of_week_en,Target weekday (English),লক্ষ্যমাত্রার সপ্তাহের দিন (ইংরেজি),feature
+day_of_week_bn,Target weekday (Bangla),লক্ষ্যমাত্রার সপ্তাহের দিন (বাংলা),metadata
+hour_24,Target hour 0-23,লক্ষ্যমাত্রার ঘণ্টা ০-২৩,feature
+is_weekend_fri_sat,1 Friday or Saturday else 0 (assumption),"শুক্র বা শনিবার হলে ১, নাহলে ০",feature
+is_peak_hour,1 if morning/evening assumed rush hours,কল্পিত অফিসগামী/ফেরার ব্যস্ত সময় হলে ১,feature
+season_en,Approximate season English,আনুমানিক ঋতুর ইংরেজি নাম,feature
+season_bn,Approximate season Bangla,আনুমানিক ঋতুর বাংলা নাম,metadata
+estimated_length_km,"Assumed rough segment length in km, not surveyed","খণ্ডের আনুমানিক দৈর্ঘ্য (কিমি), বাস্তবে জরিপকৃত নয়",routing
+assumed_lane_count,"Illustrative number of lanes, not verified","আনুমানিক লেন সংখ্যা, যাচাইকৃত নয়",feature
+baseline_congestion_sim_0to1,Simulated corridor-specific traffic tendency,সিমুলেশনে সড়কটির স্বাভাবিক যানজটের প্রবণতা,feature
+flood_susceptibility_sim_0to1,"Simulated relative likelihood of waterlogging, not a measured risk","সিমুলেটেড জলাবদ্ধতার ঝুঁকি, পরিমাপ নয়",feature
+drainage_capacity_sim_0to100,"Synthetic drainage feature, not municipal measurement",সিমুলেটেড পানি নিষ্কাশন সক্ষমতার সূচক,feature
+rainfall_last_1h_mm_sim,Simulated previous 1-hour rain known at issue time (mm),ইনপুট সময়ে জানা আগের ১ ঘণ্টার কল্পিত বৃষ্টিপাত (মিমি),feature
+rainfall_last_3h_mm_sim,Simulated previous 3-hour accumulated rain (mm),আগের ৩ ঘণ্টার কল্পিত মোট বৃষ্টিপাত (মিমি),feature
+rainfall_last_6h_mm_sim,Simulated previous 6-hour accumulated rain (mm),আগের ৬ ঘণ্টার কল্পিত মোট বৃষ্টিপাত (মিমি),feature
+forecast_rain_target_1h_mm_sim,"Synthetic forecast of rain during target hour, not actual future measured rain","লক্ষ্যমাত্রার ঘণ্টার কল্পিত আবহাওয়ার পূর্বাভাস, পরবর্তী বাস্তব বৃষ্টি নয়",feature
+rain_condition_en,English rain intensity class from synthetic forecast,ইংরেজিতে কল্পিত বৃষ্টির শ্রেণি,feature
+rain_condition_bn,Bangla rain intensity class,বাংলায় কল্পিত বৃষ্টির শ্রেণি,metadata
+recent_speed_kmh_sim,"Synthetic measured-like recent speed at issue time, not target speed",পূর্বাভাসের সময়ের কল্পিত সাম্প্রতিক গতি (কিমি/ঘণ্টা),feature
+traffic_demand_index_sim_0to100,Simulated traffic demand at issue time,ইনপুট সময়ের কল্পিত যানবাহনের চাপের সূচক,feature
+nearby_event_sim_0or1,Simulated nearby event indicator,কাছাকাছি অনুষ্ঠান/ইভেন্টের কল্পিত সূচক,feature
+congestion_level_en,Simulated class computed from current conditions; English,বর্তমান কল্পিত অবস্থার ভিত্তিতে যানজটের ধরন (ইংরেজি),feature
+congestion_level_bn,Simulated congestion level Bangla,যানজটের কল্পিত স্তর (বাংলা),metadata
+target_traffic_blocked,FUTURE binary label: traffic caused near-standstill (1=yes),ভবিষ্যৎ সময়ে যানজটের কারণে প্রায় স্থবির হলে ১,TARGET
+target_water_blocked,FUTURE binary label: impassable due to waterlogging (1=yes),ভবিষ্যৎ সময়ে জলাবদ্ধতায় রাস্তা চলাচলের অনুপযোগী হলে ১,TARGET
+target_any_blocked,FUTURE binary label: traffic or water blocked,ভবিষ্যৎ সময়ে যেকোনো কারণে রাস্তা বন্ধ হলে ১,TARGET
+target_block_reason_en,FUTURE blockage reason English (label),ভবিষ্যৎ রাস্তা বন্ধের কারণ ইংরেজি (লেবেল),TARGET
+target_block_reason_bn,FUTURE blockage reason Bangla (label),ভবিষ্যৎ রাস্তা বন্ধের কারণ বাংলা (লেবেল),TARGET
+target_travel_time_min_sim,FUTURE journey duration label; blank if blocked. NEVER input feature.,ভবিষ্যৎ যাত্রার সময়; রাস্তা বন্ধ হলে ফাঁকা; ইনপুট হিসেবে ব্যবহার করবেন না,TARGET
+dataset_split,"Chronological partition: 2024 train, 2025 validation, 2026 test","সময়ভিত্তিক ভাগ: ২০২৪ ট্রেন, ২০২৫ ভ্যালিডেশন, ২০২৬ টেস্ট",split
+data_origin,All observation values synthetic; not government/sensor logs,সব পর্যবেক্ষণের তথ্য কল্পিত; সরকারি/সেন্সরের আসল রেকর্ড নয়,warning

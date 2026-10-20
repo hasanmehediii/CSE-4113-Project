@@ -3,6 +3,12 @@
 For the complete developer guide, including host apps with Docker data services,
 see [DEVELOPMENT.md](../../DEVELOPMENT.md).
 
+On Linux, install Docker Engine or Docker Desktop with the Compose v2 plugin,
+then use `bash scripts/start.sh` from the repository root. Options include
+`--logs`, `--status`, `--stop`, `--no-build`, `--data-only` and `--timeout 1200`.
+See [the Linux script guide](../../scripts/README.md) for the command reference.
+The PowerShell equivalents below remain available on Windows.
+
 Install Docker Desktop, enable its WSL 2/Linux-container backend, and start its
 engine. Clone the repository and open PowerShell in its root. Node.js, Python,
 PostgreSQL, Redis, and MongoDB do not need to be installed on the host.

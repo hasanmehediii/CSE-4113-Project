@@ -1,4 +1,4 @@
-# Complete local development stack. Run ./start.ps1 from the repository root.
+# Complete stack: ./start.ps1 on Windows; bash scripts/start.sh on Linux (repo root).
 services:
   db:
     image: postgres:17-alpine
@@ -45,6 +45,7 @@ services:
       dockerfile: infra/docker/ml-service.Dockerfile
     environment:
       ML_MODEL_PATH: /workspace/apps/ml-service/weights/classifier.joblib
+      ML_ROAD_RISK_MODEL_PATH: /workspace/apps/ml-service/weights/road-risk.joblib
     ports: ["127.0.0.1:8001:8001"]
     volumes:
       - ../apps/ml-service/app:/workspace/apps/ml-service/app
@@ -55,6 +56,7 @@ services:
       - -c
       - >-
         if [ ! -f "$$ML_MODEL_PATH" ]; then uv run --no-sync python -m app.train; fi
+        && if [ ! -f "$$ML_ROAD_RISK_MODEL_PATH" ]; then uv run --no-sync python -m app.train_road_risk; fi
         && exec uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
     healthcheck:
       test: ["CMD", "/workspace/apps/ml-service/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/ready', timeout=5)"]

@@ -1,0 +1,16 @@
+{
+  "dhaka-airport-north": {"names": ["New Airport Road", "Airport Circle"], "bbox": [23.7944, 90.397, 23.8508, 90.424]},
+  "dhaka-airport-south": {"names": ["New Airport Road", "Old Airport Road", "Airport Road", "Bir Uttam Ziaur Rahman Road"], "bbox": [23.75845, 90.386, 23.7944, 90.403]},
+  "dhaka-rokeya": {"names": ["Begum Rokeya Sharani"], "bbox": [23.7651, 90.365, 23.80725, 90.384]},
+  "dhaka-mirpur-north": {"names": ["Mirpur Road"], "bbox": [23.77349, 90.3524, 23.784, 90.369]},
+  "dhaka-mirpur-central": {"names": ["Mirpur Road"], "bbox": [23.73874, 90.365, 23.77349, 90.385]},
+  "dhaka-mirpur-south": {"names": ["Mirpur Road"], "bbox": [23.7268, 90.381, 23.73874, 90.390]},
+  "dhaka-bijoy": {"names": ["Bijoy Sharani"], "bbox": [23.763, 90.382, 23.767, 90.390], "from": "Begum Rokeya Sarani", "to": "Airport Road junction"},
+  "dhaka-kazi-nazrul": {"names": ["Kazi Nazrul Islam Avenue"], "bbox": [23.73805, 90.387, 23.7591, 90.400]},
+  "dhaka-pragati": {"names": ["Pragati Sarani", "Sarani Pragati", "Bir Uttam Rafiqul Islam Ave", "Bir Uttam Rafiqul Islam Avenue", "DIT Road", "DIT Road, Rampura", "Rampura Bridge"], "bbox": [23.761, 90.417, 23.8215, 90.428]},
+  "dhaka-manik-mia": {"names": ["Manik Mia Avenue"], "bbox": [23.755, 90.370, 23.762, 90.392], "to": "Khamar Bari junction"},
+  "dhaka-satmasjid": {"names": ["Satmasjid Road"], "bbox": [23.7383, 90.360, 23.758, 90.377]},
+  "dhaka-gulshan": {"names": ["Gulshan Ave", "Gulshan Avenue"], "bbox": [23.7799, 90.413, 23.79495, 90.418]},
+  "dhaka-vip": {"names": ["Naya Paltan Road", "Inner Circular Road", "Shapla Square"], "bbox": [23.7263, 90.410, 23.7373, 90.422], "from": "Kakrail / Nightingale junction", "to": "Motijheel / Shapla Square"},
+  "dhaka-shahbagh": {"names": ["Maolana Bhasani Road"], "bbox": [23.7335, 90.395, 23.7383, 90.404]}
+}

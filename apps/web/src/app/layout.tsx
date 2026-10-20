@@ -8,6 +8,7 @@ import "./civic.css";
 import "./registration.css";
 import "./report-composer.css";
 import "./workspace-design.css";
+import "./live-map.css";
 import { Providers } from "@/components/Providers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";

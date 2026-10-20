@@ -1,0 +1,20 @@
+{
+  "basis": "Conceptual endpoint/corridor matches to packages/new-data. Both simulated directions are included. These are not verified navigation links.",
+  "aggregation": "maximum_segment_probability",
+  "roads": {
+    "dhaka-airport-north": ["DHK005A", "DHK005B", "DHK006A", "DHK006B", "DHK007A", "DHK007B", "DHK008A", "DHK008B"],
+    "dhaka-airport-south": ["DHK009A", "DHK009B", "DHK010A", "DHK010B", "DHK011A", "DHK011B", "DHK012A", "DHK012B"],
+    "dhaka-rokeya": ["DHK031A", "DHK031B", "DHK032A", "DHK032B", "DHK033A", "DHK033B", "DHK034A", "DHK034B"],
+    "dhaka-mirpur-north": ["DHK047A", "DHK047B", "DHK048A", "DHK048B"],
+    "dhaka-mirpur-central": ["DHK049A", "DHK049B", "DHK050A", "DHK050B", "DHK051A", "DHK051B"],
+    "dhaka-mirpur-south": ["DHK052A", "DHK052B", "DHK053A", "DHK053B", "DHK054A", "DHK054B"],
+    "dhaka-bijoy": ["DHK058A", "DHK058B"],
+    "dhaka-kazi-nazrul": ["DHK060A", "DHK060B", "DHK061A", "DHK061B", "DHK062A", "DHK062B"],
+    "dhaka-pragati": ["DHK013A", "DHK013B", "DHK014A", "DHK014B", "DHK015A", "DHK015B", "DHK016A", "DHK016B", "DHK017A", "DHK017B"],
+    "dhaka-manik-mia": ["DHK055A", "DHK055B", "DHK056A", "DHK056B", "DHK057A", "DHK057B"],
+    "dhaka-satmasjid": ["DHK073A", "DHK073B", "DHK074A", "DHK074B", "DHK075A", "DHK075B", "DHK076A", "DHK076B"],
+    "dhaka-gulshan": ["DHK021A", "DHK021B"],
+    "dhaka-vip": ["DHK090A", "DHK090B", "DHK091A", "DHK091B", "DHK092A", "DHK092B"],
+    "dhaka-shahbagh": ["DHK087A", "DHK087B"]
+  }
+}

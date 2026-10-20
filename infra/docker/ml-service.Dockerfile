@@ -6,6 +6,8 @@ RUN pip install --no-cache-dir uv==0.11.24
 COPY apps/ml-service/pyproject.toml apps/ml-service/uv.lock ./
 RUN uv sync --locked --no-dev
 COPY apps/ml-service/app ./app
+COPY packages/data /workspace/packages/data
+COPY packages/new-data /workspace/packages/new-data
 COPY docs/dataset /workspace/docs/dataset
 RUN mkdir -p weights
 EXPOSE 8001

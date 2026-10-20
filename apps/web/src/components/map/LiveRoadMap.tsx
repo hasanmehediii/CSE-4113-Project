@@ -4,8 +4,15 @@ import type * as Leaflet from "leaflet";
 import { type Road, type Complaint } from "@/lib/civic";
 import { useCivicLocale } from "@/hooks/useCivicLocale";
 import { civicLabel, civicNumber } from "@/lib/civic-i18n";
+import { mapProvider, riskColor, roadPaths, type RoadRisk } from "@/lib/road-map";
+import GoogleRoadMap from "./GoogleRoadMap";
 
-export default function LiveRoadMap({ roads, complaints, focus }: { roads: Road[]; complaints: Complaint[]; focus?: { latitude: number; longitude: number } | null }) {
+export interface RoadMapProps { roads: Road[]; complaints: Complaint[]; focus?: Road | null; onSelectRoad?: (road: Road) => void; risks?: RoadRisk[]; hazard?: "waterlogging" | "traffic"; predictionMode?: boolean }
+export default function LiveRoadMap(props: RoadMapProps) {
+  return mapProvider === "google" ? <GoogleRoadMap {...props} /> : <OpenRoadMap {...props} />;
+}
+
+function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode }: RoadMapProps) {
   const { language, tr } = useCivicLocale();
   const container = useRef<HTMLDivElement>(null);
   const currentMap = useRef<Leaflet.Map | null>(null);
@@ -18,7 +25,7 @@ export default function LiveRoadMap({ roads, complaints, focus }: { roads: Road[
     let instance: Leaflet.Map | undefined;
     import("leaflet").then(L => {
       if (!active || !container.current) return;
-      instance = L.map(container.current, { scrollWheelZoom: false }).setView([23.77, 90.39], 12);
+      instance = L.map(container.current, { scrollWheelZoom: false, minZoom: 11, maxZoom: 16, maxBounds: [[23.66, 90.28], [23.91, 90.51]], maxBoundsViscosity: 1 }).setView([23.785, 90.395], 12);
       currentMap.current = instance;
       tiles.current = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -28,6 +35,11 @@ export default function LiveRoadMap({ roads, complaints, focus }: { roads: Road[
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
       }).on("tileerror", () => { if (active) setTileError(true); }).addTo(instance);
       setMap(instance);
+      if (typeof ResizeObserver !== "undefined") {
+        const observer = new ResizeObserver(() => instance?.invalidateSize());
+        observer.observe(container.current);
+        instance.on("unload", () => observer.disconnect());
+      }
     });
     return () => { active = false; if (currentMap.current === instance) { currentMap.current = null; tiles.current = null; } instance?.remove(); };
   }, []);
@@ -49,9 +61,13 @@ export default function LiveRoadMap({ roads, complaints, focus }: { roads: Road[
   }, [map, language]);
   const focusLatitude = focus?.latitude;
   const focusLongitude = focus?.longitude;
+  const focusPath = focus && roadPaths(focus).length ? JSON.stringify(roadPaths(focus).flat()) : "";
   useEffect(() => {
-    if (map && currentMap.current === map && focusLatitude !== undefined && focusLongitude !== undefined) map.setView([focusLatitude, focusLongitude], 15, { animate: false });
-  }, [map, focusLatitude, focusLongitude]);
+    if (map && currentMap.current === map && focusLatitude !== undefined && focusLongitude !== undefined) {
+      if (focusPath) map.fitBounds(JSON.parse(focusPath), { padding: [50, 50], maxZoom: 14, animate: false });
+      else map.setView([focusLatitude, focusLongitude], 15, { animate: false });
+    }
+  }, [map, focusLatitude, focusLongitude, focusPath]);
   useEffect(() => {
     if (!map || currentMap.current !== map) return;
     let layer: Leaflet.LayerGroup | undefined;
@@ -60,7 +76,23 @@ export default function LiveRoadMap({ roads, complaints, focus }: { roads: Road[
       if (!active || currentMap.current !== map) return;
       layer = L.layerGroup().addTo(map);
       for (const row of roads) {
-        const color = row.condition === "bad" ? "#c03938" : row.condition === "good" ? "#22735c" : "#667884";
+        const color = predictionMode ? riskColor(risks?.find(risk => risk.road_id === row.id), hazard) : row.condition === "bad" ? "#c03938" : row.condition === "good" ? "#22735c" : "#667884";
+        const selected = row.id === focus?.id;
+        const paths = roadPaths(row);
+        if (paths.length) {
+          L.polyline(paths, { color: selected ? "#086bbc" : "#fff", weight: selected ? 13 : 10, opacity: .9, interactive: false }).addTo(layer);
+          const line = L.polyline(paths, { color, weight: 6, opacity: .95, dashArray: predictionMode ? "9 7" : undefined }).addTo(layer);
+          line.bindTooltip(row.name, { sticky: true });
+          line.on("click", () => onSelectRoad?.(row));
+          line.on("mouseover", () => line.setStyle({ weight: 9 }));
+          line.on("mouseout", () => line.setStyle({ weight: 6 }));
+          // Wide invisible hit target helps finger selection without obscuring the map.
+          L.polyline(paths, { weight: 22, opacity: 0 }).bindTooltip(row.name, { sticky: true })
+            .on("click", () => onSelectRoad?.(row))
+            .on("mouseover", () => line.setStyle({ weight: 9 }))
+            .on("mouseout", () => line.setStyle({ weight: 6 })).addTo(layer);
+          continue;
+        }
         // Localize on opening; switching language keeps the map layers intact.
         L.circleMarker([row.latitude, row.longitude], { radius: 9, color, fillColor: color, fillOpacity: 0.8 }).bindPopup(() => {
           const language = currentLanguage.current;
@@ -71,7 +103,7 @@ export default function LiveRoadMap({ roads, complaints, focus }: { roads: Road[
           text.textContent = `${civicLabel(row.condition, language)} · ${open} ${language === "bn" ? "টি অমীমাংসিত অভিযোগ" : "open complaints"}${row.sensitivity === "high" ? (language === "bn" ? " · অতীতে ঝুঁকিপূর্ণ" : " · historically sensitive") : ""}`;
           content.append(text);
           return content;
-        }).addTo(layer);
+        }).on("click", () => onSelectRoad?.(row)).addTo(layer);
       }
       for (const row of complaints.filter(c => c.status !== "false")) {
         L.circleMarker([row.latitude, row.longitude], { radius: 5, color: row.status === "resolved" || (row.kind === "road_update" && row.condition === "good") ? "#22735c" : "#d28423", fillOpacity: 0.7 }).bindPopup(() => {
@@ -81,6 +113,6 @@ export default function LiveRoadMap({ roads, complaints, focus }: { roads: Road[
       }
     });
     return () => { active = false; layer?.remove(); };
-  }, [map, roads, complaints]);
+  }, [map, roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode]);
   return <div className="live-road-map-frame"><div ref={container} className="live-road-map" aria-label={tr("Interactive Dhaka road condition map")} /><button type="button" className="city-map-reset" disabled={!map} onClick={() => map?.setView([23.77, 90.39], 12, { animate: false })}>{tr("Reset view")}</button>{tileError && <div className="map-load-notice" role="status"><span>{tr("Some street tiles could not load. Reports are still available in the activity panel.")}</span><button type="button" onClick={() => { setTileError(false); tiles.current?.redraw(); }}>{tr("Retry street map")}</button><a href="https://www.openstreetmap.org/#map=12/23.77/90.39" target="_blank" rel="noopener noreferrer">{tr("Open street map ↗")}</a></div>}</div>;
 }

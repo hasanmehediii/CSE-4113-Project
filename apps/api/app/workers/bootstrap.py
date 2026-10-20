@@ -12,9 +12,11 @@ from app.db.session import session_factory
 from app.models.civic import Category
 from app.models.user import User
 from app.services.catalog import CATEGORIES
+from app.services.road_catalog import seed_main_roads
 
 
 def bootstrap(db, settings):
+    seed_main_roads(db)
     for code, label, priority in CATEGORIES:
         if not db.get(Category, code):
             db.add(Category(code=code, label=label, base_priority=priority))

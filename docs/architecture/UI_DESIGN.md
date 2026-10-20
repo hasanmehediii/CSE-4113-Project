@@ -168,12 +168,12 @@ the current model as synthetic-trained. Public views use the approved category, 
 | --- | --- |
 | `src/app/` | Routes, layouts, loading/error/not-found boundaries, role-specific navigation |
 | `components/map/` | Client-rendered map, accessible list alternative, future hotspot layer |
-| `components/complaints/` | Form, status badge, timeline, photo upload, staff review panels |
-| `components/ui/` | Buttons, inputs, dialogs, tables, empty/error states |
+| `components/ReportComposer.tsx`, `ComplaintWorkspace.tsx`, `ComplaintDetail.tsx` | Complaint forms, lists, detail and verification workflows |
+| `components/CivicUI.tsx` | Shared badges, feedback and workflow UI |
 | `lib/api-client.ts` | Configured API origin, typed requests, credentials, CSRF header, normalized errors |
 | `lib/auth.ts` | Session refresh and current-user helpers; no client-side secrets |
 | `hooks/` | Viewport fetching, upload progress, scoped polling, form helpers |
-| `packages/shared-types/` | Future generated types based on the core API schema |
+| `lib/civic.ts`, `lib/auth.ts` | Current frontend types; generated API contracts can be added later |
 
 Fetch authenticated data with credentials and without shared public caching. Keep session cookies
 HttpOnly; do not copy JWTs into browser local storage. Guard server-rendered/private routes and check

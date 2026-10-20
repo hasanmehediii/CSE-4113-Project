@@ -6,6 +6,7 @@ RUN pip install --no-cache-dir uv==0.11.24
 COPY apps/api/pyproject.toml apps/api/uv.lock ./
 RUN uv sync --locked --no-dev
 COPY apps/api/app ./app
+COPY packages/data /workspace/packages/data
 COPY apps/api/alembic ./alembic
 COPY apps/api/alembic.ini ./
 EXPOSE 8000

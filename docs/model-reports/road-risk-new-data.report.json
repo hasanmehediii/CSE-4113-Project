@@ -1,0 +1,3066 @@
+{
+  "model_version": "road-risk-bilingual-v2-5a9298fc817c",
+  "data_source": "synthetic",
+  "dataset": "packages/new-data",
+  "dataset_hashes": {
+    "dhaka_major_roads_ml_dataset_bilingual.csv": "f01f9bb31abff68c34abcc198002548e29d18de11d21a9df1ad3a4574ace39c5",
+    "dhaka_directed_road_segments_bilingual.csv": "05af5fe54c0a95ce558f08afd586cd3afd8350b417b4a8d0110f9db2bbe3f9d5",
+    "dhaka_major_road_nodes_bilingual.csv": "33702386f48328b6e8af8c8f0011faaa33ae3d1d24836cf647e677bfb24a34d4"
+  },
+  "mapping_sha256": "17ec83173c54a90fc2c839bec1962eb0897efe34e5f01e43285ddbd3b0cf35f2",
+  "training_code_sha256": "ac46901c860a6afdc51375b44f67cfde35720481a912384545949ef7deab9db6",
+  "rows": 20790,
+  "segments": 210,
+  "map_roads": 14,
+  "mapped_segments": 82,
+  "split_counts": {
+    "train": 7560,
+    "validation": 7560,
+    "test": 5670
+  },
+  "splits": {
+    "train": {
+      "rows": 7560,
+      "scenario_times": 36,
+      "from": "2024-01-04T13:15:00+06:00",
+      "to": "2024-12-24T07:30:00+06:00"
+    },
+    "validation": {
+      "rows": 7560,
+      "scenario_times": 36,
+      "from": "2025-01-04T18:30:00+06:00",
+      "to": "2025-12-24T20:45:00+06:00"
+    },
+    "test": {
+      "rows": 5670,
+      "scenario_times": 27,
+      "from": "2026-01-04T21:45:00+06:00",
+      "to": "2026-09-24T16:15:00+06:00"
+    }
+  },
+  "serving_training_rows": 15120,
+  "test_rows": 5670,
+  "features": [
+    "hour_sin",
+    "hour_cos",
+    "weekday",
+    "month",
+    "is_weekend_fri_sat",
+    "is_peak_hour",
+    "forecast_horizon_min",
+    "forecast_rain_target_1h_mm_sim",
+    "estimated_length_km",
+    "assumed_lane_count",
+    "baseline_congestion_sim_0to1",
+    "flood_susceptibility_sim_0to1",
+    "drainage_capacity_sim_0to100"
+  ],
+  "classification_thresholds": {
+    "waterlogging": 0.05,
+    "traffic_jam": 0.2
+  },
+  "threshold_selection": "Maximize each label's F1 on 2025 validation only, grid 0.05..0.95; highest threshold wins ties. Probability color bands are separate from these screening thresholds.",
+  "excluded_features": [
+    "all future target_* outcomes and reasons",
+    "year",
+    "segment IDs and bilingual name duplicates",
+    "rainfall_last_*",
+    "recent_speed_kmh_sim",
+    "traffic_demand_index_sim_0to100",
+    "nearby_event_sim_0or1",
+    "congestion_level_en",
+    "rain_condition_en"
+  ],
+  "feature_policy": "Only target time, forecast horizon, scenario rain and static road profiles are available in the app. No unavailable telemetry is invented or imputed.",
+  "model_selection": "Mean validation average precision across both labels; test data never used for tuning.",
+  "candidates": [
+    {
+      "parameters": {
+        "max_depth": 12,
+        "min_samples_leaf": 5
+      },
+      "validation_at_0_5": {
+        "waterlogging": {
+          "rows": 7560,
+          "positives": 492,
+          "threshold": 0.5,
+          "prevalence": 0.065079,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "average_precision": 0.397311,
+          "brier_score": 0.056583,
+          "confusion_matrix_tn_fp_fn_tp": [
+            7068,
+            0,
+            492,
+            0
+          ]
+        },
+        "traffic_jam": {
+          "rows": 7560,
+          "positives": 1756,
+          "threshold": 0.5,
+          "prevalence": 0.232275,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "average_precision": 0.316018,
+          "brier_score": 0.172864,
+          "confusion_matrix_tn_fp_fn_tp": [
+            5804,
+            0,
+            1756,
+            0
+          ]
+        }
+      },
+      "thresholds": {
+        "waterlogging": 0.05,
+        "traffic_jam": 0.15
+      },
+      "validation": {
+        "waterlogging": {
+          "rows": 7560,
+          "positives": 492,
+          "threshold": 0.05,
+          "prevalence": 0.065079,
+          "precision": 0.329356,
+          "recall": 0.560976,
+          "f1": 0.415038,
+          "average_precision": 0.397311,
+          "brier_score": 0.056583,
+          "confusion_matrix_tn_fp_fn_tp": [
+            6506,
+            562,
+            216,
+            276
+          ]
+        },
+        "traffic_jam": {
+          "rows": 7560,
+          "positives": 1756,
+          "threshold": 0.15,
+          "prevalence": 0.232275,
+          "precision": 0.26337,
+          "recall": 0.8918,
+          "f1": 0.406648,
+          "average_precision": 0.316018,
+          "brier_score": 0.172864,
+          "confusion_matrix_tn_fp_fn_tp": [
+            1424,
+            4380,
+            190,
+            1566
+          ]
+        }
+      },
+      "selection_score": 0.35666450000000005
+    },
+    {
+      "parameters": {
+        "max_depth": 10,
+        "min_samples_leaf": 20
+      },
+      "validation_at_0_5": {
+        "waterlogging": {
+          "rows": 7560,
+          "positives": 492,
+          "threshold": 0.5,
+          "prevalence": 0.065079,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "average_precision": 0.472606,
+          "brier_score": 0.057973,
+          "confusion_matrix_tn_fp_fn_tp": [
+            7068,
+            0,
+            492,
+            0
+          ]
+        },
+        "traffic_jam": {
+          "rows": 7560,
+          "positives": 1756,
+          "threshold": 0.5,
+          "prevalence": 0.232275,
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "average_precision": 0.314108,
+          "brier_score": 0.173444,
+          "confusion_matrix_tn_fp_fn_tp": [
+            5804,
+            0,
+            1756,
+            0
+          ]
+        }
+      },
+      "thresholds": {
+        "waterlogging": 0.05,
+        "traffic_jam": 0.2
+      },
+      "validation": {
+        "waterlogging": {
+          "rows": 7560,
+          "positives": 492,
+          "threshold": 0.05,
+          "prevalence": 0.065079,
+          "precision": 0.408946,
+          "recall": 0.520325,
+          "f1": 0.457961,
+          "average_precision": 0.472606,
+          "brier_score": 0.057973,
+          "confusion_matrix_tn_fp_fn_tp": [
+            6698,
+            370,
+            236,
+            256
+          ]
+        },
+        "traffic_jam": {
+          "rows": 7560,
+          "positives": 1756,
+          "threshold": 0.2,
+          "prevalence": 0.232275,
+          "precision": 0.282916,
+          "recall": 0.707289,
+          "f1": 0.404165,
+          "average_precision": 0.314108,
+          "brier_score": 0.173444,
+          "confusion_matrix_tn_fp_fn_tp": [
+            2656,
+            3148,
+            514,
+            1242
+          ]
+        }
+      },
+      "selection_score": 0.393357
+    }
+  ],
+  "selected_parameters": {
+    "max_depth": 10,
+    "min_samples_leaf": 20
+  },
+  "evaluation": {
+    "waterlogging": {
+      "rows": 5670,
+      "positives": 146,
+      "threshold": 0.05,
+      "prevalence": 0.02575,
+      "precision": 0.066971,
+      "recall": 0.60274,
+      "f1": 0.120548,
+      "average_precision": 0.155959,
+      "brier_score": 0.024032,
+      "confusion_matrix_tn_fp_fn_tp": [
+        4298,
+        1226,
+        58,
+        88
+      ]
+    },
+    "traffic_jam": {
+      "rows": 5670,
+      "positives": 1167,
+      "threshold": 0.2,
+      "prevalence": 0.20582,
+      "precision": 0.282508,
+      "recall": 0.733505,
+      "f1": 0.40791,
+      "average_precision": 0.295543,
+      "brier_score": 0.156013,
+      "confusion_matrix_tn_fp_fn_tp": [
+        2329,
+        2174,
+        311,
+        856
+      ]
+    }
+  },
+  "evaluation_at_0_5": {
+    "waterlogging": {
+      "rows": 5670,
+      "positives": 146,
+      "threshold": 0.5,
+      "prevalence": 0.02575,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "average_precision": 0.155959,
+      "brier_score": 0.024032,
+      "confusion_matrix_tn_fp_fn_tp": [
+        5524,
+        0,
+        146,
+        0
+      ]
+    },
+    "traffic_jam": {
+      "rows": 5670,
+      "positives": 1167,
+      "threshold": 0.5,
+      "prevalence": 0.20582,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "average_precision": 0.295543,
+      "brier_score": 0.156013,
+      "confusion_matrix_tn_fp_fn_tp": [
+        4503,
+        0,
+        1167,
+        0
+      ]
+    }
+  },
+  "evaluation_by_corridor": {
+    "AK Khandakar Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001296,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          12,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 15,
+        "threshold": 0.2,
+        "prevalence": 0.277778,
+        "precision": 0.375,
+        "recall": 0.6,
+        "f1": 0.461538,
+        "average_precision": 0.522926,
+        "brier_score": 0.194792,
+        "confusion_matrix_tn_fp_fn_tp": [
+          24,
+          15,
+          6,
+          9
+        ]
+      }
+    },
+    "Agargaon-Kachukhet Arterial": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001119,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          12,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 6,
+        "threshold": 0.2,
+        "prevalence": 0.111111,
+        "precision": 0.1875,
+        "recall": 0.5,
+        "f1": 0.272727,
+        "average_precision": 0.200352,
+        "brier_score": 0.099848,
+        "confusion_matrix_tn_fp_fn_tp": [
+          35,
+          13,
+          3,
+          3
+        ]
+      }
+    },
+    "Agargaon-Shyamoli Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001467,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          12,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 7,
+        "threshold": 0.2,
+        "prevalence": 0.12963,
+        "precision": 0.181818,
+        "recall": 0.571429,
+        "f1": 0.275862,
+        "average_precision": 0.357343,
+        "brier_score": 0.1072,
+        "confusion_matrix_tn_fp_fn_tp": [
+          29,
+          18,
+          3,
+          4
+        ]
+      }
+    },
+    "Airport Road / Banani Approach": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001032,
+        "confusion_matrix_tn_fp_fn_tp": [
+          44,
+          10,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 5,
+        "threshold": 0.2,
+        "prevalence": 0.092593,
+        "precision": 0.125,
+        "recall": 0.6,
+        "f1": 0.206897,
+        "average_precision": 0.277295,
+        "brier_score": 0.095108,
+        "confusion_matrix_tn_fp_fn_tp": [
+          28,
+          21,
+          2,
+          3
+        ]
+      }
+    },
+    "Airport Road / Main North-South Corridor": {
+      "waterlogging": {
+        "rows": 648,
+        "positives": 8,
+        "threshold": 0.05,
+        "prevalence": 0.012346,
+        "precision": 0.045455,
+        "recall": 0.5,
+        "f1": 0.083333,
+        "average_precision": 0.04322,
+        "brier_score": 0.012133,
+        "confusion_matrix_tn_fp_fn_tp": [
+          556,
+          84,
+          4,
+          4
+        ]
+      },
+      "traffic_jam": {
+        "rows": 648,
+        "positives": 95,
+        "threshold": 0.2,
+        "prevalence": 0.146605,
+        "precision": 0.214765,
+        "recall": 0.673684,
+        "f1": 0.3257,
+        "average_precision": 0.210015,
+        "brier_score": 0.124448,
+        "confusion_matrix_tn_fp_fn_tp": [
+          319,
+          234,
+          31,
+          64
+        ]
+      }
+    },
+    "Airport-ECB Main Connector": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001235,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          12,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 4,
+        "threshold": 0.2,
+        "prevalence": 0.074074,
+        "precision": 0.111111,
+        "recall": 0.5,
+        "f1": 0.181818,
+        "average_precision": 0.114073,
+        "brier_score": 0.083737,
+        "confusion_matrix_tn_fp_fn_tp": [
+          34,
+          16,
+          2,
+          2
+        ]
+      }
+    },
+    "Azimpur-Chankharpul Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001711,
+        "confusion_matrix_tn_fp_fn_tp": [
+          38,
+          16,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 12,
+        "threshold": 0.2,
+        "prevalence": 0.222222,
+        "precision": 0.333333,
+        "recall": 0.833333,
+        "f1": 0.47619,
+        "average_precision": 0.406082,
+        "brier_score": 0.160236,
+        "confusion_matrix_tn_fp_fn_tp": [
+          22,
+          20,
+          2,
+          10
+        ]
+      }
+    },
+    "Banani Arterial Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001158,
+        "confusion_matrix_tn_fp_fn_tp": [
+          44,
+          10,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 11,
+        "threshold": 0.2,
+        "prevalence": 0.203704,
+        "precision": 0.272727,
+        "recall": 0.545455,
+        "f1": 0.363636,
+        "average_precision": 0.313362,
+        "brier_score": 0.154765,
+        "confusion_matrix_tn_fp_fn_tp": [
+          27,
+          16,
+          5,
+          6
+        ]
+      }
+    },
+    "Banani-Gulshan Connector": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001061,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          12,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 8,
+        "threshold": 0.2,
+        "prevalence": 0.148148,
+        "precision": 0.25,
+        "recall": 0.75,
+        "f1": 0.375,
+        "average_precision": 0.326997,
+        "brier_score": 0.118549,
+        "confusion_matrix_tn_fp_fn_tp": [
+          28,
+          18,
+          2,
+          6
+        ]
+      }
+    },
+    "Banglamotor-Hatirpool Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.142857,
+        "recall": 1.0,
+        "f1": 0.25,
+        "average_precision": 0.5,
+        "brier_score": 0.032447,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          12,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 11,
+        "threshold": 0.2,
+        "prevalence": 0.203704,
+        "precision": 0.3,
+        "recall": 0.818182,
+        "f1": 0.439024,
+        "average_precision": 0.371613,
+        "brier_score": 0.146811,
+        "confusion_matrix_tn_fp_fn_tp": [
+          22,
+          21,
+          2,
+          9
+        ]
+      }
+    },
+    "Begum Rokeya Sarani": {
+      "waterlogging": {
+        "rows": 378,
+        "positives": 16,
+        "threshold": 0.05,
+        "prevalence": 0.042328,
+        "precision": 0.098039,
+        "recall": 0.625,
+        "f1": 0.169492,
+        "average_precision": 0.421195,
+        "brier_score": 0.036375,
+        "confusion_matrix_tn_fp_fn_tp": [
+          270,
+          92,
+          6,
+          10
+        ]
+      },
+      "traffic_jam": {
+        "rows": 378,
+        "positives": 66,
+        "threshold": 0.2,
+        "prevalence": 0.174603,
+        "precision": 0.247312,
+        "recall": 0.69697,
+        "f1": 0.365079,
+        "average_precision": 0.360564,
+        "brier_score": 0.134925,
+        "confusion_matrix_tn_fp_fn_tp": [
+          172,
+          140,
+          20,
+          46
+        ]
+      }
+    },
+    "Bijoy Sarani / Parliament Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.000919,
+        "confusion_matrix_tn_fp_fn_tp": [
+          46,
+          8,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 11,
+        "threshold": 0.2,
+        "prevalence": 0.203704,
+        "precision": 0.266667,
+        "recall": 0.727273,
+        "f1": 0.390244,
+        "average_precision": 0.282639,
+        "brier_score": 0.156391,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          22,
+          3,
+          8
+        ]
+      }
+    },
+    "Darus Salam Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 6,
+        "threshold": 0.05,
+        "prevalence": 0.111111,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.228571,
+        "brier_score": 0.104756,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          8,
+          6,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 7,
+        "threshold": 0.2,
+        "prevalence": 0.12963,
+        "precision": 0.21875,
+        "recall": 1.0,
+        "f1": 0.358974,
+        "average_precision": 0.377381,
+        "brier_score": 0.109504,
+        "confusion_matrix_tn_fp_fn_tp": [
+          22,
+          25,
+          0,
+          7
+        ]
+      }
+    },
+    "Dayaganj-Sayedabad Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.002578,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          14,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 15,
+        "threshold": 0.2,
+        "prevalence": 0.277778,
+        "precision": 0.4,
+        "recall": 0.8,
+        "f1": 0.533333,
+        "average_precision": 0.45978,
+        "brier_score": 0.186742,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          18,
+          3,
+          12
+        ]
+      }
+    },
+    "Dhaka University Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1": 0.4,
+        "average_precision": 1.0,
+        "brier_score": 0.033031,
+        "confusion_matrix_tn_fp_fn_tp": [
+          46,
+          6,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 8,
+        "threshold": 0.2,
+        "prevalence": 0.148148,
+        "precision": 0.25,
+        "recall": 0.5,
+        "f1": 0.333333,
+        "average_precision": 0.295519,
+        "brier_score": 0.119527,
+        "confusion_matrix_tn_fp_fn_tp": [
+          34,
+          12,
+          4,
+          4
+        ]
+      }
+    },
+    "Dhaka-Chattogram Main Entry Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.166667,
+        "recall": 1.0,
+        "f1": 0.285714,
+        "average_precision": 0.5,
+        "brier_score": 0.03279,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          10,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 18,
+        "threshold": 0.2,
+        "prevalence": 0.333333,
+        "precision": 0.404762,
+        "recall": 0.944444,
+        "f1": 0.566667,
+        "average_precision": 0.515741,
+        "brier_score": 0.210736,
+        "confusion_matrix_tn_fp_fn_tp": [
+          11,
+          25,
+          1,
+          17
+        ]
+      }
+    },
+    "Dhanmondi Main Connector": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.090909,
+        "brier_score": 0.037906,
+        "confusion_matrix_tn_fp_fn_tp": [
+          36,
+          16,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 11,
+        "threshold": 0.2,
+        "prevalence": 0.203704,
+        "precision": 0.214286,
+        "recall": 0.545455,
+        "f1": 0.307692,
+        "average_precision": 0.269104,
+        "brier_score": 0.161918,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          22,
+          5,
+          6
+        ]
+      }
+    },
+    "ECB-Kachukhet Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001167,
+        "confusion_matrix_tn_fp_fn_tp": [
+          44,
+          10,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 10,
+        "threshold": 0.2,
+        "prevalence": 0.185185,
+        "precision": 0.3125,
+        "recall": 0.5,
+        "f1": 0.384615,
+        "average_precision": 0.327605,
+        "brier_score": 0.142863,
+        "confusion_matrix_tn_fp_fn_tp": [
+          33,
+          11,
+          5,
+          5
+        ]
+      }
+    },
+    "ECB-Kalshi Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001008,
+        "confusion_matrix_tn_fp_fn_tp": [
+          44,
+          10,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 8,
+        "threshold": 0.2,
+        "prevalence": 0.148148,
+        "precision": 0.083333,
+        "recall": 0.125,
+        "f1": 0.1,
+        "average_precision": 0.159468,
+        "brier_score": 0.136799,
+        "confusion_matrix_tn_fp_fn_tp": [
+          35,
+          11,
+          7,
+          1
+        ]
+      }
+    },
+    "Elephant Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.002158,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          14,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 14,
+        "threshold": 0.2,
+        "prevalence": 0.259259,
+        "precision": 0.366667,
+        "recall": 0.785714,
+        "f1": 0.5,
+        "average_precision": 0.444468,
+        "brier_score": 0.176485,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          19,
+          3,
+          11
+        ]
+      }
+    },
+    "Elephant Road / Katabon Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.2,
+        "brier_score": 0.034553,
+        "confusion_matrix_tn_fp_fn_tp": [
+          44,
+          8,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 11,
+        "threshold": 0.2,
+        "prevalence": 0.203704,
+        "precision": 0.233333,
+        "recall": 0.636364,
+        "f1": 0.341463,
+        "average_precision": 0.228131,
+        "brier_score": 0.16994,
+        "confusion_matrix_tn_fp_fn_tp": [
+          20,
+          23,
+          4,
+          7
+        ]
+      }
+    },
+    "Fakirapool Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.125,
+        "recall": 1.0,
+        "f1": 0.222222,
+        "average_precision": 0.2,
+        "brier_score": 0.033559,
+        "confusion_matrix_tn_fp_fn_tp": [
+          38,
+          14,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 14,
+        "threshold": 0.2,
+        "prevalence": 0.259259,
+        "precision": 0.333333,
+        "recall": 0.714286,
+        "f1": 0.454545,
+        "average_precision": 0.368661,
+        "brier_score": 0.18325,
+        "confusion_matrix_tn_fp_fn_tp": [
+          20,
+          20,
+          4,
+          10
+        ]
+      }
+    },
+    "Farmgate Arterial Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.111111,
+        "brier_score": 0.036346,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          10,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 16,
+        "threshold": 0.2,
+        "prevalence": 0.296296,
+        "precision": 0.4,
+        "recall": 0.75,
+        "f1": 0.521739,
+        "average_precision": 0.40241,
+        "brier_score": 0.201911,
+        "confusion_matrix_tn_fp_fn_tp": [
+          20,
+          18,
+          4,
+          12
+        ]
+      }
+    },
+    "Green Road": {
+      "waterlogging": {
+        "rows": 162,
+        "positives": 14,
+        "threshold": 0.05,
+        "prevalence": 0.08642,
+        "precision": 0.206897,
+        "recall": 0.857143,
+        "f1": 0.333333,
+        "average_precision": 0.45938,
+        "brier_score": 0.070545,
+        "confusion_matrix_tn_fp_fn_tp": [
+          102,
+          46,
+          2,
+          12
+        ]
+      },
+      "traffic_jam": {
+        "rows": 162,
+        "positives": 44,
+        "threshold": 0.2,
+        "prevalence": 0.271605,
+        "precision": 0.388889,
+        "recall": 0.795455,
+        "f1": 0.522388,
+        "average_precision": 0.492611,
+        "brier_score": 0.185748,
+        "confusion_matrix_tn_fp_fn_tp": [
+          63,
+          55,
+          9,
+          35
+        ]
+      }
+    },
+    "Gulistan-Chankharpul Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.166667,
+        "recall": 1.0,
+        "f1": 0.285714,
+        "average_precision": 0.25,
+        "brier_score": 0.034053,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          10,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 10,
+        "threshold": 0.2,
+        "prevalence": 0.185185,
+        "precision": 0.28125,
+        "recall": 0.9,
+        "f1": 0.428571,
+        "average_precision": 0.581052,
+        "brier_score": 0.137238,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          23,
+          1,
+          9
+        ]
+      }
+    },
+    "Gulistan-Dayaganj Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.002413,
+        "confusion_matrix_tn_fp_fn_tp": [
+          38,
+          16,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 16,
+        "threshold": 0.2,
+        "prevalence": 0.296296,
+        "precision": 0.433333,
+        "recall": 0.8125,
+        "f1": 0.565217,
+        "average_precision": 0.381303,
+        "brier_score": 0.203358,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          17,
+          3,
+          13
+        ]
+      }
+    },
+    "Gulistan-Motijheel Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001232,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          14,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 13,
+        "threshold": 0.2,
+        "prevalence": 0.240741,
+        "precision": 0.25,
+        "recall": 0.846154,
+        "f1": 0.385965,
+        "average_precision": 0.255831,
+        "brier_score": 0.190252,
+        "confusion_matrix_tn_fp_fn_tp": [
+          8,
+          33,
+          2,
+          11
+        ]
+      }
+    },
+    "Gulshan Avenue": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.166667,
+        "recall": 1.0,
+        "f1": 0.285714,
+        "average_precision": 0.333333,
+        "brier_score": 0.033433,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          10,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 10,
+        "threshold": 0.2,
+        "prevalence": 0.185185,
+        "precision": 0.214286,
+        "recall": 0.6,
+        "f1": 0.315789,
+        "average_precision": 0.332195,
+        "brier_score": 0.142398,
+        "confusion_matrix_tn_fp_fn_tp": [
+          22,
+          22,
+          4,
+          6
+        ]
+      }
+    },
+    "Gulshan-Badda Link Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001063,
+        "confusion_matrix_tn_fp_fn_tp": [
+          44,
+          10,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 15,
+        "threshold": 0.2,
+        "prevalence": 0.277778,
+        "precision": 0.3125,
+        "recall": 0.666667,
+        "f1": 0.425532,
+        "average_precision": 0.403855,
+        "brier_score": 0.191973,
+        "confusion_matrix_tn_fp_fn_tp": [
+          17,
+          22,
+          5,
+          10
+        ]
+      }
+    },
+    "Gulshan-Natun Bazar Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1": 0.4,
+        "average_precision": 0.5,
+        "brier_score": 0.032522,
+        "confusion_matrix_tn_fp_fn_tp": [
+          46,
+          6,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 13,
+        "threshold": 0.2,
+        "prevalence": 0.240741,
+        "precision": 0.233333,
+        "recall": 0.538462,
+        "f1": 0.325581,
+        "average_precision": 0.295258,
+        "brier_score": 0.190104,
+        "confusion_matrix_tn_fp_fn_tp": [
+          18,
+          23,
+          6,
+          7
+        ]
+      }
+    },
+    "Kachukhet Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001433,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          12,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 12,
+        "threshold": 0.2,
+        "prevalence": 0.222222,
+        "precision": 0.321429,
+        "recall": 0.75,
+        "f1": 0.45,
+        "average_precision": 0.329778,
+        "brier_score": 0.164657,
+        "confusion_matrix_tn_fp_fn_tp": [
+          23,
+          19,
+          3,
+          9
+        ]
+      }
+    },
+    "Kakrail Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1": 0.4,
+        "average_precision": 0.333333,
+        "brier_score": 0.032835,
+        "confusion_matrix_tn_fp_fn_tp": [
+          46,
+          6,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 13,
+        "threshold": 0.2,
+        "prevalence": 0.240741,
+        "precision": 0.333333,
+        "recall": 0.769231,
+        "f1": 0.465116,
+        "average_precision": 0.343201,
+        "brier_score": 0.173661,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          20,
+          3,
+          10
+        ]
+      }
+    },
+    "Kakrail-Moghbazar Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.000925,
+        "confusion_matrix_tn_fp_fn_tp": [
+          46,
+          8,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 7,
+        "threshold": 0.2,
+        "prevalence": 0.12963,
+        "precision": 0.166667,
+        "recall": 0.714286,
+        "f1": 0.27027,
+        "average_precision": 0.280765,
+        "brier_score": 0.119701,
+        "confusion_matrix_tn_fp_fn_tp": [
+          22,
+          25,
+          2,
+          5
+        ]
+      }
+    },
+    "Kakrail-Shantinagar Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.047619,
+        "brier_score": 0.038108,
+        "confusion_matrix_tn_fp_fn_tp": [
+          38,
+          14,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 15,
+        "threshold": 0.2,
+        "prevalence": 0.277778,
+        "precision": 0.366667,
+        "recall": 0.733333,
+        "f1": 0.488889,
+        "average_precision": 0.358844,
+        "brier_score": 0.197719,
+        "confusion_matrix_tn_fp_fn_tp": [
+          20,
+          19,
+          4,
+          11
+        ]
+      }
+    },
+    "Kalshi Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.003379,
+        "confusion_matrix_tn_fp_fn_tp": [
+          36,
+          18,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 7,
+        "threshold": 0.2,
+        "prevalence": 0.12963,
+        "precision": 0.181818,
+        "recall": 0.571429,
+        "f1": 0.275862,
+        "average_precision": 0.202551,
+        "brier_score": 0.112507,
+        "confusion_matrix_tn_fp_fn_tp": [
+          29,
+          18,
+          3,
+          4
+        ]
+      }
+    },
+    "Kalshi-Mirpur Main Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.1,
+        "recall": 1.0,
+        "f1": 0.181818,
+        "average_precision": 0.25,
+        "brier_score": 0.032986,
+        "confusion_matrix_tn_fp_fn_tp": [
+          34,
+          18,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 9,
+        "threshold": 0.2,
+        "prevalence": 0.166667,
+        "precision": 0.269231,
+        "recall": 0.777778,
+        "f1": 0.4,
+        "average_precision": 0.26688,
+        "brier_score": 0.133123,
+        "confusion_matrix_tn_fp_fn_tp": [
+          26,
+          19,
+          2,
+          7
+        ]
+      }
+    },
+    "Kamal Ataturk Avenue": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001223,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          12,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 10,
+        "threshold": 0.2,
+        "prevalence": 0.185185,
+        "precision": 0.307692,
+        "recall": 0.8,
+        "f1": 0.444444,
+        "average_precision": 0.382918,
+        "brier_score": 0.13582,
+        "confusion_matrix_tn_fp_fn_tp": [
+          26,
+          18,
+          2,
+          8
+        ]
+      }
+    },
+    "Kamalapur-Sayedabad Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.090909,
+        "brier_score": 0.03666,
+        "confusion_matrix_tn_fp_fn_tp": [
+          38,
+          14,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 11,
+        "threshold": 0.2,
+        "prevalence": 0.203704,
+        "precision": 0.3,
+        "recall": 0.818182,
+        "f1": 0.439024,
+        "average_precision": 0.297806,
+        "brier_score": 0.151622,
+        "confusion_matrix_tn_fp_fn_tp": [
+          22,
+          21,
+          2,
+          9
+        ]
+      }
+    },
+    "Kazi Nazrul Islam Avenue": {
+      "waterlogging": {
+        "rows": 162,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.012346,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.025,
+        "brier_score": 0.013037,
+        "confusion_matrix_tn_fp_fn_tp": [
+          128,
+          32,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 162,
+        "positives": 37,
+        "threshold": 0.2,
+        "prevalence": 0.228395,
+        "precision": 0.258065,
+        "recall": 0.864865,
+        "f1": 0.397516,
+        "average_precision": 0.312016,
+        "brier_score": 0.171752,
+        "confusion_matrix_tn_fp_fn_tp": [
+          33,
+          92,
+          5,
+          32
+        ]
+      }
+    },
+    "Khilgaon Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.002685,
+        "confusion_matrix_tn_fp_fn_tp": [
+          36,
+          18,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 14,
+        "threshold": 0.2,
+        "prevalence": 0.259259,
+        "precision": 0.357143,
+        "recall": 0.714286,
+        "f1": 0.47619,
+        "average_precision": 0.402113,
+        "brier_score": 0.187398,
+        "confusion_matrix_tn_fp_fn_tp": [
+          22,
+          18,
+          4,
+          10
+        ]
+      }
+    },
+    "Khilgaon-Rampura Connector": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.002149,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          14,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 13,
+        "threshold": 0.2,
+        "prevalence": 0.240741,
+        "precision": 0.333333,
+        "recall": 0.769231,
+        "f1": 0.465116,
+        "average_precision": 0.407201,
+        "brier_score": 0.16976,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          20,
+          3,
+          10
+        ]
+      }
+    },
+    "Malibagh-Rajarbagh Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.111111,
+        "recall": 1.0,
+        "f1": 0.2,
+        "average_precision": 1.0,
+        "brier_score": 0.029481,
+        "confusion_matrix_tn_fp_fn_tp": [
+          36,
+          16,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 13,
+        "threshold": 0.2,
+        "prevalence": 0.240741,
+        "precision": 0.3,
+        "recall": 0.692308,
+        "f1": 0.418605,
+        "average_precision": 0.288478,
+        "brier_score": 0.18342,
+        "confusion_matrix_tn_fp_fn_tp": [
+          20,
+          21,
+          4,
+          9
+        ]
+      }
+    },
+    "Malibagh-Shahjahanpur Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 4,
+        "threshold": 0.05,
+        "prevalence": 0.074074,
+        "precision": 0.142857,
+        "recall": 0.5,
+        "f1": 0.222222,
+        "average_precision": 0.333333,
+        "brier_score": 0.066933,
+        "confusion_matrix_tn_fp_fn_tp": [
+          38,
+          12,
+          2,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 9,
+        "threshold": 0.2,
+        "prevalence": 0.166667,
+        "precision": 0.266667,
+        "recall": 0.888889,
+        "f1": 0.410256,
+        "average_precision": 0.361785,
+        "brier_score": 0.128824,
+        "confusion_matrix_tn_fp_fn_tp": [
+          23,
+          22,
+          1,
+          8
+        ]
+      }
+    },
+    "Manik Mia Avenue": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.2,
+        "recall": 1.0,
+        "f1": 0.333333,
+        "average_precision": 0.25,
+        "brier_score": 0.033953,
+        "confusion_matrix_tn_fp_fn_tp": [
+          44,
+          8,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 11,
+        "threshold": 0.2,
+        "prevalence": 0.203704,
+        "precision": 0.28125,
+        "recall": 0.818182,
+        "f1": 0.418605,
+        "average_precision": 0.368376,
+        "brier_score": 0.152932,
+        "confusion_matrix_tn_fp_fn_tp": [
+          20,
+          23,
+          2,
+          9
+        ]
+      }
+    },
+    "Manik Mia Avenue / Farmgate Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001067,
+        "confusion_matrix_tn_fp_fn_tp": [
+          44,
+          10,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 15,
+        "threshold": 0.2,
+        "prevalence": 0.277778,
+        "precision": 0.4,
+        "recall": 0.8,
+        "f1": 0.533333,
+        "average_precision": 0.475543,
+        "brier_score": 0.184615,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          18,
+          3,
+          12
+        ]
+      }
+    },
+    "Mirpur Main Connector": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001272,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          12,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 9,
+        "threshold": 0.2,
+        "prevalence": 0.166667,
+        "precision": 0.25,
+        "recall": 0.555556,
+        "f1": 0.344828,
+        "average_precision": 0.33228,
+        "brier_score": 0.134512,
+        "confusion_matrix_tn_fp_fn_tp": [
+          30,
+          15,
+          4,
+          5
+        ]
+      }
+    },
+    "Mirpur Main Road": {
+      "waterlogging": {
+        "rows": 108,
+        "positives": 4,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.2,
+        "recall": 1.0,
+        "f1": 0.333333,
+        "average_precision": 0.266667,
+        "brier_score": 0.033685,
+        "confusion_matrix_tn_fp_fn_tp": [
+          88,
+          16,
+          0,
+          4
+        ]
+      },
+      "traffic_jam": {
+        "rows": 108,
+        "positives": 24,
+        "threshold": 0.2,
+        "prevalence": 0.222222,
+        "precision": 0.33871,
+        "recall": 0.875,
+        "f1": 0.488372,
+        "average_precision": 0.343942,
+        "brier_score": 0.159985,
+        "confusion_matrix_tn_fp_fn_tp": [
+          43,
+          41,
+          3,
+          21
+        ]
+      }
+    },
+    "Mirpur Road": {
+      "waterlogging": {
+        "rows": 432,
+        "positives": 8,
+        "threshold": 0.05,
+        "prevalence": 0.018519,
+        "precision": 0.036364,
+        "recall": 0.5,
+        "f1": 0.067797,
+        "average_precision": 0.043421,
+        "brier_score": 0.018774,
+        "confusion_matrix_tn_fp_fn_tp": [
+          318,
+          106,
+          4,
+          4
+        ]
+      },
+      "traffic_jam": {
+        "rows": 432,
+        "positives": 106,
+        "threshold": 0.2,
+        "prevalence": 0.24537,
+        "precision": 0.326613,
+        "recall": 0.764151,
+        "f1": 0.457627,
+        "average_precision": 0.345044,
+        "brier_score": 0.176764,
+        "confusion_matrix_tn_fp_fn_tp": [
+          159,
+          167,
+          25,
+          81
+        ]
+      }
+    },
+    "Mirpur Road / Mazar Road Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.00162,
+        "confusion_matrix_tn_fp_fn_tp": [
+          38,
+          16,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 18,
+        "threshold": 0.2,
+        "prevalence": 0.333333,
+        "precision": 0.4,
+        "recall": 0.666667,
+        "f1": 0.5,
+        "average_precision": 0.389048,
+        "brier_score": 0.233124,
+        "confusion_matrix_tn_fp_fn_tp": [
+          18,
+          18,
+          6,
+          12
+        ]
+      }
+    },
+    "Moghbazar Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.166667,
+        "recall": 1.0,
+        "f1": 0.285714,
+        "average_precision": 0.166667,
+        "brier_score": 0.033839,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          10,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 12,
+        "threshold": 0.2,
+        "prevalence": 0.222222,
+        "precision": 0.333333,
+        "recall": 0.833333,
+        "f1": 0.47619,
+        "average_precision": 0.40481,
+        "brier_score": 0.15717,
+        "confusion_matrix_tn_fp_fn_tp": [
+          22,
+          20,
+          2,
+          10
+        ]
+      }
+    },
+    "Moghbazar-Mouchak Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.083333,
+        "brier_score": 0.037524,
+        "confusion_matrix_tn_fp_fn_tp": [
+          38,
+          14,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 9,
+        "threshold": 0.2,
+        "prevalence": 0.166667,
+        "precision": 0.2,
+        "recall": 0.666667,
+        "f1": 0.307692,
+        "average_precision": 0.203793,
+        "brier_score": 0.145717,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          24,
+          3,
+          6
+        ]
+      }
+    },
+    "Mohammadpur Main Access Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.166667,
+        "recall": 1.0,
+        "f1": 0.285714,
+        "average_precision": 0.166667,
+        "brier_score": 0.034129,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          10,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 4,
+        "threshold": 0.2,
+        "prevalence": 0.074074,
+        "precision": 0.09375,
+        "recall": 0.75,
+        "f1": 0.166667,
+        "average_precision": 0.119656,
+        "brier_score": 0.093018,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          29,
+          1,
+          3
+        ]
+      }
+    },
+    "Motijheel Main Connector": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.002144,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          14,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 14,
+        "threshold": 0.2,
+        "prevalence": 0.259259,
+        "precision": 0.289474,
+        "recall": 0.785714,
+        "f1": 0.423077,
+        "average_precision": 0.501005,
+        "brier_score": 0.180782,
+        "confusion_matrix_tn_fp_fn_tp": [
+          13,
+          27,
+          3,
+          11
+        ]
+      }
+    },
+    "Motijheel-Kamalapur Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.142857,
+        "recall": 1.0,
+        "f1": 0.25,
+        "average_precision": 0.25,
+        "brier_score": 0.032573,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          12,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 13,
+        "threshold": 0.2,
+        "prevalence": 0.240741,
+        "precision": 0.3,
+        "recall": 0.692308,
+        "f1": 0.418605,
+        "average_precision": 0.614865,
+        "brier_score": 0.167623,
+        "confusion_matrix_tn_fp_fn_tp": [
+          20,
+          21,
+          4,
+          9
+        ]
+      }
+    },
+    "Naya Paltan Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.142857,
+        "recall": 1.0,
+        "f1": 0.25,
+        "average_precision": 0.166667,
+        "brier_score": 0.034462,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          12,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 9,
+        "threshold": 0.2,
+        "prevalence": 0.166667,
+        "precision": 0.222222,
+        "recall": 0.888889,
+        "f1": 0.355556,
+        "average_precision": 0.286835,
+        "brier_score": 0.13686,
+        "confusion_matrix_tn_fp_fn_tp": [
+          17,
+          28,
+          1,
+          8
+        ]
+      }
+    },
+    "Paltan-Gulistan Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.041667,
+        "brier_score": 0.037418,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          12,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 7,
+        "threshold": 0.2,
+        "prevalence": 0.12963,
+        "precision": 0.157895,
+        "recall": 0.857143,
+        "f1": 0.266667,
+        "average_precision": 0.149851,
+        "brier_score": 0.136046,
+        "confusion_matrix_tn_fp_fn_tp": [
+          15,
+          32,
+          1,
+          6
+        ]
+      }
+    },
+    "Paltan-Kakrail Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.001581,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          14,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 17,
+        "threshold": 0.2,
+        "prevalence": 0.314815,
+        "precision": 0.394737,
+        "recall": 0.882353,
+        "f1": 0.545455,
+        "average_precision": 0.351424,
+        "brier_score": 0.21813,
+        "confusion_matrix_tn_fp_fn_tp": [
+          14,
+          23,
+          2,
+          15
+        ]
+      }
+    },
+    "Panthapath": {
+      "waterlogging": {
+        "rows": 162,
+        "positives": 8,
+        "threshold": 0.05,
+        "prevalence": 0.049383,
+        "precision": 0.173913,
+        "recall": 1.0,
+        "f1": 0.296296,
+        "average_precision": 0.674242,
+        "brier_score": 0.039824,
+        "confusion_matrix_tn_fp_fn_tp": [
+          116,
+          38,
+          0,
+          8
+        ]
+      },
+      "traffic_jam": {
+        "rows": 162,
+        "positives": 42,
+        "threshold": 0.2,
+        "prevalence": 0.259259,
+        "precision": 0.380435,
+        "recall": 0.833333,
+        "f1": 0.522388,
+        "average_precision": 0.393611,
+        "brier_score": 0.180323,
+        "confusion_matrix_tn_fp_fn_tp": [
+          63,
+          57,
+          7,
+          35
+        ]
+      }
+    },
+    "Pragati Sarani / DIT Road": {
+      "waterlogging": {
+        "rows": 378,
+        "positives": 8,
+        "threshold": 0.05,
+        "prevalence": 0.021164,
+        "precision": 0.043478,
+        "recall": 0.5,
+        "f1": 0.08,
+        "average_precision": 0.068171,
+        "brier_score": 0.020442,
+        "confusion_matrix_tn_fp_fn_tp": [
+          282,
+          88,
+          4,
+          4
+        ]
+      },
+      "traffic_jam": {
+        "rows": 378,
+        "positives": 84,
+        "threshold": 0.2,
+        "prevalence": 0.222222,
+        "precision": 0.273148,
+        "recall": 0.702381,
+        "f1": 0.393333,
+        "average_precision": 0.274633,
+        "brier_score": 0.170177,
+        "confusion_matrix_tn_fp_fn_tp": [
+          137,
+          157,
+          25,
+          59
+        ]
+      }
+    },
+    "Sat Masjid Road": {
+      "waterlogging": {
+        "rows": 162,
+        "positives": 6,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.043478,
+        "recall": 0.333333,
+        "f1": 0.076923,
+        "average_precision": 0.042867,
+        "brier_score": 0.037211,
+        "confusion_matrix_tn_fp_fn_tp": [
+          112,
+          44,
+          4,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 162,
+        "positives": 31,
+        "threshold": 0.2,
+        "prevalence": 0.191358,
+        "precision": 0.25,
+        "recall": 0.709677,
+        "f1": 0.369748,
+        "average_precision": 0.269588,
+        "brier_score": 0.15271,
+        "confusion_matrix_tn_fp_fn_tp": [
+          65,
+          66,
+          9,
+          22
+        ]
+      }
+    },
+    "Sat Masjid Road / Mohammadpur Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.166667,
+        "recall": 1.0,
+        "f1": 0.285714,
+        "average_precision": 0.166667,
+        "brier_score": 0.034518,
+        "confusion_matrix_tn_fp_fn_tp": [
+          42,
+          10,
+          0,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 11,
+        "threshold": 0.2,
+        "prevalence": 0.203704,
+        "precision": 0.25,
+        "recall": 0.363636,
+        "f1": 0.296296,
+        "average_precision": 0.281552,
+        "brier_score": 0.161496,
+        "confusion_matrix_tn_fp_fn_tp": [
+          31,
+          12,
+          7,
+          4
+        ]
+      }
+    },
+    "Science Lab-Kalabagan Link": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.071429,
+        "brier_score": 0.037475,
+        "confusion_matrix_tn_fp_fn_tp": [
+          40,
+          12,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 14,
+        "threshold": 0.2,
+        "prevalence": 0.259259,
+        "precision": 0.40625,
+        "recall": 0.928571,
+        "f1": 0.565217,
+        "average_precision": 0.361926,
+        "brier_score": 0.181885,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          19,
+          1,
+          13
+        ]
+      }
+    },
+    "Shahbag-Matsya Bhaban Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 0,
+        "threshold": 0.05,
+        "prevalence": 0.0,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": null,
+        "brier_score": 0.000891,
+        "confusion_matrix_tn_fp_fn_tp": [
+          46,
+          8,
+          0,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 13,
+        "threshold": 0.2,
+        "prevalence": 0.240741,
+        "precision": 0.3125,
+        "recall": 0.769231,
+        "f1": 0.444444,
+        "average_precision": 0.335912,
+        "brier_score": 0.174171,
+        "confusion_matrix_tn_fp_fn_tp": [
+          19,
+          22,
+          3,
+          10
+        ]
+      }
+    },
+    "Shahjahanpur Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.037037,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.045455,
+        "brier_score": 0.038433,
+        "confusion_matrix_tn_fp_fn_tp": [
+          38,
+          14,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 12,
+        "threshold": 0.2,
+        "prevalence": 0.222222,
+        "precision": 0.2,
+        "recall": 0.5,
+        "f1": 0.285714,
+        "average_precision": 0.239323,
+        "brier_score": 0.18317,
+        "confusion_matrix_tn_fp_fn_tp": [
+          18,
+          24,
+          6,
+          6
+        ]
+      }
+    },
+    "Shantinagar Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 4,
+        "threshold": 0.05,
+        "prevalence": 0.074074,
+        "precision": 0.111111,
+        "recall": 0.5,
+        "f1": 0.181818,
+        "average_precision": 0.12406,
+        "brier_score": 0.071479,
+        "confusion_matrix_tn_fp_fn_tp": [
+          34,
+          16,
+          2,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 9,
+        "threshold": 0.2,
+        "prevalence": 0.166667,
+        "precision": 0.266667,
+        "recall": 0.888889,
+        "f1": 0.410256,
+        "average_precision": 0.419802,
+        "brier_score": 0.131635,
+        "confusion_matrix_tn_fp_fn_tp": [
+          23,
+          22,
+          1,
+          8
+        ]
+      }
+    },
+    "Shantinagar-Mouchak Main Road": {
+      "waterlogging": {
+        "rows": 54,
+        "positives": 8,
+        "threshold": 0.05,
+        "prevalence": 0.148148,
+        "precision": 0.25,
+        "recall": 0.5,
+        "f1": 0.333333,
+        "average_precision": 0.534848,
+        "brier_score": 0.129394,
+        "confusion_matrix_tn_fp_fn_tp": [
+          34,
+          12,
+          4,
+          4
+        ]
+      },
+      "traffic_jam": {
+        "rows": 54,
+        "positives": 9,
+        "threshold": 0.2,
+        "prevalence": 0.166667,
+        "precision": 0.2,
+        "recall": 0.666667,
+        "f1": 0.307692,
+        "average_precision": 0.201666,
+        "brier_score": 0.143047,
+        "confusion_matrix_tn_fp_fn_tp": [
+          21,
+          24,
+          3,
+          6
+        ]
+      }
+    }
+  },
+  "evaluation_by_month": {
+    "1": {
+      "waterlogging": {
+        "rows": 630,
+        "positives": 2,
+        "threshold": 0.05,
+        "prevalence": 0.003175,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.25,
+        "brier_score": 0.003111,
+        "confusion_matrix_tn_fp_fn_tp": [
+          628,
+          0,
+          2,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 630,
+        "positives": 124,
+        "threshold": 0.2,
+        "prevalence": 0.196825,
+        "precision": 0.39759,
+        "recall": 0.532258,
+        "f1": 0.455172,
+        "average_precision": 0.369017,
+        "brier_score": 0.148697,
+        "confusion_matrix_tn_fp_fn_tp": [
+          406,
+          100,
+          58,
+          66
+        ]
+      }
+    },
+    "2": {
+      "waterlogging": {
+        "rows": 630,
+        "positives": 6,
+        "threshold": 0.05,
+        "prevalence": 0.009524,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.031064,
+        "brier_score": 0.009474,
+        "confusion_matrix_tn_fp_fn_tp": [
+          610,
+          14,
+          6,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 630,
+        "positives": 136,
+        "threshold": 0.2,
+        "prevalence": 0.215873,
+        "precision": 0.289017,
+        "recall": 0.735294,
+        "f1": 0.414938,
+        "average_precision": 0.316103,
+        "brier_score": 0.163563,
+        "confusion_matrix_tn_fp_fn_tp": [
+          248,
+          246,
+          36,
+          100
+        ]
+      }
+    },
+    "3": {
+      "waterlogging": {
+        "rows": 630,
+        "positives": 6,
+        "threshold": 0.05,
+        "prevalence": 0.009524,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.014005,
+        "brier_score": 0.009501,
+        "confusion_matrix_tn_fp_fn_tp": [
+          622,
+          2,
+          6,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 630,
+        "positives": 136,
+        "threshold": 0.2,
+        "prevalence": 0.215873,
+        "precision": 0.216279,
+        "recall": 0.683824,
+        "f1": 0.328622,
+        "average_precision": 0.224353,
+        "brier_score": 0.170464,
+        "confusion_matrix_tn_fp_fn_tp": [
+          157,
+          337,
+          43,
+          93
+        ]
+      }
+    },
+    "4": {
+      "waterlogging": {
+        "rows": 630,
+        "positives": 26,
+        "threshold": 0.05,
+        "prevalence": 0.04127,
+        "precision": 0.12,
+        "recall": 0.923077,
+        "f1": 0.212389,
+        "average_precision": 0.388058,
+        "brier_score": 0.034602,
+        "confusion_matrix_tn_fp_fn_tp": [
+          428,
+          176,
+          2,
+          24
+        ]
+      },
+      "traffic_jam": {
+        "rows": 630,
+        "positives": 119,
+        "threshold": 0.2,
+        "prevalence": 0.188889,
+        "precision": 0.370833,
+        "recall": 0.747899,
+        "f1": 0.495822,
+        "average_precision": 0.391219,
+        "brier_score": 0.13628,
+        "confusion_matrix_tn_fp_fn_tp": [
+          360,
+          151,
+          30,
+          89
+        ]
+      }
+    },
+    "5": {
+      "waterlogging": {
+        "rows": 630,
+        "positives": 6,
+        "threshold": 0.05,
+        "prevalence": 0.009524,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "average_precision": 0.024461,
+        "brier_score": 0.009518,
+        "confusion_matrix_tn_fp_fn_tp": [
+          614,
+          10,
+          6,
+          0
+        ]
+      },
+      "traffic_jam": {
+        "rows": 630,
+        "positives": 109,
+        "threshold": 0.2,
+        "prevalence": 0.173016,
+        "precision": 0.23057,
+        "recall": 0.816514,
+        "f1": 0.359596,
+        "average_precision": 0.25206,
+        "brier_score": 0.138713,
+        "confusion_matrix_tn_fp_fn_tp": [
+          224,
+          297,
+          20,
+          89
+        ]
+      }
+    },
+    "6": {
+      "waterlogging": {
+        "rows": 630,
+        "positives": 12,
+        "threshold": 0.05,
+        "prevalence": 0.019048,
+        "precision": 0.021277,
+        "recall": 0.333333,
+        "f1": 0.04,
+        "average_precision": 0.054727,
+        "brier_score": 0.019223,
+        "confusion_matrix_tn_fp_fn_tp": [
+          434,
+          184,
+          8,
+          4
+        ]
+      },
+      "traffic_jam": {
+        "rows": 630,
+        "positives": 151,
+        "threshold": 0.2,
+        "prevalence": 0.239683,
+        "precision": 0.281553,
+        "recall": 0.768212,
+        "f1": 0.412078,
+        "average_precision": 0.30576,
+        "brier_score": 0.178137,
+        "confusion_matrix_tn_fp_fn_tp": [
+          183,
+          296,
+          35,
+          116
+        ]
+      }
+    },
+    "7": {
+      "waterlogging": {
+        "rows": 630,
+        "positives": 28,
+        "threshold": 0.05,
+        "prevalence": 0.044444,
+        "precision": 0.031646,
+        "recall": 0.357143,
+        "f1": 0.05814,
+        "average_precision": 0.05362,
+        "brier_score": 0.043258,
+        "confusion_matrix_tn_fp_fn_tp": [
+          296,
+          306,
+          18,
+          10
+        ]
+      },
+      "traffic_jam": {
+        "rows": 630,
+        "positives": 114,
+        "threshold": 0.2,
+        "prevalence": 0.180952,
+        "precision": 0.278226,
+        "recall": 0.605263,
+        "f1": 0.381215,
+        "average_precision": 0.293363,
+        "brier_score": 0.142105,
+        "confusion_matrix_tn_fp_fn_tp": [
+          337,
+          179,
+          45,
+          69
+        ]
+      }
+    },
+    "8": {
+      "waterlogging": {
+        "rows": 630,
+        "positives": 8,
+        "threshold": 0.05,
+        "prevalence": 0.012698,
+        "precision": 0.009259,
+        "recall": 0.25,
+        "f1": 0.017857,
+        "average_precision": 0.022368,
+        "brier_score": 0.014821,
+        "confusion_matrix_tn_fp_fn_tp": [
+          408,
+          214,
+          6,
+          2
+        ]
+      },
+      "traffic_jam": {
+        "rows": 630,
+        "positives": 104,
+        "threshold": 0.2,
+        "prevalence": 0.165079,
+        "precision": 0.196335,
+        "recall": 0.721154,
+        "f1": 0.308642,
+        "average_precision": 0.190792,
+        "brier_score": 0.144978,
+        "confusion_matrix_tn_fp_fn_tp": [
+          219,
+          307,
+          29,
+          75
+        ]
+      }
+    },
+    "9": {
+      "waterlogging": {
+        "rows": 630,
+        "positives": 52,
+        "threshold": 0.05,
+        "prevalence": 0.08254,
+        "precision": 0.130435,
+        "recall": 0.923077,
+        "f1": 0.228571,
+        "average_precision": 0.270127,
+        "brier_score": 0.072776,
+        "confusion_matrix_tn_fp_fn_tp": [
+          258,
+          320,
+          4,
+          48
+        ]
+      },
+      "traffic_jam": {
+        "rows": 630,
+        "positives": 174,
+        "threshold": 0.2,
+        "prevalence": 0.27619,
+        "precision": 0.378571,
+        "recall": 0.913793,
+        "f1": 0.535354,
+        "average_precision": 0.381268,
+        "brier_score": 0.181178,
+        "confusion_matrix_tn_fp_fn_tp": [
+          195,
+          261,
+          15,
+          159
+        ]
+      }
+    }
+  },
+  "constant_prevalence_baseline": {
+    "waterlogging": {
+      "rows": 5670,
+      "positives": 146,
+      "threshold": 0.5,
+      "prevalence": 0.02575,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "average_precision": 0.02575,
+      "brier_score": 0.025327,
+      "confusion_matrix_tn_fp_fn_tp": [
+        5524,
+        0,
+        146,
+        0
+      ]
+    },
+    "traffic_jam": {
+      "rows": 5670,
+      "positives": 1167,
+      "threshold": 0.5,
+      "prevalence": 0.20582,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "average_precision": 0.20582,
+      "brier_score": 0.163493,
+      "confusion_matrix_tn_fp_fn_tp": [
+        4503,
+        0,
+        1167,
+        0
+      ]
+    }
+  },
+  "split": "2024 train, 2025 validation for selection; refit 2024+2025; evaluate on untouched Jan-Sep 2026.",
+  "aggregation": "maximum_segment_probability",
+  "mapping_basis": "Conceptual endpoint/corridor matches to packages/new-data. Both simulated directions are included. These are not verified navigation links.",
+  "scikit_learn_version": "1.9.1",
+  "trained_at": "2026-10-20T21:14:09.453841+06:00",
+  "limitations": "Synthetic simulator data with only 99 shared scenarios. Sparse hour and rain coverage. No real-world accuracy established. Uncalibrated probabilities; a corridor displays its highest segment probability, not a probability of the entire corridor being closed."
+}

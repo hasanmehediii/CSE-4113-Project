@@ -7,11 +7,17 @@ ML-owned database write sketch: an API worker calls ML over HTTP and persists th
 
 This extends `SYSTEM_DESIGN.md` with the actual repo layout, tooling, and conventions for keeping web, api, and ml-service in one repository.
 
+The top-level tree below reflects the current checkout. Detailed per-app trees and
+infrastructure sketches later in this document retain the original design proposal;
+planned features do not require empty source files or directories. Unused scaffolding
+and no-op CI placeholders have been removed. Implemented workflows are documented in
+[DEVELOPMENT.md](../../DEVELOPMENT.md) and [scripts/README.md](../../scripts/README.md).
+
 ---
 
 ## 1. Top-Level Layout
 
-The project is named **DubsiBhai**. The existing repository folder, `CSE-4113-Project/`, is the root shown below; create all planned folders directly inside it. Use `dubsibhai` for lowercase package and infrastructure identifiers.
+The project is named **DubsiBhai**. The repository folder, `CSE-4113-Project/`, is the root shown below. Use `dubsibhai` for lowercase package and infrastructure identifiers.
 
 ```
 CSE-4113-Project/
@@ -21,53 +27,50 @@ CSE-4113-Project/
 │   └── ml-service/               # FastAPI ML microservice
 │
 ├── packages/
-│   ├── shared-types/             # Shared TS types (API contracts) for web
-│   ├── shared-schemas/           # Shared Pydantic/OpenAPI schemas for api <-> ml-service
-│   └── ui/                       # (optional) shared React components if web grows
+│   ├── data/                     # Shared road catalog and segment mapping
+│   └── new-data/                 # Supplied bilingual road-risk dataset
 │
 ├── infra/
 │   ├── docker/
 │   │   ├── api.Dockerfile
 │   │   ├── ml-service.Dockerfile
 │   │   └── web.Dockerfile
-│   ├── docker-compose.yml
+│   ├── docker-compose.local.yml  # Complete local Docker stack
 │   ├── docker-compose.dev.yml
-│   ├── docker-compose.prod.yml
 │   └── nginx/
 │       └── nginx.conf            # reverse proxy config for prod
 │
 ├── db/
-│   ├── migrations/                # Alembic migrations (owned by api, lives at root for visibility)
-│   ├── init/
-│   │   └── 001_extensions.sql     # CREATE EXTENSION postgis, vector
-│   └── seed/
-│       └── seed_dev_data.py
+│   ├── schema.sql                # PostgreSQL schema snapshot
+│   ├── generate_schema.py
+│   ├── maintenance.sql
+│   └── README.md                 # Active migrations live in apps/api/alembic/
 │
 ├── scripts/
-│   ├── run-all.ps1                # start all three apps on Windows
-│   ├── setup.sh                   # planned dev bootstrap
+│   ├── run-all.ps1               # Internal helper for root run.ps1
+│   ├── start.sh                  # Complete Docker stack on Linux
+│   ├── docker-common.sh
 │   ├── migrate.sh
 │   ├── seed.sh
 │   └── lint-all.sh
 │
 ├── docs/
-│   ├── SYSTEM_DESIGN.md
-│   ├── MONOREPO_ARCHITECTURE.md   # this file
-│   ├── API_CONTRACTS.md
-│   └── adr/                       # Architecture Decision Records
-│       ├── 0001-monolith-plus-ml-service.md
-│       └── 0002-postgres-postgis-pgvector.md
+│   ├── architecture/             # System, API, ML and UI designs (including this file)
+│   ├── dataset/
+│   ├── guideline/
+│   ├── model-reports/
+│   └── survey/
 │
 ├── .github/
 │   └── workflows/
 │       ├── ci-api.yml
-│       ├── ci-ml-service.yml
 │       ├── ci-web.yml
-│       └── deploy.yml
+│       └── ci-launchers.yml
 │
 ├── .env.example
 ├── .gitignore
-├── Makefile
+├── start.ps1
+├── run.ps1
 └── README.md
 ```
 
@@ -334,10 +337,14 @@ volumes:
 
 Splitting CI per-app means a change to `apps/web/` doesn't trigger a slow ML-dependency install, and vice versa:
 
-- **`ci-api.yml`** — triggers on `apps/api/**` changes, `packages/shared-schemas/**` — runs pytest, ruff/black
-- **`ci-ml-service.yml`** — triggers on `apps/ml-service/**` — runs pytest (mock the model to keep CI fast; don't download real weights in CI)
-- **`ci-web.yml`** — triggers on `apps/web/**`, `packages/shared-types/**` — runs lint, typecheck, build
-- **`deploy.yml`** — manual/tag-triggered, builds and pushes all three images
+- **`ci-api.yml`** — runs API Ruff and pytest with PostgreSQL/MongoDB integration services.
+- **`ci-web.yml`** — runs frontend type checks, tests, lint and production build.
+- **`ci-launchers.yml`** — checks Linux launcher syntax and behavior on Ubuntu.
+
+ML/deployment workflows previously contained only placeholder success messages and
+were removed. ML checks remain available through `uv run pytest` and
+`uv run ruff check app tests` in `apps/ml-service`; add CI/deployment workflows when
+their actual jobs are implemented.
 
 Path-based triggers (`paths:` filter in GitHub Actions) are the key monorepo CI trick — without it, every commit rebuilds everything, which gets slow fast once the ML service has heavy dependencies.
 
