@@ -1,0 +1,78 @@
+﻿node_id,node_name_en,node_name_bn,approx_zone,data_origin
+abdullahpur,Abdullahpur,আব্দুল্লাহপুর,north,Named landmark; manually drafted topology
+house_building,House Building,হাউস বিল্ডিং,north,Named landmark; manually drafted topology
+azampur,Azampur,আজমপুর,north,Named landmark; manually drafted topology
+jashimuddin,Jashimuddin,জসীমউদ্দীন,north,Named landmark; manually drafted topology
+airport,Airport,বিমানবন্দর,north,Named landmark; manually drafted topology
+kawla,Kawla,কাওলা,north,Named landmark; manually drafted topology
+khilkhet,Khilkhet,খিলক্ষেত,north,Named landmark; manually drafted topology
+kuril,Kuril Bishwa Road,কুড়িল বিশ্বরোড,north,Named landmark; manually drafted topology
+kakoli,Kakoli,কাকলী,north,Named landmark; manually drafted topology
+mohakhali,Mohakhali,মহাখালী,center,Named landmark; manually drafted topology
+jahangir_gate,Jahangir Gate,জাহাঙ্গীর গেট,center,Named landmark; manually drafted topology
+bijoy_sarani,Bijoy Sarani,বিজয় সরণি,center,Named landmark; manually drafted topology
+farmgate,Farmgate,ফার্মগেট,center,Named landmark; manually drafted topology
+khamarbari,Khamarbari,খামারবাড়ি,center,Named landmark; manually drafted topology
+khejur_bagan,Khejur Bagan,খেজুরবাগান,center,Named landmark; manually drafted topology
+karwan_bazar,Karwan Bazar,কারওয়ান বাজার,center,Named landmark; manually drafted topology
+banglamotor,Banglamotor,বাংলামোটর,center,Named landmark; manually drafted topology
+shahbag,Shahbag,শাহবাগ,center,Named landmark; manually drafted topology
+matsya_bhaban,Matsya Bhaban,মৎস্য ভবন,center,Named landmark; manually drafted topology
+kakrail,Kakrail,কাকরাইল,center,Named landmark; manually drafted topology
+paltan,Paltan,পল্টন,south,Named landmark; manually drafted topology
+gulistan,Gulistan,গুলিস্তান,south,Named landmark; manually drafted topology
+motijheel,Motijheel,মতিঝিল,south,Named landmark; manually drafted topology
+fakirapool,Fakirapool,ফকিরাপুল,south,Named landmark; manually drafted topology
+naya_paltan,Naya Paltan,নয়া পল্টন,south,Named landmark; manually drafted topology
+sayedabad,Sayedabad,সায়েদাবাদ,south,Named landmark; manually drafted topology
+jatrabari,Jatrabari,যাত্রাবাড়ী,south,Named landmark; manually drafted topology
+dayaganj,Dayaganj,দয়াগঞ্জ,south,Named landmark; manually drafted topology
+kamalapur,Kamalapur,কমলাপুর,south,Named landmark; manually drafted topology
+shahjahanpur,Shahjahanpur,শাহজাহানপুর,south,Named landmark; manually drafted topology
+rajarbagh,Rajarbagh,রাজারবাগ,south,Named landmark; manually drafted topology
+shantinagar,Shantinagar,শান্তিনগর,south,Named landmark; manually drafted topology
+moghbazar,Moghbazar,মগবাজার,center,Named landmark; manually drafted topology
+mouchak,Mouchak,মৌচাক,center,Named landmark; manually drafted topology
+malibagh,Malibagh,মালিবাগ,east,Named landmark; manually drafted topology
+rampura,Rampura,রামপুরা,east,Named landmark; manually drafted topology
+badda,Badda,বাড্ডা,east,Named landmark; manually drafted topology
+notun_bazar,Notun Bazar,নতুন বাজার,east,Named landmark; manually drafted topology
+nadda,Nadda,নদ্দা,east,Named landmark; manually drafted topology
+bashundhara_gate,Bashundhara Gate,বসুন্ধরা গেট,east,Named landmark; manually drafted topology
+gulshan_1,Gulshan 1,গুলশান ১,east,Named landmark; manually drafted topology
+gulshan_2,Gulshan 2,গুলশান ২,east,Named landmark; manually drafted topology
+banani,Banani,বনানী,north,Named landmark; manually drafted topology
+kalshi,Kalshi,কালশী,west,Named landmark; manually drafted topology
+ecb,ECB Chattar,ইসিবি চত্বর,north,Named landmark; manually drafted topology
+kachukhet,Kachukhet,কচুক্ষেত,west,Named landmark; manually drafted topology
+mirpur_14,Mirpur 14,মিরপুর ১৪,west,Named landmark; manually drafted topology
+mirpur_12,Mirpur 12,মিরপুর ১২,west,Named landmark; manually drafted topology
+pallabi,Pallabi,পল্লবী,west,Named landmark; manually drafted topology
+mirpur_11,Mirpur 11,মিরপুর ১১,west,Named landmark; manually drafted topology
+mirpur_10,Mirpur 10,মিরপুর ১০,west,Named landmark; manually drafted topology
+mirpur_2,Mirpur 2,মিরপুর ২,west,Named landmark; manually drafted topology
+mirpur_1,Mirpur 1,মিরপুর ১,west,Named landmark; manually drafted topology
+kazipara,Kazipara,কাজীপাড়া,west,Named landmark; manually drafted topology
+shewrapara,Shewrapara,শেওড়াপাড়া,west,Named landmark; manually drafted topology
+agargaon,Agargaon,আগারগাঁও,west,Named landmark; manually drafted topology
+gabtoli,Gabtoli,গাবতলী,west,Named landmark; manually drafted topology
+technical,Technical Junction,টেকনিক্যাল মোড়,west,Named landmark; manually drafted topology
+kallyanpur,Kallyanpur,কল্যাণপুর,west,Named landmark; manually drafted topology
+shyamoli,Shyamoli,শ্যামলী,west,Named landmark; manually drafted topology
+asad_gate,Asad Gate,আসাদ গেট,west,Named landmark; manually drafted topology
+dhanmondi_27,Dhanmondi 27,ধানমন্ডি ২৭,west,Named landmark; manually drafted topology
+science_lab,Science Lab,সায়েন্স ল্যাব,west,Named landmark; manually drafted topology
+new_market,New Market,নিউ মার্কেট,south,Named landmark; manually drafted topology
+nilkhet,Nilkhet,নীলক্ষেত,south,Named landmark; manually drafted topology
+azimpur,Azimpur,আজিমপুর,south,Named landmark; manually drafted topology
+elephant_road,Elephant Road,এলিফ্যান্ট রোড,center,Named landmark; manually drafted topology
+hatirpool,Hatirpool,হাতিরপুল,center,Named landmark; manually drafted topology
+green_road_cross,Green Road Crossing,গ্রিন রোড মোড়,center,Named landmark; manually drafted topology
+panthapath,Panthapath Crossing,পান্থপথ মোড়,center,Named landmark; manually drafted topology
+russell_square,Russell Square,রাসেল স্কয়ার,west,Named landmark; manually drafted topology
+kalabagan,Kalabagan,কলাবাগান,west,Named landmark; manually drafted topology
+jigatola,Jigatola,জিগাতলা,west,Named landmark; manually drafted topology
+shankar,Shankar,শংকর,west,Named landmark; manually drafted topology
+mohammadpur,Mohammadpur Bus Stand,মোহাম্মদপুর বাসস্ট্যান্ড,west,Named landmark; manually drafted topology
+chankharpul,Chankharpul,চাঁনখারপুল,south,Named landmark; manually drafted topology
+khilgaon,Khilgaon,খিলগাঁও,east,Named landmark; manually drafted topology

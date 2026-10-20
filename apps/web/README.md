@@ -57,8 +57,13 @@ with four selectable viewports. This external map requires internet access; an
 external map link is also provided. Map documentation:
 https://wiki.openstreetmap.org/wiki/Export#Embeddable_HTML
 
-The map has no live road measurements yet. `DhakaMapPreview.tsx` keeps the base
-map and empty monitoring panel together; a future map library/data integration
-can replace the iframe to draw road-level overlays. No sample readings are
-presented as live data. Complaint reporting and worker/admin dashboards remain
-in development.
+`DhakaMapPreview.tsx` keeps the landing page's base map and monitoring preview
+together. The full `/map` page uses interactive road overlays and community
+reports. No synthetic predictions are presented as live observations.
+
+## Live map
+
+The `/map` workspace supports main-road selection, community road updates, complaints,
+and synthetic rainwater/traffic risk scenarios. It defaults to Leaflet + OpenStreetMap.
+See [the live map guide](../../docs/guideline/LIVE_MAP.md) for setup, the optional Google Maps
+environment variables, model training, and presentation notes.

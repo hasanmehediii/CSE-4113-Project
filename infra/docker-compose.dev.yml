@@ -41,7 +41,8 @@ services:
 
   api:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: infra/docker/api.Dockerfile
     env_file: ["../.env"]
     environment:
       DATABASE_URL: postgresql+psycopg://dubsibhai:local-dev-only@db:5432/dubsibhai
@@ -54,7 +55,7 @@ services:
     expose:
       - "8000"
     volumes:
-      - civic_media:/app/media
+      - civic_media:/workspace/apps/api/media
     depends_on:
       db:
         condition: service_healthy
@@ -64,7 +65,8 @@ services:
 
   project-events:
     build:
-      context: ../apps/api
+      context: ..
+      dockerfile: infra/docker/api.Dockerfile
     environment:
       DATABASE_URL: postgresql+psycopg://dubsibhai:local-dev-only@db:5432/dubsibhai
       MONGODB_URL: mongodb://mongodb:27017/dubsibhai

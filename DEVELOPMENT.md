@@ -1,5 +1,9 @@
 # Running DubsiBhai locally
 
+For Linux, run `bash scripts/start.sh` to start the whole stack in Docker. See
+[the Linux script guide](scripts/README.md) for requirements, flags and helpers.
+The instructions below describe the Windows launchers.
+
 Run commands below in PowerShell from the repository root. Choose one mode;
 both use ports 3000, 8000 and 8001, so they cannot run together.
 

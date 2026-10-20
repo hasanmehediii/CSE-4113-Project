@@ -14,6 +14,7 @@ The repository root is `CSE-4113-Project/`.
 - [System design](docs/architecture/SYSTEM_DESIGN.md)
 - [Developer setup: run the complete project](DEVELOPMENT.md)
 - [Civic app setup and workflows](docs/guideline/CIVIC_DEVELOPMENT.md)
+- [Live map, Google Maps switch and road-risk model](docs/guideline/LIVE_MAP.md)
 - [Database schema, normalization and indexes](db/README.md)
 
 ## High-level architecture
@@ -34,10 +35,64 @@ ML geographic clustering, IoT ingestion and production HTTPS remain future work.
 The diagram predates these additions; the linked database/workflow guides describe
 the implementation. External integrations provide Google sign-in, map tiles and email.
 
+## Run on Linux with Docker
+
+Install Bash, Docker Engine (or Docker Desktop) and the Docker Compose v2 plugin.
+Make sure `docker info` succeeds, then run from the repository root:
+
+```bash
+bash scripts/start.sh
+```
+
+This is the Linux equivalent of root `start.ps1`: it builds and starts the whole
+stack, creates missing environment files, applies migrations and trains missing
+models. Node.js, Python and uv run inside Docker. Open http://localhost:3000.
+
+```bash
+bash scripts/start.sh --status          # Inspect containers
+bash scripts/start.sh --logs            # Follow logs; Ctrl+C exits logs only
+bash scripts/start.sh --stop            # Stop the stack; keep database/model volumes
+bash scripts/start.sh --no-build        # Start using existing images
+bash scripts/start.sh --timeout 1200    # Allow more time for first startup
+bash scripts/start.sh --data-only      # Start only databases, Redis and Mailpit
+```
+
+Run only one launch mode at a time; they share ports 3000, 8000 and 8001. Bash
+commands work without changing executable permissions. See [scripts/README.md](scripts/README.md)
+for Linux migration, seed and lint helpers, and how the PowerShell scripts relate.
+
 ## Run on Windows
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for first-time configuration, all services,
 logs, shutdown, migrations, training and troubleshooting. Choose one startup mode.
+
+### Which launcher should I use?
+
+**Use `.\start.ps1` for the standard setup and for teammates.** It runs the whole
+project in Docker. Use `.\run.ps1` when you want to debug the application processes
+directly on your computer.
+
+Both launch the same project, but run its services in different places:
+
+| | `start.ps1` | `run.ps1` |
+| --- | --- | --- |
+| Frontend, API, ML service and background workers | Docker containers | Directly on your computer |
+| PostgreSQL, MongoDB, Redis and Mailpit | Docker containers | Docker containers |
+| Requirements | Docker Desktop and PowerShell | Docker Desktop, PowerShell, Node.js, Python and uv |
+| Stop application services | `.\start.ps1 -Stop` | Ctrl+C in the launcher terminal |
+| Data services after stopping | Stopped; volumes preserved | Keep running; stop with `.\start.ps1 -DataOnly -Stop` |
+| Model weights | Persistent Docker volume | `apps/ml-service/weights/` by default |
+
+**Run only one mode at a time:** both use ports **3000, 8000 and 8001**. Before
+switching from Docker to host mode, run `.\start.ps1 -Stop`. Before switching back,
+press Ctrl+C in the `.\run.ps1` terminal and stop any independently launched app servers.
+The model files are stored separately in the two modes; each trains missing weights
+from the repository's datasets automatically.
+
+`scripts/run-all.ps1` is an internal helper called by root `run.ps1`: it installs
+dependencies and supervises the host apps/workers after Docker data services start.
+Start through root `run.ps1` so its prerequisite checks and data setup run first.
+It is separate from the all-Docker launcher `start.ps1`.
 
 ### Run everything with Docker
 

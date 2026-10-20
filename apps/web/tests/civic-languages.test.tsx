@@ -17,6 +17,7 @@ let AuthForm: typeof import("../src/components/AuthForm").default;
 let reducedMotion = false;
 let signedIn = true;
 let mapFixtures = false;
+let lineFixtures = false;
 let authMutation: { path: string; body: Record<string, unknown> } | null = null;
 let workspace: typeof import("../src/components/ComplaintWorkspace");
 let userRole = "citizen";
@@ -25,6 +26,7 @@ let adminError = "";
 let emptyAdmin = false;
 let application: null | { status: string; review_note: string } = null;
 let submittedReport: Record<string, unknown> | null = null;
+let predictionQuery = "";
 let destination = "";
 const originalFetch = globalThis.fetch;
 
@@ -59,6 +61,13 @@ before(async () => {
   globalThis.fetch = async (input, options) => {
     const url = new URL(String(input));
     const path = url.pathname;
+    if (path.endsWith("/map/predictions")) {
+      predictionQuery = url.search;
+      return new Response(JSON.stringify({ at: url.searchParams.get("at"), rainfall_mm: Number(url.searchParams.get("rainfall_mm")), forecast_horizon_min: Number(url.searchParams.get("forecast_horizon_min") || 60), timezone: "Asia/Dhaka", data_source: "synthetic", model_version: "test-road-risk-v1", roads: [
+        { road_id: "bad-road", waterlogging_probability: .8, traffic_probability: .2, risk: "high" },
+        { road_id: "good-road", waterlogging_probability: .1, traffic_probability: .7, risk: "high" },
+      ] }));
+    }
     if (path.endsWith("/auth/me") && !signedIn) return new Response(JSON.stringify({ detail: "Authentication required" }), { status: 401 });
     if ((path.endsWith("/auth/login") || path.endsWith("/auth/register")) && options?.method === "POST") {
       authMutation = { path, body: JSON.parse(String(options.body)) };
@@ -86,7 +95,7 @@ before(async () => {
         { id: "worker-case", complaint_id: "report", subject_name: "Original worker name", kind: "worker_dispute", evidence: [{ image_url: "https://example.com/evidence.jpg", comment: "" }] },
       ]
       : path.endsWith("/map/roads") && mapFixtures ? [
-        { id: "bad-road", name: "Dhanmondi Road 12", condition: "bad", open_complaints: 2, historical_reports_90d: 4, sensitivity: "high", latitude: 23.75, longitude: 90.37 },
+        { id: "bad-road", name: "Dhanmondi Road 12", condition: "bad", open_complaints: 2, historical_reports_90d: 4, sensitivity: "high", latitude: 23.75, longitude: 90.37, ...(lineFixtures ? { path: [[23.75, 90.37], [23.76, 90.38]], paths: [[[23.75, 90.37], [23.755, 90.375]], [[23.757, 90.377], [23.76, 90.38]]], segment_from: "South junction", segment_to: "North junction" } : {}) },
         { id: "good-road", name: "Mirpur 10", condition: "good", open_complaints: 0, historical_reports_90d: 1, sensitivity: "normal", latitude: 23.81, longitude: 90.36 },
       ]
       : path.endsWith("/complaints") && mapFixtures ? [
@@ -121,6 +130,7 @@ afterEach(async () => {
   root = undefined;
   application = null;
   submittedReport = null;
+  predictionQuery = "";
   destination = "";
   userRole = "citizen";
   adminMutation = null;
@@ -129,6 +139,7 @@ afterEach(async () => {
   reducedMotion = false;
   signedIn = true;
   mapFixtures = false;
+  lineFixtures = false;
   authMutation = null;
   Reflect.deleteProperty(navigator, "geolocation");
   document.documentElement.lang = "en";
@@ -145,6 +156,12 @@ async function mount(Page: ComponentType) {
     await new Promise(resolve => setTimeout(resolve, 50));
   });
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 50)); });
+  if (Page === CityMap) {
+    // Leaflet is loaded asynchronously; wait for the control instead of assuming a cold import finishes in 50ms.
+    for (let attempt = 0; attempt < 100 && !document.querySelector(".leaflet-control-zoom-in"); attempt++) {
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)); });
+    }
+  }
   } catch (error) {
     if (error instanceof AggregateError) throw new Error(error.errors.map(cause => String(cause)).join("\n"));
     throw error;
@@ -569,6 +586,73 @@ test("map filters and search cover roads and reports, preserving markers and sel
   await act(async () => { document.querySelector<HTMLButtonElement>(".city-map-road")!.click(); });
   assert.equal(document.querySelector(".city-map-road")?.getAttribute("aria-pressed"), "true");
   assert.equal(document.querySelectorAll(".city-map-panel-tabs button")[1].getAttribute("aria-pressed"), "true");
+});
+
+test("selecting a map road preserves the draft across languages and submits its road ID", async () => {
+  mapFixtures = true;
+  await mount(CityMap);
+  await act(async () => { document.querySelector<SVGElement>("path.leaflet-interactive")!.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true })); });
+  const editor = document.querySelector(".road-selection");
+  assert.ok(editor);
+  assert.ok(editor.textContent!.includes("Dhanmondi Road 12"));
+  await act(async () => { document.querySelectorAll<HTMLButtonElement>(".road-condition-options button")[1].click(); });
+  const description = editor.querySelector<HTMLTextAreaElement>("textarea")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, "value")!.set!.call(description, "This road is passable near the bus stop.");
+    description.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+  });
+  await toggle();
+  assert.equal(description.value, "This road is passable near the bus stop.");
+  assert.ok(editor.textContent!.includes("রাস্তার তথ্য দিন"));
+  await act(async () => { editor.querySelector("form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
+  assert.equal(submittedReport?.road_id, "bad-road");
+  assert.equal(submittedReport?.kind, "road_update");
+  assert.equal(submittedReport?.condition, "good");
+  assert.ok(editor.querySelector('a[href="/complaints/created-report"]'));
+});
+
+test("separate road sections have no connecting line and both select the same report corridor", async () => {
+  mapFixtures = true;
+  lineFixtures = true;
+  await mount(CityMap);
+  const target = [...document.querySelectorAll<SVGElement>("path.leaflet-interactive")].find(path => path.getAttribute("stroke-width") === "22");
+  assert.ok(target);
+  assert.equal(target.getAttribute("d")?.match(/M/g)?.length, 2, "each disconnected section starts its own SVG subpath");
+  await act(async () => { target.dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true })); });
+  const editor = document.querySelector(".road-selection")!;
+  assert.ok(editor.textContent!.includes("South junction → North junction"));
+  await act(async () => { editor.querySelectorAll<HTMLButtonElement>(".road-form-tabs button")[1].click(); });
+  assert.ok(editor.querySelector('button[type="submit"]')!.textContent!.includes("Submit complaint"));
+  assert.equal(editor.querySelector(".road-condition-options"), null);
+});
+
+test("predictions use Dhaka time, switch hazard probabilities, and hide stale scenario colors", async () => {
+  mapFixtures = true;
+  await mount(CityMap);
+  await act(async () => { document.querySelectorAll<HTMLButtonElement>(".road-mode-tabs button")[2].click(); });
+  assert.ok(content().includes("SYNTHETIC MODEL · DEMO"));
+  assert.ok([...document.querySelectorAll(".road-risk-value")].every(element => element.textContent === "—"));
+  await act(async () => { document.querySelector(".road-prediction-panel form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
+  const parameters = new URLSearchParams(predictionQuery);
+  assert.ok(parameters.get("at")?.endsWith("+06:00"));
+  assert.equal(parameters.get("forecast_horizon_min"), "60");
+  assert.deepEqual([...document.querySelectorAll(".road-risk-value")].map(element => element.textContent), ["80%", "10%"]);
+  await act(async () => { document.querySelectorAll<HTMLButtonElement>(".road-prediction-panel .road-form-tabs button")[1].click(); });
+  assert.deepEqual([...document.querySelectorAll(".road-risk-value")].map(element => element.textContent), ["20%", "70%"]);
+  const rain = document.querySelector<HTMLInputElement>('.road-prediction-panel input[type="number"]')!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value")!.set!.call(rain, "35");
+    rain.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+  });
+  assert.ok(content().includes("Inputs changed. Run the prediction again"));
+  assert.ok([...document.querySelectorAll(".road-risk-value")].every(element => element.textContent === "—"));
+  const horizon = document.querySelector<HTMLSelectElement>(".road-prediction-panel select")!;
+  await act(async () => {
+    horizon.value = "120";
+    horizon.dispatchEvent(new dom.window.Event("change", { bubbles: true }));
+  });
+  await act(async () => { document.querySelector(".road-prediction-panel form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
+  assert.equal(new URLSearchParams(predictionQuery).get("forecast_horizon_min"), "120");
 });
 
 test("redesigned login translates labels and validation, preserves input and signs in successfully", async () => {
