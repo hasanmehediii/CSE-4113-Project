@@ -1,0 +1,38 @@
+name: Publish release
+
+on:
+  workflow_run:
+    workflows: ["API CI", "Web CI", "ML Service CI", "Release CI"]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  publish-release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # Serialize repeat notifications for the same merge; different merges can
+    # publish independently, with atomic tag collision recovery in the script.
+    concurrency:
+      group: release-${{ github.event.workflow_run.head_sha }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const { publishRelease } = require('./scripts/publish-release.cjs');
+            await publishRelease({ github, context, core });
