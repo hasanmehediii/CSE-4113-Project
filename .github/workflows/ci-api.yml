@@ -62,8 +62,9 @@ jobs:
       - name: MongoDB failure diagnostics
         if: failure()
         run: |
-          docker logs api-ci-mongodb || true
-          docker inspect api-ci-mongodb || true
+          docker inspect --format '::notice title=MongoDB container state::exit={{.State.ExitCode}}; error={{.State.Error}}; oom={{.State.OOMKilled}}' api-ci-mongodb || true
+          docker logs --tail 30 api-ci-mongodb 2>&1 |
+            sed -e 's/%/%25/g' -e 's/\r/%0D/g' -e 's/^/::notice title=MongoDB startup log::/' || true
       - name: Remove CI MongoDB container
         if: always()
         run: docker rm --force api-ci-mongodb > /dev/null 2>&1 || true
