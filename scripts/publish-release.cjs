@@ -1,5 +1,5 @@
 // Called only for successful push workflows on main; tests use a fake GitHub client.
-const REQUIRED_WORKFLOWS = ["API CI", "Web CI", "ML Service CI", "Release CI"];
+const REQUIRED_WORKFLOWS = ["API CI", "Web CI", "ML Service CI", "Release CI", "Linux Docker launcher checks"];
 const version = tag => /^V[1-9]\d*$/.test(tag) ? BigInt(tag.slice(1)) : null;
 
 async function publishRelease({ github, context, core }) {

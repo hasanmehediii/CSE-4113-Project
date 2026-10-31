@@ -10,11 +10,12 @@ package versions or deploy the application to a hosting provider.
 1. Merge reviewed feature/fix branches into `dev` and push `dev`.
 2. Open a pull request with **base `main`, compare `dev`** in this repository.
 3. Review and merge it, following the team branch guide. Keep the shared `dev` branch.
-4. API CI, Web CI, ML Service CI and Release CI run on the resulting `main` commit.
-5. After all four pass, **Publish release** creates the next tag at that exact
+4. API CI, Web CI, ML Service CI, Release CI and Linux Docker launcher checks run
+   on the resulting `main` commit.
+5. After all five pass, **Publish release** creates the next tag at that exact
    checked commit and publishes a GitHub release with generated change notes.
 
-The release workflow uses completion notifications from all four checks. Earlier
+The release workflow uses completion notifications from all five checks. Earlier
 notifications exit without publishing if another check is still running or failed.
 The final successful check can publish once the full set has passed.
 

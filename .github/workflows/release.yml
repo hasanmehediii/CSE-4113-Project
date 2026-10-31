@@ -2,7 +2,7 @@ name: Publish release
 
 on:
   workflow_run:
-    workflows: ["API CI", "Web CI", "ML Service CI", "Release CI"]
+    workflows: ["API CI", "Web CI", "ML Service CI", "Release CI", "Linux Docker launcher checks"]
     types: [completed]
     branches: [main]
 
