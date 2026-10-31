@@ -39,8 +39,11 @@ jobs:
       - name: Start MongoDB and wait for readiness
         timeout-minutes: 3
         run: |
+          # Let glibc register rseq so TCMalloc uses per-thread caches on newer
+          # runner kernels: https://jira.mongodb.org/browse/SERVER-136848
           docker run --detach --name api-ci-mongodb \
-            --publish 127.0.0.1:27017:27017 mongo:8.0
+            --env GLIBC_TUNABLES=glibc.pthread.rseq=1 \
+            --publish 127.0.0.1:27017:27017 mongo:8.0.34
           for attempt in {1..30}; do
             if docker exec api-ci-mongodb mongosh --quiet \
               --eval 'quit(db.adminCommand({ping: 1}).ok === 1 ? 0 : 1)'; then
