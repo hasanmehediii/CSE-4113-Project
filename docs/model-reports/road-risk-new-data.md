@@ -1,6 +1,6 @@
 # Road-risk training result: supplied bilingual dataset
 
-Model: `road-risk-bilingual-v2-5a9298fc817c`. Trained: 2026-10-20T21:14:09.453841+06:00.
+Model: `road-risk-bilingual-v2-af9b3f52f1d5`. Trained: 2026-10-30T15:43:01.166996+06:00.
 
 Used the CSVs in `packages/new-data`, preserving the supplied chronological partitions:
 7,560 training rows (2024), 7,560 validation rows (2025), and 5,670 test rows (January–September 2026).
@@ -28,6 +28,17 @@ The constant-prevalence baseline average precision is 0.0258 for waterlogging an
 traffic. The learned model ranks synthetic risks better than this baseline, but classification
 quality is weak, especially for waterlogging. No real-world performance is established.
 
+## Prevalence
+
+| Target | Test positives | Test rows | Prevalence |
+| --- | ---: | ---: | ---: |
+| waterlogging | 146 | 5,670 | 2.6% |
+| traffic_jam | 1,167 | 5,670 | 20.6% |
+
+Waterlogging is a rare event in the synthetic dataset. The low prevalence means even a high-recall
+threshold produces many false positives; the model's ability to surface waterlogging risk exceeds
+the baseline but remains limited.
+
 ## Feature availability
 
 The model uses 13 features available to the current map: target time, forecast horizon, user
@@ -44,9 +55,9 @@ road topology and geographic accuracy are unverified.
 
 Observation CSV SHA-256: `f01f9bb31abff68c34abcc198002548e29d18de11d21a9df1ad3a4574ace39c5`.
 
-Mapping SHA-256: `17ec83173c54a90fc2c839bec1962eb0897efe34e5f01e43285ddbd3b0cf35f2`.
+Mapping SHA-256: `ae7d3936fbb0fa4a04a521c7f885fa544661a1b5aebccdac85b96d979e252eb0`.
 
-Training code SHA-256: `ac46901c860a6afdc51375b44f67cfde35720481a912384545949ef7deab9db6`.
+Training code SHA-256: `e13ddbe85bb83320e5892cca57650bef7d2f7a2b07ce89f0a8a523b1ee0c3704`.
 
 See [the full JSON report](road-risk-new-data.report.json) for candidate comparisons,
 monthly/corridor breakdowns and source hashes. [Training and deployment instructions](../guideline/ROAD_DATASET_TRAINING.md).

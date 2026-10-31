@@ -1,0 +1,140 @@
+{
+  "model_version": "20261030T094240392338Z-b958a49536db",
+  "trained_at": "2026-10-30T09:42:40.392338+00:00",
+  "data_source": "synthetic",
+  "dataset": "drainage_complaints_bn.csv",
+  "dataset_sha256": "b958a49536db6320cd2104a3ef5eeb54ecff847e4eb85bd0f38307d890269772",
+  "sklearn_version": "1.9.1",
+  "algorithm": "character TF-IDF (2-5 grams) + balanced logistic regression",
+  "seed": 42,
+  "input_rows": 360,
+  "unique_rows": 295,
+  "duplicates_removed": 65,
+  "class_counts": {
+    "blocked_drain": 47,
+    "sewage_overflow": 53,
+    "other": 50,
+    "road_flooding": 53,
+    "open_manhole": 44,
+    "waterlogging_recurring": 48
+  },
+  "evaluation": {
+    "method": "stratified holdout after normalized exact-text deduplication",
+    "train_rows": 236,
+    "test_rows": 59,
+    "accuracy": 0.9830508474576272,
+    "macro_f1": 0.9832915622389308,
+    "per_class": {
+      "blocked_drain": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 9.0
+      },
+      "open_manhole": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 9.0
+      },
+      "road_flooding": {
+        "precision": 1.0,
+        "recall": 0.9,
+        "f1-score": 0.9473684210526315,
+        "support": 10.0
+      },
+      "waterlogging_recurring": {
+        "precision": 0.9090909090909091,
+        "recall": 1.0,
+        "f1-score": 0.9523809523809523,
+        "support": 10.0
+      },
+      "sewage_overflow": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 11.0
+      },
+      "other": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 10.0
+      },
+      "accuracy": 0.9830508474576272,
+      "macro avg": {
+        "precision": 0.9848484848484849,
+        "recall": 0.9833333333333334,
+        "f1-score": 0.9832915622389305,
+        "support": 59.0
+      },
+      "weighted avg": {
+        "precision": 0.9845916795069338,
+        "recall": 0.9830508474576272,
+        "f1-score": 0.9830083683785735,
+        "support": 59.0
+      }
+    },
+    "confusion_matrix_labels": [
+      "blocked_drain",
+      "open_manhole",
+      "road_flooding",
+      "waterlogging_recurring",
+      "sewage_overflow",
+      "other"
+    ],
+    "confusion_matrix": [
+      [
+        9,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        9,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        9,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        11,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        10
+      ]
+    ],
+    "limitations": "Random holdout scores do not establish real-world accuracy. Synthetic template variants may occur in both splits. Evaluate on independent real complaints before drawing deployment conclusions. Confidence values are not calibrated."
+  },
+  "serving_model_training_rows": 295,
+  "serving_model_note": "Refitted on all unique rows after holdout evaluation."
+}
