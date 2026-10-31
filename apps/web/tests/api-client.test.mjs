@@ -139,3 +139,32 @@ test("caller cancellation and the API deadline both remain active", async t => {
   deadline.abort();
   assert.equal(signal.aborted, true);
 });
+
+test("a successful HTTP status with invalid JSON does not report a successful save", async t => {
+  t.mock.method(globalThis, "fetch", async url => url.endsWith("/csrf")
+    ? json({ csrf_token: "token" }) : new Response("Truncated response", { status: 200 }));
+  const { mutate, ApiError } = await client();
+  await assert.rejects(mutate("/complaints", {}), error => error instanceof ApiError && error.status === 502);
+});
+
+test("a response body timeout fails the save and the next mutation can still run", async t => {
+  let submissions = 0;
+  t.mock.method(globalThis, "fetch", async url => {
+    if (url.endsWith("/csrf")) return json({ csrf_token: "token" });
+    if (++submissions > 1) return json({ id: "saved-report" });
+    const response = json({});
+    response.json = async () => { throw new DOMException("Response timed out", "AbortError"); };
+    return response;
+  });
+  const { mutate } = await client();
+  const first = mutate("/complaints", {});
+  const second = mutate("/complaints", {});
+  await assert.rejects(first, /Response timed out/);
+  assert.deepEqual(await second, { id: "saved-report" });
+});
+
+test("a genuinely empty 204 response is still accepted", async t => {
+  t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 204 }));
+  const { api } = await client();
+  assert.deepEqual(await api("/optional-empty-response"), {});
+});

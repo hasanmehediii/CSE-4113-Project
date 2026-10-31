@@ -83,6 +83,7 @@ export const civicTranslations: Record<string, string> = {
   "Only assigned complaints can be reassigned": "শুধু দায়িত্ব দেওয়া অভিযোগের কর্মী পরিবর্তন করা যায়।",
   "This complaint no longer has an active assignment": "এই অভিযোগে এখন আর কোনো চলমান দায়িত্ব নেই।",
   "This worker is already assigned to the complaint": "এই কর্মীকে ইতিমধ্যেই অভিযোগটির দায়িত্ব দেওয়া হয়েছে।",
+  "Invalid server response. Please try again.": "সার্ভার থেকে সম্পূর্ণ উত্তর পাওয়া যায়নি। আবার চেষ্টা করুন।",
   "At most 5 images total. Photos are public; avoid faces, IDs, and private information.": "সর্বোচ্চ ৫টি ছবি দেওয়া যাবে। ছবিগুলো সবাই দেখতে পাবেন; মুখ, পরিচয়পত্র ও ব্যক্তিগত তথ্য এড়িয়ে চলুন।",
   "Automatic assignment prefers lighter workloads, then nearby workers who shared their location within 15 minutes.": "স্বয়ংক্রিয়ভাবে দায়িত্ব দেওয়ার সময় কম কাজ থাকা সেবাকর্মীকে অগ্রাধিকার দেওয়া হয়, এরপর গত ১৫ মিনিটে অবস্থান জানানো কাছের সেবাকর্মীকে বেছে নেওয়া হয়।",
   "Automatically choose an available worker": "উপস্থিত সেবাকর্মী স্বয়ংক্রিয়ভাবে বেছে নিন",

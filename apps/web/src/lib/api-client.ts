@@ -9,7 +9,15 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     headers: { "Content-Type": "application/json", ...options.headers },
     signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
   });
-  const body = await response.json().catch(() => ({}));
+  const body = await response.json().catch(error => {
+    if (response.status === 204) return {};
+    if (error instanceof SyntaxError) {
+      if (!response.ok) return {};
+      throw new ApiError(502, "Invalid server response. Please try again.");
+    }
+    // An aborted or disconnected response body must not look like a successful save.
+    throw error;
+  });
   if (!response.ok) {
     const detail = typeof body.detail === "string" ? body.detail : Array.isArray(body.detail)
       ? body.detail.map((issue: { loc?: (string | number)[]; msg?: string }) => `${(issue.loc || []).filter(part => part !== "body").join(" · ")}: ${issue.msg || "Invalid value"}`).join(". ")
