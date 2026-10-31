@@ -9,6 +9,7 @@ node_modules/
 out/
 .pnpm-store/
 *.tsbuildinfo
+apps/web/next-env.d.ts
 
 # Python
 .venv/
@@ -25,6 +26,7 @@ dist/
 build/
 .cache/
 *.log
+.vscode/settings.json
 apps/api/media/
 .DS_Store
 Thumbs.db

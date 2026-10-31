@@ -33,9 +33,44 @@ You do not need global pnpm, Uvicorn, PostgreSQL, MongoDB or Redis installations
 The launchers use the pinned pnpm version and each Python app's own `.venv`.
 Reopen PowerShell after installing tools so PATH updates take effect.
 
+## Clone and select a branch
+
+Clone with Git rather than downloading a ZIP, then select the shared development branch:
+
+```powershell
+git clone https://github.com/hasanmehediii/CSE-4113-Project.git
+cd CSE-4113-Project
+git fetch origin --prune
+git branch -r
+git switch --track origin/dev
+```
+
+`git branch` lists only local branches. A normal clone checks out `main`; the other
+published branches appear under `origin/` in `git branch -r`. Create a local tracking
+branch the first time you need an existing feature or fix branch, for example:
+
+```powershell
+git switch --track origin/feature/live-map-road-predictions
+```
+
+After that, use `git switch dev` or `git switch feature/live-map-road-predictions`.
+If a clone was restricted to one branch and `origin/dev` is missing, enable fetching
+all branches before trying again:
+
+```powershell
+git remote set-branches origin '*'
+git fetch origin --prune
+git switch --track origin/dev
+```
+
+If branches are still missing, check `git remote -v`: a fork may not contain the
+upstream repository's branches. Authentication or push permission errors are separate
+from local branch visibility. Follow the [team branch workflow](docs/guideline/BRANCH_WORKFLOW_BN.md)
+when starting new work or merging into `dev` and `main`.
+
 ## First setup
 
-Clone the repository, enter its root and create configuration files if missing:
+From the repository root, create configuration files if missing:
 
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
