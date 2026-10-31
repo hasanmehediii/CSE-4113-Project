@@ -18,6 +18,7 @@ The repository root is `CSE-4113-Project/`.
 - [Automatic release versions after dev-to-main merges](docs/guideline/RELEASES.md)
 - [Database schema, normalization and indexes](db/README.md)
 - [Incident grouping: matching, preserved evidence and shared work](docs/guideline/INCIDENTS.md)
+- [Pre-release checks and verified browser flows](docs/guideline/PRE_RELEASE_CHECKS.md)
 
 ## Project status
 
@@ -33,7 +34,7 @@ every browser/device has been tested or that the application is production-ready
 | Sessions and access | Session listing/revocation, logout/all-device logout, backend role checks, CSRF protection, Redis rate limits and administrator bootstrap |
 | Reporting | Complaints and road observations, category/address, map pin/GPS/manual Dhaka coordinates, image uploads/HTTPS links, public search/filter/detail pages |
 | Incident grouping | Nearby reports about the same active problem share one incident; all submissions, authors, timestamps, locations and photos are retained. Ambiguous matches require a choice; a separate-incident override is available |
-| Community | Incident-level voting, false-report evidence and mayor moderation, completion verification/disputes, personal contributions and an auditable points ledger |
+| Community | Incident-level voting with reporter-aware controls, false-report evidence and mayor moderation, completion verification/disputes, paginated personal contributions and an auditable points ledger |
 | Workers | Identity application/review, availability/location sharing, manual/automatic assignment, explicit reassignment with history, completion submission and paginated active assignments |
 | Mayor workspace | User blocking/unblocking, application review, assignments/reassignments, moderation, area/road creation, status/category/area summaries and point leaders |
 | Maps and weather | Leaflet/OpenStreetMap, optional configured Google Maps, road/report overlays, search/filter/selection, periodic refresh and a Dhaka weather widget |
@@ -57,14 +58,10 @@ every browser/device has been tested or that the application is production-ready
 
 ### Known open bugs and verification gaps
 
-- **Citizen history pagination:** My contributions currently exposes only the newest
-  30 reports and 100 point-ledger entries without older-page controls. Older records
-  remain stored. Worker active-work pagination is implemented separately.
-- **Own-report vote controls:** citizen reporters can still see voting controls on
-  their own incident. The API rejects self-voting; the UI should hide/disable these
-  controls before the request.
 - **Browser coverage:** API/database regression tests and simulated UI interaction
-  tests exist; a complete automated real-browser end-to-end suite is not in the repo.
+  tests exist. Chromium smoke checks have also verified the main workflow at desktop
+  and mobile sizes; a complete, checked-in automated real-browser end-to-end suite
+  is not in the repo. See the linked pre-release verification record.
 - **Release publication:** numbering/retry/gating tests use a fake GitHub client;
   actual first publication must also be checked after installing the workflow on main.
 - **Matching limits:** very close, same-category problems can be genuinely different.
@@ -75,6 +72,11 @@ Recently fixed defects include stuck assignments after worker unavailability,
 completed history hiding unfinished work, stale report responses after navigation,
 uploads blocking later saves, unreadable responses appearing successful, and
 independent work orders being created for corroborating reports of one incident.
+Citizen report/points history now has independent pagination and account-scoped
+totals. Incident voting controls recognize every reporter without hiding completion
+verification. Fresh-checkout/browser testing also fixed direct Docker authentication
+requests being rejected without a proxy header, and a tall sticky location panel
+covering the complaint submit button.
 There is no claim that all undiscovered defects have been eliminated.
 
 ### Not started in this repository
