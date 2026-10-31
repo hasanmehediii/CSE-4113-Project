@@ -10,6 +10,7 @@ import sys
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier
 
 import psycopg
 import pytest
@@ -102,7 +103,7 @@ def test_migration_snapshot_indexes_and_spatial_search(databases):
         assert migrated == fresh
         assert (
             snapshot.execute("SELECT version_num FROM alembic_version").fetchone()[0]
-            == "20261015_03"
+            == "20261031_05"
         )
         indexes = {
             r[0]
@@ -168,6 +169,7 @@ def test_concurrent_false_threshold_deducts_once(databases):
             author,
             ComplaintInput(
                 title="Concurrent threshold report",
+                separate_incident=True,
                 description="A report for concurrent threshold testing.",
                 address="Dhanmondi Road 12",
                 latitude=23.751,
@@ -274,6 +276,7 @@ def test_reassignment_releases_active_unique_index_and_preserves_history(databas
             db.add(WorkerApplication(user_id=worker.id, status="approved", nid_digest=uuid.uuid4().hex))
         row = service.create_complaint(db, author, ComplaintInput(
             title="Assignment recovery integration", description="A blocked drainage complaint.",
+            separate_incident=True,
             address="Dhanmondi Road 12", latitude=23.751, longitude=90.375,
             category_code="road_flooding",
         ))
@@ -285,3 +288,67 @@ def test_reassignment_releases_active_unique_index_and_preserves_history(databas
         assert {(assignment.worker_id, assignment.status) for assignment in rows} == {
             (workers[0].id, "cancelled"), (workers[1].id, "active")
         }
+
+
+def test_simultaneous_first_reports_create_one_incident(databases):
+    factory, _ = databases
+    with factory() as db:
+        reporters = [User(name=f"Concurrent witness {index}", email=f"incident-witness-{index}@example.com",
+                          email_verified=True) for index in range(2)]
+        db.add_all(reporters)
+        db.commit()
+        ids = [user.id for user in reporters]
+    ready = Barrier(2)
+
+    def report(user_id):
+        with factory() as db:
+            user = db.get(User, user_id)
+            ready.wait(timeout=10)
+            row = service.create_complaint(db, user, ComplaintInput(
+                title="Simultaneous blockage report", description="Two citizens saw the same blocked drain.",
+                address="Concurrent incident junction", latitude=23.86, longitude=90.42,
+                category_code="blocked_drain",
+            ))
+            db.commit()
+            return row.id, row.incident_id or row.id
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        reports = list(pool.map(report, ids))
+    assert len({report_id for report_id, _ in reports}) == 2
+    assert len({incident_id for _, incident_id in reports}) == 1
+    with factory() as db:
+        rows = db.scalars(select(Complaint).where(Complaint.author_id.in_(ids))).all()
+        assert len(rows) == 2 and sum(row.incident_id is None for row in rows) == 1
+
+
+def test_snapshot_roundtrip_and_upgrade_keep_legacy_reports_and_photos(databases):
+    _, snapshot_url = databases
+    env = {**os.environ, "DATABASE_URL": make_url(snapshot_url).set(
+        drivername="postgresql+psycopg"
+    ).render_as_string(hide_password=False)}
+
+    def migrate(target):
+        result = subprocess.run([sys.executable, "-m", "alembic", *target], env=env,
+                                cwd=API_ROOT, capture_output=True, text=True, timeout=60, check=False)
+        assert result.returncode == 0, result.stderr
+
+    # A fresh snapshot already has the incident column and must not apply it twice.
+    migrate(["upgrade", "head"])
+    migrate(["downgrade", "20261020_04"])
+    author, report, image = (str(uuid.uuid4()) for _ in range(3))
+    with psycopg.connect(snapshot_url) as db:
+        db.execute("INSERT INTO users (id, email, name, email_verified, is_active, role, created_at) "
+                   "VALUES (%s, %s, 'Legacy resident', TRUE, TRUE, 'citizen', 1)",
+                   (author, f"legacy-{author}@example.com"))
+        db.execute("INSERT INTO complaints (id, author_id, category_code, kind, title, description, "
+                   "address, latitude, longitude, condition, status, created_at, updated_at) VALUES "
+                   "(%s, %s, 'road_flooding', 'complaint', 'Legacy report', 'Original preserved evidence', "
+                   "'Original location', 23.75, 90.37, 'bad', 'open', 1, 1)", (report, author))
+        db.execute("INSERT INTO complaint_images (id, complaint_id, url) VALUES (%s, %s, %s)",
+                   (image, report, "https://example.com/legacy.jpg"))
+    migrate(["upgrade", "head"])
+    with psycopg.connect(snapshot_url) as db:
+        assert db.execute("SELECT incident_id, description FROM complaints WHERE id=%s", (report,)).fetchone() == (
+            None, "Original preserved evidence"
+        )
+        assert db.execute("SELECT url FROM complaint_images WHERE id=%s", (image,)).fetchone()[0] == "https://example.com/legacy.jpg"

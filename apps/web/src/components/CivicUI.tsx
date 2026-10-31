@@ -75,11 +75,17 @@ export function Feedback({ error, loading, empty, retry }: {
     retry?: () => void;
 }) {
     const { tr } = useCivicLocale();
-    return <>{error && <p role="alert" className="alert error">{tr(error)} {retry && <button onClick={retry}>{tr("Retry")}</button>}</p>}{loading && <p role="status">{tr("Loading\u2026")}</p>}{!loading && !error && empty && <p className="civic-empty">{tr("No reports match this view yet.")}</p>}</>;
+    return <>{error && <p role="alert" className="alert error">{tr(error)} {retry && <button type="button" onClick={retry}>{tr("Retry")}</button>}</p>}{loading && <p role="status">{tr("Loading\u2026")}</p>}{!loading && !error && empty && <p className="civic-empty">{tr("No reports match this view yet.")}</p>}</>;
 }
 export function ComplaintCard({ row }: {
     row: Complaint;
 }) {
     const { tr, label, date, number } = useCivicLocale();
-    return <article className="civic-card"><div className="civic-card-meta"><span className={`civic-badge ${row.status}`}>{label(row.status)}</span><span>{label(row.category_code)}</span>{row.kind === "road_update" && <span>{tr("Road update \u00B7 ")}{label(row.condition)}</span>}</div><h3><Link href={`/complaints/${row.id}`}>{row.title}</Link></h3><p>{row.address}</p><p className="civic-excerpt">{row.description}</p><footer><span>{row.author_name} · {date(row.created_at)}</span><span>+{number(row.likes)} / −{number(row.dislikes)}</span></footer></article>;
+    return <article className="civic-card">
+        <div className="civic-card-meta"><span className={`civic-badge ${row.status}`}>{label(row.status)}</span><span>{label(row.category_code)}</span>{row.kind === "road_update" && <span>{tr("Road update \u00B7 ")}{label(row.condition)}</span>}</div>
+        <h3><Link href={`/complaints/${row.id}`}>{row.title}</Link></h3><p>{row.address}</p>
+        <p className="civic-excerpt">{row.description}</p>
+        {(row.incident_report_count || 1) > 1 && <p>{number(row.incident_report_count!)} {tr("reports from")} {number(row.incident_reporter_count || 1)} {tr("reporters")}</p>}
+        <footer><span>{row.author_name} · {date(row.created_at)}</span><span>+{number(row.likes)} / −{number(row.dislikes)}</span></footer>
+    </article>;
 }

@@ -197,11 +197,15 @@ def case_review(case_id: str, data: CaseReviewInput, admin: Admin, db: Database)
 @router.get("/analytics")
 def analytics(admin: Admin, db: Database):
     statuses = dict(
-        db.execute(select(Complaint.status, func.count()).group_by(Complaint.status)).all()
+        db.execute(select(Complaint.status, func.count()).where(
+            Complaint.incident_id.is_(None)
+        ).group_by(Complaint.status)).all()
     )
     categories = dict(
         db.execute(
-            select(Complaint.category_code, func.count()).group_by(Complaint.category_code)
+            select(Complaint.category_code, func.count()).where(
+                Complaint.incident_id.is_(None)
+            ).group_by(Complaint.category_code)
         ).all()
     )
     areas = db.execute(
@@ -212,6 +216,7 @@ def analytics(admin: Admin, db: Database):
         )
         .join(Road, Road.area_id == Area.id)
         .join(Complaint, Complaint.road_id == Road.id)
+        .where(Complaint.incident_id.is_(None))
         .group_by(Area.name)
         .order_by(func.count(Complaint.id).desc())
         .limit(20)
@@ -225,12 +230,18 @@ def analytics(admin: Admin, db: Database):
         .limit(10)
     ).all()
     return {
+        "total_reports": db.scalar(select(func.count()).select_from(Complaint)),
+        "incident_count": db.scalar(select(func.count()).select_from(Complaint).where(
+            Complaint.kind == "complaint", Complaint.incident_id.is_(None)
+        )),
         "by_status": statuses,
         "by_category": categories,
         "by_area": [{"area": a, "total": n, "resolved": r} for a, n, r in areas],
         "leaders": [{"id": i, "name": n, "points": p} for i, n, p in leaders],
         "unmapped_reports": db.scalar(
-            select(func.count()).select_from(Complaint).where(Complaint.road_id.is_(None))
+            select(func.count()).select_from(Complaint).where(
+                Complaint.road_id.is_(None), Complaint.incident_id.is_(None)
+            )
         ),
         "users": db.scalar(select(func.count()).select_from(User)),
         "workers": db.scalar(select(func.count()).select_from(User).where(User.role == "worker")),

@@ -295,6 +295,36 @@ test("publishing requires an explicit valid location and sends the chosen pin wi
   assert.equal(destination, "/complaints/created-report");
 });
 
+test("the full composer preserves a separate-incident choice and evidence through a language switch", async t => {
+  const fallback = globalThis.fetch;
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL, options?: RequestInit) => {
+    if (String(url).includes("/complaints/similar")) return new Response(JSON.stringify([
+      { id: "first-nearby", title: "First nearby blockage", incident_reporter_count: 2 },
+      { id: "second-nearby", title: "Different nearby blockage", incident_reporter_count: 3 },
+    ]));
+    return fallback(url, options);
+  });
+  await mount(workspace.NewReport);
+  coordinate("title").value = "A genuinely separate blockage";
+  coordinate("address").value = "A different drain near the junction";
+  document.querySelector<HTMLTextAreaElement>('textarea[name="description"]')!.value = "This separate problem needs its own work assignment.";
+  const category = document.querySelector<HTMLSelectElement>('select[name="category_code"]')!;
+  await act(async () => { category.value = "blocked_drain"; category.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
+  await clickReportMap();
+  const choices = document.querySelector<HTMLSelectElement>('select[name="incident_id"]')!;
+  assert.equal(choices.required, true);
+  const separate = document.querySelector<HTMLInputElement>('input[name="separate_incident"]')!;
+  await act(async () => { separate.click(); });
+  await toggle();
+  assert.equal(separate.checked, true);
+  assert.equal(category.value, "blocked_drain");
+  assert.equal(coordinate("title").value, "A genuinely separate blockage");
+  assert.ok(content().includes("আলাদা ঘটনা হিসেবে রাখুন"));
+  await act(async () => { document.querySelector(".report-composer")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
+  assert.equal((submittedReport as Record<string, unknown> | null)?.separate_incident, true);
+  assert.equal((submittedReport as Record<string, unknown> | null)?.incident_id, undefined);
+});
+
 test("a delayed GPS result preserves a later map selection and coordinates outside Dhaka are rejected", async () => {
   let gpsSuccess: PositionCallback | undefined;
   Object.defineProperty(navigator, "geolocation", { configurable: true, value: { getCurrentPosition(success: PositionCallback) { gpsSuccess = success; } } });

@@ -8,6 +8,7 @@ import { message, useResource, type Category, type Complaint, type Road } from "
 import { isDhakaLocation, parseReportLocation, type ReportLocation } from "@/lib/report-location";
 import { CivicShell, CivicForm, CivicFileInput, Feedback } from "./CivicUI";
 import LocationPicker from "./map/LocationPicker";
+import IncidentChoice from "./IncidentChoice";
 
 function ReportIcon({ type }: { type: "report" | "road" | "pin" | "photo" }) {
   return <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -23,6 +24,7 @@ export default function ReportComposer() {
   const categories = useResource<Category[]>("/categories");
   const roads = useResource<Road[]>("/map/roads");
   const [kind, setKind] = useState("complaint");
+  const [categoryCode, setCategoryCode] = useState("");
   const [position, setPosition] = useState({ latitude: "", longitude: "" });
   const [roadId, setRoadId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -92,13 +94,15 @@ export default function ReportComposer() {
         kind, title: data.get("title"), description: data.get("description"), address: data.get("address"),
         category_code: data.get("category_code"), road_id: roadId || null, ...point,
         condition: kind === "complaint" ? "bad" : data.get("condition"), images: links,
+        ...(data.get("incident_id") && { incident_id: data.get("incident_id") }),
+        ...(data.get("separate_incident") && { separate_incident: true }),
       });
       router.push(`/complaints/${row.id}`);
     } catch (cause) { setError(message(cause)); }
     finally { setBusy(false); }
   }
 
-  return <CivicShell title={tr("A small report. A useful change.")} intro={tr("Tell your community what is happening. Each report or road update earns 1 point. False reports can forfeit your points.")}>
+  return <CivicShell title={tr("A small report. A useful change.")} intro={tr("Tell your community what is happening. Related complaints share one incident, with at most 1 contribution point per person per incident. Road updates earn 1 point. False reports can forfeit your points.")}>
     <CivicForm className="civic-form report-composer" onSubmit={submit} onInvalidCapture={event => {
       if (event.target instanceof HTMLElement) {
         const details = event.target.closest<HTMLDetailsElement>(".report-coordinates");
@@ -117,7 +121,7 @@ export default function ReportComposer() {
           </div></fieldset>
           <label>{tr("Short title")}<input name="title" required minLength={5} maxLength={180} placeholder={tr("Water overflowing on Dhanmondi Road 12")} /></label>
           <div className={kind === "road_update" ? "report-field-pair" : undefined}>
-            <label>{tr("Category")}<select name="category_code" required defaultValue=""><option value="" disabled>{tr("Select a category")}</option>{categories.data?.map(category => <option key={category.code} value={category.code}>{label(category.code, category.label)}</option>)}</select></label>
+            <label>{tr("Category")}<select name="category_code" required defaultValue="" onChange={event => setCategoryCode(event.target.value)}><option value="" disabled>{tr("Select a category")}</option>{categories.data?.map(category => <option key={category.code} value={category.code}>{label(category.code, category.label)}</option>)}</select></label>
             {kind === "road_update" && <label>{tr("Observed condition")}<select name="condition"><option value="bad">{tr("Bad")}</option><option value="good">{tr("Good")}</option><option value="unknown">{tr("Unknown")}</option></select></label>}
           </div>
           <label>{tr("What did you observe?")}<textarea name="description" required minLength={10} maxLength={5000} rows={4} placeholder={tr("Describe the problem, when you noticed it, and who is affected.")} /></label>
@@ -142,6 +146,7 @@ export default function ReportComposer() {
             </div>
           </details>
           <small>{tr("Report locations must be within the Dhaka service area.")}</small>
+          {kind === "complaint" && point && categoryCode && <IncidentChoice key={`${categoryCode}:${roadId}:${point.latitude}:${point.longitude}`} {...point} category={categoryCode} roadId={roadId}/>}
           <Feedback error={locationError} />
         </section>
 
@@ -152,7 +157,7 @@ export default function ReportComposer() {
           <small>{tr("At most 5 images total. Photos are public; avoid faces, IDs, and private information.")}</small>
         </section>
 
-        <div className="report-submit-bar"><div className="report-reward"><span aria-hidden="true">✦</span><div><strong>{tr("Your city. Your contribution.")}</strong><small>{tr("Earn 1 community point for sharing an update.")}</small></div></div><button className="button" disabled={busy || !categories.data?.length}>{busy ? tr("Submitting…") : tr("Publish report · earn 1 point")}<span aria-hidden="true">↗</span></button></div>
+        <div className="report-submit-bar"><div className="report-reward"><span aria-hidden="true">✦</span><div><strong>{tr("Your city. Your contribution.")}</strong><small>{tr("Related reports are kept. Complaint points are awarded once per person per incident.")}</small></div></div><button className="button" disabled={busy || !categories.data?.length}>{busy ? tr("Submitting…") : tr("Publish report")}<span aria-hidden="true">↗</span></button></div>
       </fieldset>
       <Feedback error={error} />
     </CivicForm>

@@ -15,6 +15,8 @@ class LocationInput(Input):
 
 
 class ComplaintInput(LocationInput):
+    incident_id: str | None = Field(default=None, min_length=36, max_length=36)
+    separate_incident: bool = False
     road_id: str | None = Field(default=None, max_length=36)
     category_code: str = Field(min_length=1, max_length=40)
     kind: Literal["complaint", "road_update"] = "complaint"
@@ -35,6 +37,10 @@ class ComplaintInput(LocationInput):
     def complaint_condition(self):
         if self.kind == "complaint" and self.condition != "bad":
             raise ValueError("Complaints describe bad conditions; use road_update for good/unknown")
+        if self.incident_id and self.separate_incident:
+            raise ValueError("Choose an existing incident or a separate incident, not both")
+        if self.kind == "road_update" and (self.incident_id or self.separate_incident):
+            raise ValueError("Incident grouping applies to complaints, not road updates")
         return self
 
 
