@@ -9,13 +9,13 @@ export interface Complaint { id: string; title: string; description: string; add
 export function label(value: string) { return value.replaceAll("_", " "); }
 export function date(value: number) { return new Date(value * 1000).toLocaleString("en-GB", { timeZone: "Asia/Dhaka" }); }
 export function message(error: unknown) { return error instanceof Error ? error.message : "Please try again."; }
-export function useResource<T>(path: string, poll = 0) {
-  const [state, setState] = useState<{ path: string; data: T | null; error: string; loading: boolean }>({ path, data: null, error: "", loading: true });
+export function useResource<T>(path: string | null, poll = 0) {
+  const [state, setState] = useState<{ path: string | null; data: T | null; error: string; loading: boolean }>({ path, data: null, error: "", loading: true });
   const currentPath = useRef(path);
   const generation = useRef(0);
   const active = useRef(false);
   const reload = useCallback(async (signal?: AbortSignal) => {
-    if (!active.current || currentPath.current !== path) return;
+    if (!path || !active.current || currentPath.current !== path) return;
     const request = ++generation.current;
     try {
       const data = await api<T>(path, { signal });
@@ -31,10 +31,11 @@ export function useResource<T>(path: string, poll = 0) {
   useEffect(() => {
     currentPath.current = path;
     active.current = true;
+    if (!path) return () => { active.current = false; };
     const controller = new AbortController();
     void reload(controller.signal);
     const timer = poll ? setInterval(() => { void reload(controller.signal); }, poll) : undefined;
     return () => { active.current = false; controller.abort(); clearInterval(timer); };
   }, [reload, poll, path]);
-  return { ...(state.path === path ? state : { data: null, error: "", loading: true }), reload };
+  return { ...(!path ? { data: null, error: "", loading: false } : state.path === path ? state : { data: null, error: "", loading: true }), reload };
 }

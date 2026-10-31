@@ -37,12 +37,12 @@ afterEach(async () => {
 });
 after(() => { globalThis.fetch = originalFetch; dom.window.close(); });
 
-function Probe({ path }: { path: string }) {
+function Probe({ path }: { path: string | null }) {
   const resource = useResource<string>(path);
   useEffect(() => { reload = resource.reload; }, [resource.reload]);
   return <div>{resource.loading ? "Loading" : resource.data || "No data"}{resource.error && `: ${resource.error}`}</div>;
 }
-async function render(path: string) {
+async function render(path: string | null) {
   await renderNode(<Probe path={path}/>);
 }
 async function renderNode(node: ReactNode) {
@@ -65,6 +65,17 @@ async function finish(request: { resolve: (value: Response) => void }, data: unk
   await act(async () => { request.resolve(new Response(JSON.stringify(data), { status })); });
 }
 const content = () => document.getElementById("root")!.textContent;
+
+test("disabled resources make no request and ignore a previous account's pending response", async t => {
+  const requests = pendingRequests(t);
+  await render(null);
+  assert.equal(requests.length, 0);
+  await render("/me/complaints/report/participation?viewer=old");
+  assert.equal(requests.length, 1);
+  await render(null);
+  await finish(requests[0], "Previous account permissions");
+  assert.equal(content(), "No data");
+});
 
 test("changing the report hides old data immediately and ignores an old manual refresh", async t => {
   const requests = pendingRequests(t);
@@ -271,4 +282,73 @@ test("retrying incident suggestions never submits the report form", async t => {
   await act(async () => { retry.click(); });
   assert.equal(reads, 2);
   assert.equal(submissions, 0);
+});
+
+test("personal reports and points paginate independently and survive a Bangla switch", async t => {
+  const requests: URL[] = [];
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => {
+    const request = new URL(String(url)); requests.push(request);
+    const offset = Number(request.searchParams.get("offset") || 0);
+    const body = request.pathname.endsWith("/auth/me") ? { id: "citizen", role: "citizen", email_verified: true }
+      : request.pathname.endsWith("/me/complaints") ? { total: 31, items: [{ ...report, id: `personal-${offset}`, title: offset ? "Older personal report" : "Newest personal report" }] }
+      : { balance: 105, total: 105, entries: [{ id: `points-${offset}`, reason: "complaint", delta: offset ? 2 : 1 }] };
+    return new Response(JSON.stringify(body));
+  });
+  const { Providers } = await import("../src/components/Providers");
+  const { CommunityPage } = await import("../src/components/ComplaintWorkspace");
+  const { changePreference } = await import("../src/lib/preferences");
+  await renderNode(<Providers><CommunityPage/></Providers>);
+  const sections = document.querySelectorAll("section[aria-label]");
+  const nextReport = sections[0].querySelectorAll("button")[1];
+  await act(async () => { nextReport.click(); });
+  assert.ok(content()?.includes("Older personal report"));
+  assert.ok(!content()?.includes("Newest personal report"));
+  const nextPoints = sections[1].querySelectorAll("button")[1];
+  await act(async () => { nextPoints.click(); });
+  assert.ok(sections[1].textContent?.includes("+2"));
+  assert.ok(content()?.includes("Older personal report"));
+  assert.ok(requests.some(url => url.pathname.endsWith("/me/complaints") && url.searchParams.get("offset") === "30"));
+  assert.ok(requests.some(url => url.pathname.endsWith("/me/points") && url.searchParams.get("offset") === "20"));
+  await act(async () => { changePreference("language", "bn"); });
+  assert.ok(content()?.includes("মোট অভিযোগ ও তথ্য"));
+  assert.ok(content()?.includes("Older personal report"));
+  assert.ok(sections[1].textContent?.includes("+২"));
+});
+
+test("incident votes wait for membership, hide for every reporter, and leave work verification available", async t => {
+  let isReporter = true;
+  let permissionFailure = false;
+  let requests = 0;
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => {
+    const path = new URL(String(url)).pathname;
+    if (path.endsWith("/participation")) {
+      requests++;
+      return permissionFailure ? new Response('{"detail":"Temporary membership failure"}', { status: 503 })
+        : new Response(JSON.stringify({ is_reporter: isReporter }));
+    }
+    const body = path.endsWith("/auth/me") ? { id: "witness", role: "citizen", email_verified: true }
+      : { ...report, id: "root", incident_id: "root", active_assignment: null, resolutions: [{
+        id: "resolution", worker_id: "other-worker", worker_name: "Independent worker", comment: "Cleared the blockage",
+        status: "pending", likes: 0, dislikes: 0, created_at: 1,
+      }] };
+    return new Response(JSON.stringify(body));
+  });
+  const { Providers } = await import("../src/components/Providers");
+  const { default: ComplaintDetail } = await import("../src/components/ComplaintDetail");
+  await renderNode(<Providers><ComplaintDetail id="root"/></Providers>);
+  const votes = () => Array.from(document.querySelectorAll("button")).filter(button => ["Support", "Disagree"].includes(button.textContent || ""));
+  assert.equal(votes().length, 0);
+  assert.ok(content()?.includes("You reported this incident"));
+  assert.ok(content()?.includes("I confirm this work"));
+  isReporter = false;
+  await renderNode(<Providers><ComplaintDetail id="child"/></Providers>);
+  assert.equal(votes().length, 2);
+  permissionFailure = true;
+  await renderNode(<Providers><ComplaintDetail id="another"/></Providers>);
+  assert.equal(votes().length, 0);
+  permissionFailure = false;
+  const retry = Array.from(document.querySelectorAll("button")).find(button => button.textContent === "Retry")!;
+  await act(async () => { retry.click(); });
+  assert.equal(votes().length, 2);
+  assert.equal(requests, 4);
 });

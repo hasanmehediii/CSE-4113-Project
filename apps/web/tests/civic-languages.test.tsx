@@ -106,14 +106,14 @@ before(async () => {
       : path.endsWith("/areas") && userRole === "admin" ? [{ id: "area", name: "Original area name" }]
       : path.endsWith("/map/roads") && userRole === "admin" ? [{ id: "road", name: "Original road name", condition: "bad", open_complaints: 3, latitude: 23.77, longitude: 90.39 }]
       : path.endsWith("/categories") ? [{ code: "blocked_drain", label: "Blocked drain", base_priority: 75 }]
-      : path.endsWith("/me/points") ? { balance: 2, entries: [{ id: "entry", delta: 1, reason: "complaint" }] }
+      : path.endsWith("/me/points") ? { balance: 2, total: 1, entries: [{ id: "entry", delta: 1, reason: "complaint" }] }
       : path.endsWith("/workers/application") ? application
       : path.endsWith("/complaints") && (url.searchParams.has("q") || path.endsWith("/me/complaints")) ? [{
         id: "report", title: "My original report title", description: "My original report description",
         address: "My written street address", author_name: "Resident Alpha", category_code: "blocked_drain",
         kind: "complaint", status: "assigned", created_at: 1792058400, likes: 2, dislikes: 1,
       }] : [];
-    return new Response(JSON.stringify(body), { status: 200, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(path.endsWith("/me/complaints") && url.searchParams.has("include_total") ? { items: body, total: 1 } : body), { status: 200, headers: { "Content-Type": "application/json" } });
   };
   ({ createRoot } = await import("react-dom/client"));
   ({ Providers } = await import("../src/components/Providers"));

@@ -22,16 +22,43 @@ export function NewReport() { return <Gate><ReportComposer /></Gate>; }
 export function CommunityPage() { return <Gate><Contributions /></Gate>; }
 function Contributions() {
     const { tr, label, number } = useCivicLocale();
-    const reports = useResource<Complaint[]>("/me/complaints", 20000);
+    const [reportPage, setReportPage] = useState(0);
+    const [pointsPage, setPointsPage] = useState(0);
+    const reports = useResource<{ items: Complaint[]; total: number }>(`/me/complaints?include_total=true&limit=30&offset=${reportPage * 30}`, 20000);
     const points = useResource<{
         balance: number;
+        total: number;
         entries: {
             id: string;
             delta: number;
             reason: string;
         }[];
-    }>("/me/points", 20000);
-    return <CivicShell title={tr("Your contribution to Dhaka.")} intro={tr("Track your reports, community feedback, and points.")}><div className="civic-stats"><div><strong>{points.data ? number(points.data.balance) : "—"}</strong><span>{tr("Community points")}</span></div><div><strong>{reports.data ? number(reports.data.length) : "—"}</strong><span>{tr("Recent reports (up to 30)")}</span></div></div><div className="civic-toolbar"><Link className="button" href="/complaints/new">{tr("+ Add a report")}</Link><Link className="button secondary" href="/account">{tr("Account & security")}</Link></div><Feedback error={reports.error || points.error} loading={reports.loading} empty={!reports.data?.length} retry={() => { void reports.reload(); void points.reload(); }}/><div className="civic-grid">{reports.data?.map(row => <ComplaintCard key={row.id} row={row}/>)}</div><section className="civic-card"><h2>{tr("Points history")}</h2>{points.data?.entries.map(e => <div className="civic-ledger-row" key={e.id}><span>{label(e.reason)}</span><strong>{e.delta > 0 ? "+" : ""}{number(e.delta)}</strong></div>)}{!points.data?.entries.length && <p>{tr("Your contributions will appear here.")}</p>}</section></CivicShell>;
+    }>(`/me/points?limit=20&offset=${pointsPage * 20}`, 20000);
+    return <CivicShell title={tr("Your contribution to Dhaka.")} intro={tr("Track your reports, community feedback, and points.")}>
+        <div className="civic-stats"><div><strong>{points.data ? number(points.data.balance) : "—"}</strong><span>{tr("Community points")}</span></div><div><strong>{reports.data ? number(reports.data.total) : "—"}</strong><span>{tr("Total reports")}</span></div></div>
+        <div className="civic-toolbar"><Link className="button" href="/complaints/new">{tr("+ Add a report")}</Link><Link className="button secondary" href="/account">{tr("Account & security")}</Link></div>
+        <section aria-label={tr("My reports")}>
+            <Feedback error={reports.error} loading={reports.loading} empty={!reports.data?.items.length} retry={() => void reports.reload()}/>
+            <div className="civic-grid">{reports.data?.items.map(row => <ComplaintCard key={row.id} row={row}/>)}</div>
+            <HistoryPages page={reportPage} setPage={setReportPage} size={30} total={reports.data?.total} loading={reports.loading}/>
+        </section>
+        <section className="civic-card" aria-label={tr("Points history")}><h2>{tr("Points history")}</h2>
+            <Feedback error={points.error} loading={points.loading} retry={() => void points.reload()}/>
+            {points.data?.entries.map(e => <div className="civic-ledger-row" key={e.id}><span>{label(e.reason)}</span><strong>{e.delta > 0 ? "+" : ""}{number(e.delta)}</strong></div>)}
+            {!points.loading && !points.error && !points.data?.entries.length && <p>{tr("Your contributions will appear here.")}</p>}
+            <HistoryPages page={pointsPage} setPage={setPointsPage} size={20} total={points.data?.total} loading={points.loading}/>
+        </section>
+    </CivicShell>;
+}
+function HistoryPages({ page, setPage, size, total, loading }: {
+    page: number; setPage: (page: number) => void; size: number; total?: number; loading: boolean;
+}) {
+    const { tr, number } = useCivicLocale();
+    return <div className="civic-toolbar">
+        <button type="button" className="button secondary" disabled={!page || loading} onClick={() => setPage(page - 1)}>{tr("Previous")}</button>
+        <span>{tr("Page ")}{number(page + 1)}</span>
+        <button type="button" className="button secondary" disabled={loading || total === undefined || (page + 1) * size >= total} onClick={() => setPage(page + 1)}>{tr("Next")}</button>
+    </div>;
 }
 export function WorkerApply() { return <Gate roles={["citizen", "worker"]}><ApplicationForm /></Gate>; }
 function ApplicationForm() {

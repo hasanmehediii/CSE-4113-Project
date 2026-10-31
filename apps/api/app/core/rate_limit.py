@@ -74,8 +74,11 @@ def auth_ip_limit(request: Request):
         )
     except ValueError:
         trusted = False
-    if trusted:
-        forwarded = request.headers.get("x-real-ip", "")
+    # Docker's published API port also presents a private-network peer, but
+    # direct browser requests have no proxy header. Keep that real peer as the
+    # bucket key unless a configured proxy actually supplies an address.
+    if trusted and "x-real-ip" in request.headers:
+        forwarded = request.headers["x-real-ip"]
         try:
             peer = str(ipaddress.ip_address(forwarded))
         except ValueError:
