@@ -104,6 +104,7 @@ class ReviewInput(Input):
 
 class AssignInput(Input):
     worker_id: str | None = Field(default=None, min_length=36, max_length=36)
+    reassign: bool = False
 
 
 class BlockInput(Input):

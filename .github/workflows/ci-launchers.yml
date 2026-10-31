@@ -2,15 +2,7 @@ name: Linux Docker launcher checks
 
 on:
   push:
-    paths:
-      - 'scripts/**'
-      - '.gitattributes'
-      - '.github/workflows/ci-launchers.yml'
   pull_request:
-    paths:
-      - 'scripts/**'
-      - '.gitattributes'
-      - '.github/workflows/ci-launchers.yml'
   workflow_dispatch:
 
 permissions:

@@ -1,12 +1,19 @@
-from typing import Annotated
+from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.dependencies import Database, require_csrf, require_roles
 from app.core.rate_limit import enforce
-from app.models.civic import Assignment, PointEntry, WorkerApplication, WorkerLocation, now
+from app.models.civic import (
+    Assignment,
+    Complaint,
+    PointEntry,
+    WorkerApplication,
+    WorkerLocation,
+    now,
+)
 from app.schemas.civic import (
     AvailabilityInput,
     ResolutionVoteInput,
@@ -92,12 +99,22 @@ def location(data: WorkerLocationInput, user: Worker, db: Database):
 
 
 @router.get("/workers/assignments")
-def assignments(user: Worker, db: Database):
+def assignments(
+    user: Worker, db: Database,
+    status: Literal["active", "completed", "cancelled"] | None = None,
+    category: str | None = Query(default=None, max_length=40),
+    offset: int = Query(default=0, ge=0),
+    limit: int = Query(default=30, ge=1, le=100),
+):
+    query = select(Assignment).where(Assignment.worker_id == user.id)
+    if status:
+        query = query.where(Assignment.status == status)
+    if category:
+        query = query.join(Complaint, Complaint.id == Assignment.complaint_id).where(
+            Complaint.category_code == category
+        )
     rows = db.scalars(
-        select(Assignment)
-        .where(Assignment.worker_id == user.id)
-        .order_by(Assignment.created_at.desc())
-        .limit(30)
+        query.order_by(Assignment.created_at.desc(), Assignment.id).offset(offset).limit(limit)
     ).all()
     return [
         {

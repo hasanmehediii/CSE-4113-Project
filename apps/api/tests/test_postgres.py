@@ -20,6 +20,7 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.orm import sessionmaker
 
 from app.models.civic import (
+    Assignment,
     Complaint,
     ComplaintVote,
     FalseReport,
@@ -258,3 +259,29 @@ def test_real_mongo_projection_and_replay(databases):
         assert name.startswith("dubsibhai_test_")
         client.drop_database(name)
         client.close()
+
+
+def test_reassignment_releases_active_unique_index_and_preserves_history(databases):
+    factory, _ = databases
+    with factory() as db:
+        author = User(name="Reassign author", email="reassign-author@example.com", email_verified=True)
+        mayor = User(name="Reassign mayor", email="reassign-mayor@example.com", role="admin", email_verified=True)
+        workers = [User(name=f"Reassign worker {i}", email=f"reassign-worker-{i}@example.com",
+                        role="worker", email_verified=True) for i in range(2)]
+        db.add_all([author, mayor, *workers])
+        db.flush()
+        for worker in workers:
+            db.add(WorkerApplication(user_id=worker.id, status="approved", nid_digest=uuid.uuid4().hex))
+        row = service.create_complaint(db, author, ComplaintInput(
+            title="Assignment recovery integration", description="A blocked drainage complaint.",
+            address="Dhanmondi Road 12", latitude=23.751, longitude=90.375,
+            category_code="road_flooding",
+        ))
+        service.assign(db, mayor, row.id, workers[0].id)
+        db.commit()
+        service.assign(db, mayor, row.id, workers[1].id, reassign=True)
+        db.commit()
+        rows = db.scalars(select(Assignment).where(Assignment.complaint_id == row.id)).all()
+        assert {(assignment.worker_id, assignment.status) for assignment in rows} == {
+            (workers[0].id, "cancelled"), (workers[1].id, "active")
+        }

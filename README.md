@@ -15,6 +15,7 @@ The repository root is `CSE-4113-Project/`.
 - [Developer setup: run the complete project](DEVELOPMENT.md)
 - [Civic app setup and workflows](docs/guideline/CIVIC_DEVELOPMENT.md)
 - [Live map, Google Maps switch and road-risk model](docs/guideline/LIVE_MAP.md)
+- [Automatic release versions after dev-to-main merges](docs/guideline/RELEASES.md)
 - [Database schema, normalization and indexes](db/README.md)
 
 ## High-level architecture

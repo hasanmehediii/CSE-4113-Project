@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "./api-client";
 
 export interface Category { code: string; label: string; base_priority: number }
@@ -10,20 +10,31 @@ export function label(value: string) { return value.replaceAll("_", " "); }
 export function date(value: number) { return new Date(value * 1000).toLocaleString("en-GB", { timeZone: "Asia/Dhaka" }); }
 export function message(error: unknown) { return error instanceof Error ? error.message : "Please try again."; }
 export function useResource<T>(path: string, poll = 0) {
-  const [state, setState] = useState<{ data: T | null; error: string; loading: boolean }>({ data: null, error: "", loading: true });
+  const [state, setState] = useState<{ path: string; data: T | null; error: string; loading: boolean }>({ path, data: null, error: "", loading: true });
+  const currentPath = useRef(path);
+  const generation = useRef(0);
+  const active = useRef(false);
   const reload = useCallback(async (signal?: AbortSignal) => {
+    if (!active.current || currentPath.current !== path) return;
+    const request = ++generation.current;
     try {
       const data = await api<T>(path, { signal });
-      if (!signal?.aborted) setState({ data, error: "", loading: false });
+      if (active.current && !signal?.aborted && request === generation.current && currentPath.current === path) {
+        setState({ path, data, error: "", loading: false });
+      }
     } catch (error) {
-      if (!signal?.aborted) setState(previous => ({ ...previous, error: message(error), loading: false }));
+      if (active.current && !signal?.aborted && request === generation.current && currentPath.current === path) {
+        setState(previous => ({ path, data: previous.path === path ? previous.data : null, error: message(error), loading: false }));
+      }
     }
   }, [path]);
   useEffect(() => {
+    currentPath.current = path;
+    active.current = true;
     const controller = new AbortController();
     void reload(controller.signal);
     const timer = poll ? setInterval(() => { void reload(controller.signal); }, poll) : undefined;
-    return () => { controller.abort(); clearInterval(timer); };
-  }, [reload, poll]);
-  return { ...state, reload };
+    return () => { active.current = false; controller.abort(); clearInterval(timer); };
+  }, [reload, poll, path]);
+  return { ...(state.path === path ? state : { data: null, error: "", loading: true }), reload };
 }

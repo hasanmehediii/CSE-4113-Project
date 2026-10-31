@@ -121,6 +121,14 @@ data. No `down -v` is needed for upgrades.
    Approved accounts gain access to `/worker` on the next account refresh/sign-in.
 6. The mayor opens a report to assign an approved worker, manually or automatically.
    Workers opt into automatic assignment by sharing a current location.
+   While a complaint is assigned, **Reassign work** can transfer it to another
+   approved worker, including when the previous worker has been blocked. This
+   explicitly cancels the old assignment and preserves its history. Only the new
+   worker can submit completion. Work already awaiting confirmation cannot be
+   reassigned through this action.
+   The worker's **My assignments** view shows active work with category filtering
+   and Previous/Next navigation; completed/cancelled history cannot hide older
+   unfinished work behind the first page.
 7. The assigned worker submits a completion comment and optional photo. Citizens
    verify the work on the complaint detail page; 5 confirmations award 5 points.
 8. Evidence-backed disputes and qualifying false reports appear under Moderation.

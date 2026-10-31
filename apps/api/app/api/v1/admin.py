@@ -140,7 +140,7 @@ def review(user_id: str, data: ReviewInput, admin: Admin, db: Database):
 
 @router.post("/complaints/{complaint_id}/assign", status_code=201)
 def assign(complaint_id: str, data: AssignInput, admin: Admin, db: Database):
-    return service.assign(db, admin, complaint_id, data.worker_id)
+    return service.assign(db, admin, complaint_id, data.worker_id, reassign=data.reassign)
 
 
 @router.get("/moderation")

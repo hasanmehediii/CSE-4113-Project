@@ -327,7 +327,10 @@ def resolution_output(db, row):
 
 
 def approved_worker(db, worker_id):
-    worker = db.get(User, worker_id)
+    worker = db.scalar(
+        select(User).where(User.id == worker_id).with_for_update()
+        .execution_options(populate_existing=True)
+    )
     application = db.get(WorkerApplication, worker_id)
     if (
         not worker
@@ -340,10 +343,20 @@ def approved_worker(db, worker_id):
     return worker
 
 
-def assign(db, actor, complaint_id, worker_id=None):
+def assign(db, actor, complaint_id, worker_id=None, *, reassign=False):
     row = get_complaint(db, complaint_id, lock=True)
-    if row.kind != "complaint" or row.status not in {"open", "disputed"}:
+    allowed = {"assigned"} if reassign else {"open", "disputed"}
+    if row.kind != "complaint" or row.status not in allowed:
+        if reassign:
+            raise HTTPException(409, "Only assigned complaints can be reassigned")
         raise HTTPException(409, "Only open or disputed complaints can be assigned")
+    previous = db.scalar(
+        select(Assignment).where(
+            Assignment.complaint_id == row.id, Assignment.status == "active"
+        ).with_for_update()
+    )
+    if reassign and not previous:
+        raise HTTPException(409, "This complaint no longer has an active assignment")
     source = "admin" if worker_id else "system"
     if not worker_id:
         locations = db.scalars(
@@ -358,7 +371,8 @@ def assign(db, actor, complaint_id, worker_id=None):
                 WorkerApplication.status == "approved",
             )
         ).all()
-        locations = [loc for loc in locations if loc.user_id != row.author_id]
+        excluded = {row.author_id, previous.worker_id if previous else None}
+        locations = [loc for loc in locations if loc.user_id not in excluded]
         if not locations:
             raise HTTPException(
                 409, "No available workers with a location updated in the last 15 minutes"
@@ -381,13 +395,23 @@ def assign(db, actor, complaint_id, worker_id=None):
     approved_worker(db, worker_id)
     if worker_id == row.author_id:
         raise HTTPException(409, "A worker cannot resolve their own report")
+    if previous:
+        if previous.worker_id == worker_id:
+            raise HTTPException(409, "This worker is already assigned to the complaint")
+        previous.status = "cancelled"
+        # Release the partial unique index before inserting the replacement.
+        db.flush()
     assignment = Assignment(
         complaint_id=row.id, worker_id=worker_id, assigned_by=actor.id, source=source
     )
     db.add(assignment)
     row.status = "assigned"
     db.flush()
-    event(db, "complaint.assigned", row.id, worker_id=worker_id, source=source)
+    event(
+        db, "complaint.reassigned" if previous else "complaint.assigned", row.id,
+        worker_id=worker_id, source=source,
+        previous_worker_id=previous.worker_id if previous else None,
+    )
     return {"id": assignment.id, "worker_id": worker_id, "source": source}
 
 
