@@ -7,7 +7,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const response = await fetch(`${base}${path}`, {
     ...options, credentials: "include", cache: "no-store",
     headers: { "Content-Type": "application/json", ...options.headers },
-    signal: options.signal ?? AbortSignal.timeout(15000),
+    signal: options.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000),
   });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -31,11 +31,15 @@ export function mediaUrl(url: string) {
 export function uploadImage(file: File): Promise<string> {
   const request = mutations.then(async () => {
     const body = new FormData(); body.set("file", file);
-    const send = async () => fetch(`${base}/media`, { method: "POST", credentials: "include", headers: { "X-CSRF-Token": await csrf() }, body });
+    const send = async () => fetch(`${base}/media`, { method: "POST", credentials: "include", headers: { "X-CSRF-Token": await csrf() }, body, signal: AbortSignal.timeout(15000) });
     let response = await send();
-    if (response.status === 403) { csrfToken = null; response = await send(); }
-    const result = await response.json();
+    let result = await response.json().catch(() => ({}));
+    if (response.status === 403 && result.detail === "Invalid CSRF token") {
+      csrfToken = null; response = await send();
+      result = await response.json().catch(() => ({}));
+    }
     if (!response.ok) throw new ApiError(response.status, typeof result.detail === "string" ? result.detail : "Image upload failed");
+    if (typeof result.url !== "string" || !result.url.startsWith("/media/")) throw new Error("Image upload failed");
     return result.url as string;
   });
   mutations = request.catch(() => undefined);

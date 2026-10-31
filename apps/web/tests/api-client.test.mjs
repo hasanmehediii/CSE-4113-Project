@@ -78,3 +78,64 @@ test("concurrent mutations serialize and a failed request does not block the que
   assert.equal(results[0].status, "rejected");
   assert.equal(results[1].status, "fulfilled");
 });
+
+test("a timed out image upload releases the queue for subsequent saves", async t => {
+  const controllers = new Map();
+  let started;
+  const uploadStarted = new Promise(resolve => { started = resolve; });
+  t.mock.method(AbortSignal, "timeout", () => {
+    const controller = new AbortController();
+    controllers.set(controller.signal, controller);
+    return controller.signal;
+  });
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    if (url.endsWith("/csrf")) return json({ csrf_token: "token" });
+    if (url.endsWith("/media")) return new Promise((resolve, reject) => {
+      assert.ok(options.signal, "uploads must have a deadline");
+      options.signal.addEventListener("abort", () => reject(options.signal.reason));
+      started(controllers.get(options.signal));
+    });
+    return json({ saved: true });
+  });
+  const { uploadImage, mutate } = await client();
+  const upload = uploadImage(new File(["photo"], "photo.png"));
+  const failedUpload = assert.rejects(upload, /Upload timed out/);
+  const save = mutate("/complaints", { title: "Another report" });
+  (await uploadStarted).abort(new Error("Upload timed out"));
+  await failedUpload;
+  assert.deepEqual(await save, { saved: true });
+});
+
+test("image uploads retry only an expired CSRF token, not a permission denial", async t => {
+  let uploads = 0;
+  t.mock.method(globalThis, "fetch", async url => {
+    if (url.endsWith("/csrf")) return json({ csrf_token: "token" });
+    uploads++;
+    return json({ detail: "Verify your email first" }, 403);
+  });
+  const { uploadImage, ApiError } = await client();
+  await assert.rejects(uploadImage(new File(["photo"], "photo.png")), error => error instanceof ApiError && error.status === 403);
+  assert.equal(uploads, 1);
+});
+
+test("an HTML upload gateway error has a useful message and does not poison the queue", async t => {
+  t.mock.method(globalThis, "fetch", async url => url.endsWith("/csrf")
+    ? json({ csrf_token: "token" }) : new Response("Bad gateway", { status: 502 }));
+  const { uploadImage, ApiError } = await client();
+  await assert.rejects(uploadImage(new File(["photo"], "photo.png")), error => error instanceof ApiError && error.detail === "Image upload failed");
+});
+
+test("caller cancellation and the API deadline both remain active", async t => {
+  const deadline = new AbortController();
+  const caller = new AbortController();
+  let signal;
+  t.mock.method(AbortSignal, "timeout", () => deadline.signal);
+  t.mock.method(globalThis, "fetch", async (url, options) => { signal = options.signal; return json({}); });
+  const { api } = await client();
+  await api("/complaints", { signal: caller.signal });
+  caller.abort();
+  assert.equal(signal.aborted, true);
+  await api("/complaints", { signal: new AbortController().signal });
+  deadline.abort();
+  assert.equal(signal.aborted, true);
+});
