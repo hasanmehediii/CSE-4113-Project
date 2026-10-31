@@ -441,6 +441,7 @@ def resolution_output(db, row):
         "comment": row.comment,
         "image_url": row.image_url,
         "status": row.status,
+        "superseded": row.superseded_at is not None,
         "created_at": row.created_at,
         **vote_counts(db, ResolutionVote, ResolutionVote.resolution_id, row.id),
     }
@@ -525,6 +526,7 @@ def assign(db, actor, complaint_id, worker_id=None, *, reassign=False):
     assignment = Assignment(
         complaint_id=row.id, worker_id=worker_id, assigned_by=actor.id, source=source
     )
+    supersede_resolutions(db, row.id)
     db.add(assignment)
     set_incident_status(db, row, "assigned")
     db.flush()
@@ -551,6 +553,7 @@ def resolve(db, worker, complaint_id, data):
         raise HTTPException(409, "A worker cannot resolve their own incident; request reassignment")
     if row.status != "assigned":
         raise HTTPException(409, "Complaint is not ready for completion")
+    supersede_resolutions(db, row.id)
     resolution = Resolution(
         assignment_id=assignment.id, complaint_id=row.id, worker_id=worker.id, **data.model_dump()
     )
@@ -560,6 +563,27 @@ def resolve(db, worker, complaint_id, data):
     db.flush()
     event(db, "resolution.submitted", resolution.id, complaint_id=row.id, worker_id=worker.id)
     return resolution_output(db, resolution)
+
+
+def supersede_resolutions(db, complaint_id):
+    # Explicit ownership survives same-second submissions and later moderation.
+    # Keep the original completion, evidence, votes and award history intact.
+    db.execute(update(Resolution).where(
+        Resolution.complaint_id == complaint_id, Resolution.superseded_at.is_(None)
+    ).values(superseded_at=now()))
+
+
+def current_resolution(db, complaint_id):
+    return db.scalar(select(Resolution).join(Assignment, Assignment.id == Resolution.assignment_id).where(
+        Resolution.complaint_id == complaint_id, Resolution.superseded_at.is_(None),
+        Assignment.status == "completed",
+    ))
+
+
+def has_active_assignment(db, complaint_id):
+    return db.scalar(select(Assignment.id).where(
+        Assignment.complaint_id == complaint_id, Assignment.status == "active"
+    ).limit(1)) is not None
 
 
 def vote_resolution(db, user, resolution_id, data):
@@ -575,8 +599,13 @@ def vote_resolution(db, user, resolution_id, data):
     )
     if resolution.worker_id == user.id:
         raise HTTPException(403, "You cannot verify your own work")
-    if row.status == "false" or resolution.status == "disputed":
-        raise HTTPException(409, "This completion is under review or its report is false")
+    current = current_resolution(db, row.id)
+    expected_status = {"pending": "awaiting_confirmation", "confirmed": "resolved"}.get(resolution.status)
+    if (
+        not current or current.id != resolution.id or row.status != expected_status
+        or has_active_assignment(db, row.id)
+    ):
+        raise HTTPException(409, "This completion is no longer current or is under review")
     if data.value == -1 and db.scalar(
         select(ModerationCase.id).where(
             ModerationCase.source_key == f"dispute:{resolution.id}", ModerationCase.status != "open"
@@ -656,13 +685,28 @@ def review_case(db, case_id, admin, data):
             else f"dispute:{row.resolution_id}"
         )
         if row.kind == "false_complaint":
-            set_incident_status(db, complaint, "open")
+            if complaint.status != "false":
+                raise HTTPException(409, "This complaint has moved on; record the review as actioned")
+            resolution = current_resolution(db, complaint.id)
+            if has_active_assignment(db, complaint.id):
+                restored = "assigned"
+            elif resolution:
+                restored = {
+                    "pending": "awaiting_confirmation", "confirmed": "resolved", "disputed": "disputed"
+                }[resolution.status]
+            else:
+                # A false ruling cancelled unfinished work; do not reactivate it.
+                restored = "open"
+            set_incident_status(db, complaint, restored)
         else:
-            if complaint.status != "disputed":
+            resolution = current_resolution(db, complaint.id)
+            if (
+                complaint.status != "disputed" or not resolution or resolution.id != row.resolution_id
+                or has_active_assignment(db, complaint.id)
+            ):
                 raise HTTPException(
                     409, "This complaint has moved on; record the review as actioned"
                 )
-            resolution = db.get(Resolution, row.resolution_id)
             resolution.status = "confirmed" if resolution.confirmed_at else "pending"
             set_incident_status(db, complaint, "resolved" if resolution.confirmed_at else "awaiting_confirmation")
         deduction = db.scalar(select(PointEntry).where(PointEntry.source_key == source))

@@ -31,7 +31,7 @@ from app.models.civic import (
     WorkerApplication,
 )
 from app.models.user import User
-from app.schemas.civic import ComplaintInput, EvidenceInput
+from app.schemas.civic import ComplaintInput, EvidenceInput, ResolutionInput
 from app.services import civic_service as service
 from app.workers.project_events import project_batch
 
@@ -103,7 +103,7 @@ def test_migration_snapshot_indexes_and_spatial_search(databases):
         assert migrated == fresh
         assert (
             snapshot.execute("SELECT version_num FROM alembic_version").fetchone()[0]
-            == "20261031_05"
+            == "20261031_06"
         )
         indexes = {
             r[0]
@@ -352,3 +352,76 @@ def test_snapshot_roundtrip_and_upgrade_keep_legacy_reports_and_photos(databases
             None, "Original preserved evidence"
         )
         assert db.execute("SELECT url FROM complaint_images WHERE id=%s", (image,)).fetchone()[0] == "https://example.com/legacy.jpg"
+
+
+def test_current_completion_migration_repairs_legacy_active_work_and_ambiguous_history(databases):
+    _, snapshot_url = databases
+    env = {**os.environ, "DATABASE_URL": make_url(snapshot_url).set(
+        drivername="postgresql+psycopg"
+    ).render_as_string(hide_password=False)}
+
+    def migrate(*target):
+        result = subprocess.run([sys.executable, "-m", "alembic", *target], env=env,
+                                cwd=API_ROOT, capture_output=True, text=True, timeout=60, check=False)
+        assert result.returncode == 0, result.stderr
+
+    migrate("downgrade", "20261031_05")
+    author, worker, voter = (str(uuid.uuid4()) for _ in range(3))
+    groups = {}
+    with psycopg.connect(snapshot_url) as db:
+        for user_id in (author, worker, voter):
+            db.execute("INSERT INTO users (id,email,name,email_verified,is_active,role,created_at) "
+                       "VALUES (%s,%s,'Migration fixture',TRUE,TRUE,%s,1)",
+                       (user_id, f"{user_id}@migration.example.com", "worker" if user_id == worker else "citizen"))
+        for scenario in ("active", "newest", "tied", "false"):
+            report, child = (str(uuid.uuid4()) for _ in range(2))
+            status = "false" if scenario == "false" else "resolved" if scenario == "active" else "awaiting_confirmation"
+            for report_id, parent in ((report, None), (child, report)):
+                db.execute("INSERT INTO complaints (id,author_id,incident_id,category_code,kind,title,description,"
+                           "address,latitude,longitude,condition,status,created_at,updated_at) VALUES "
+                           "(%s,%s,%s,'road_flooding','complaint','Legacy completion','Preserved legacy evidence',"
+                           "'Dhaka',23.75,90.37,'bad',%s,1,1)", (report_id, author, parent, status))
+            completions = []
+            for index in range(2 if scenario in ("newest", "tied") else 1):
+                assignment, resolution = (str(uuid.uuid4()) for _ in range(2))
+                timestamp = 1 + index if scenario == "newest" else 1
+                db.execute("INSERT INTO assignments (id,complaint_id,worker_id,source,status,created_at,completed_at) "
+                           "VALUES (%s,%s,%s,'admin','completed',%s,%s)", (assignment, report, worker, timestamp, timestamp))
+                db.execute("INSERT INTO resolutions (id,assignment_id,complaint_id,worker_id,comment,status,created_at) "
+                           "VALUES (%s,%s,%s,%s,'Original completion','pending',%s)",
+                           (resolution, assignment, report, worker, timestamp))
+                db.execute("INSERT INTO resolution_votes (resolution_id,user_id,value,created_at) VALUES (%s,%s,1,1)",
+                           (resolution, voter))
+                completions.append(resolution)
+            if scenario == "active":
+                db.execute("INSERT INTO assignments (id,complaint_id,worker_id,source,status,created_at) "
+                           "VALUES (%s,%s,%s,'admin','active',2)", (str(uuid.uuid4()), report, worker))
+            groups[scenario] = report, child, completions
+    migrate("upgrade", "head")
+    with psycopg.connect(snapshot_url) as db:
+        for scenario, (report, child, completions) in groups.items():
+            expected = {"active": "assigned", "newest": "awaiting_confirmation", "tied": "open", "false": "false"}[scenario]
+            assert db.execute("SELECT status FROM complaints WHERE id IN (%s,%s)", (report, child)).fetchall() == [(expected,), (expected,)]
+            rows = dict(db.execute("SELECT id,superseded_at FROM resolutions WHERE complaint_id=%s", (report,)))
+            assert len(rows) == len(completions)
+            assert db.execute("SELECT count(*) FROM resolution_votes WHERE resolution_id = ANY(%s)", (completions,)).fetchone()[0] == len(completions)
+            if scenario in ("active", "tied"):
+                assert all(value is not None for value in rows.values())
+            elif scenario == "newest":
+                assert rows[completions[0]] is not None and rows[completions[1]] is None
+            else:
+                assert rows[completions[0]] is None
+        assert db.execute("SELECT count(*) FROM assignments WHERE complaint_id=%s AND status='active'", (groups["active"][0],)).fetchone()[0] == 1
+        assert db.execute("SELECT indexname FROM pg_indexes WHERE indexname='uq_resolution_current'").fetchone()
+    engine = create_engine(env["DATABASE_URL"])
+    try:
+        with sessionmaker(engine, expire_on_commit=False)() as db:
+            repaired = service.resolve(db, db.get(User, worker), groups["active"][0], ResolutionInput(
+                comment="Replacement finishes the job which the stale vote previously blocked"
+            ))
+            db.commit()
+            assert repaired["superseded"] is False
+            assert db.get(Complaint, groups["active"][0]).status == "awaiting_confirmation"
+            assert db.get(Complaint, groups["active"][1]).status == "awaiting_confirmation"
+    finally:
+        engine.dispose()

@@ -223,6 +223,11 @@ class Resolution(Base):
             "status IN ('pending','confirmed','disputed')", name="ck_resolution_status"
         ),
         Index("ix_resolutions_complaint", "complaint_id", "created_at"),
+        Index(
+            "uq_resolution_current", "complaint_id", unique=True,
+            postgresql_where=text("superseded_at IS NULL"),
+            sqlite_where=text("superseded_at IS NULL"),
+        ),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     assignment_id: Mapped[str] = mapped_column(ForeignKey("assignments.id"), unique=True)
@@ -233,6 +238,7 @@ class Resolution(Base):
     status: Mapped[str] = mapped_column(String(15), default="pending")
     created_at: Mapped[int] = mapped_column(BigInteger, default=now)
     confirmed_at: Mapped[int | None] = mapped_column(BigInteger)
+    superseded_at: Mapped[int | None] = mapped_column(BigInteger)
 
 
 class ResolutionVote(Base):

@@ -273,6 +273,7 @@ CREATE TABLE resolutions (
 	status VARCHAR(15) NOT NULL,
 	created_at BIGINT NOT NULL,
 	confirmed_at BIGINT,
+	superseded_at BIGINT,
 	PRIMARY KEY (id),
 	CONSTRAINT ck_resolution_status CHECK (status IN ('pending','confirmed','disputed')),
 	UNIQUE (assignment_id),
@@ -284,6 +285,8 @@ CREATE TABLE resolutions (
 CREATE INDEX ix_resolutions_complaint ON resolutions (complaint_id, created_at);
 
 CREATE INDEX ix_resolutions_worker_id ON resolutions (worker_id);
+
+CREATE UNIQUE INDEX uq_resolution_current ON resolutions (complaint_id) WHERE superseded_at IS NULL;
 
 CREATE TABLE moderation_cases (
 	id VARCHAR(36) NOT NULL,
@@ -365,5 +368,5 @@ INSERT INTO complaint_categories (code, label, base_priority) VALUES
 ('road_damage', 'Road damage', 65),
 ('other', 'Other civic issue', 40);
 CREATE TABLE alembic_version (version_num varchar(32) PRIMARY KEY);
-INSERT INTO alembic_version VALUES ('20261031_05');
+INSERT INTO alembic_version VALUES ('20261031_06');
 COMMIT;

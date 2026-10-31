@@ -208,6 +208,7 @@ export const civicTranslations: Record<string, string> = {
   "Review evidence, support workers, and see where Dhaka needs attention.": "প্রমাণ পর্যালোচনা করুন, সেবাকর্মীদের সহায়তা করুন এবং ঢাকার কোথায় ব্যবস্থা প্রয়োজন তা দেখুন।",
   "Total reports": "মোট অভিযোগ ও তথ্য", "Confirmed resolutions": "যাচাইকৃত সমাধান",
   "My reports": "আমার অভিযোগ ও তথ্য",
+  "Earlier completion. Work has moved on; its votes are read-only.": "এটি আগের কাজের সমাপ্তির তথ্য। নতুন কাজ শুরু হয়েছে; আগের ভোটগুলো শুধু দেখা যাবে।",
   "You reported this incident. Incident voting is available to other citizens.": "আপনি এই ঘটনায় অভিযোগ দিয়েছেন। ঘটনার পক্ষে বা বিপক্ষে অন্য নাগরিকেরা ভোট দিতে পারবেন।",
   "You reported this incident. Ask the mayor to reassign this work.": "আপনি এই ঘটনায় অভিযোগ দিয়েছেন। কাজটি অন্য কর্মীকে দিতে মেয়রকে অনুরোধ করুন।",
   "Accounts": "অ্যাকাউন্ট", "Approved workers": "অনুমোদিত সেবাকর্মী",

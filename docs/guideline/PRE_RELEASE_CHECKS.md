@@ -55,6 +55,28 @@ test artifacts, not a checked-in cross-browser CI suite.
 
 ## Repeat the application check
 
+### Completion-lifecycle follow-up
+
+A subsequent review reproduced an old completion resolving a replacement job
+after false moderation was dismissed. The follow-up fix uses explicit completion
+supersession, restores pending/confirmed/disputed lifecycle states on dismissal,
+and rejects stale votes and moderation reviews before changing votes, points or
+incident status. Historical completion cards retain their evidence/counts but are
+read-only in both languages.
+
+The follow-up passed 100 API tests (including PostgreSQL/MongoDB integration and
+legacy migration recovery), 56 frontend tests, Ruff, TypeScript, ESLint and the
+production build. Its lifecycle regressions were observed failing before the fix.
+The real-browser record above describes the earlier pre-release-polish run; the
+follow-up was verified through API/database and UI interaction regressions.
+
+Apply the current migration head, `20261031_06`, before running the new API.
+The local development database was backed up and upgraded. See
+[INCIDENTS.md](INCIDENTS.md#completion-lifecycle-and-moderation) for the conservative
+legacy-history reconciliation policy; old completion/vote/ledger records are kept.
+
+### Application smoke sequence
+
 1. Clone the release candidate into a clean directory and run `./start.ps1` on
    Windows, or `bash scripts/start.sh` on Linux. Check migration/bootstrap logs,
    service health, web login and API/ML readiness. Use separate databases/volumes
