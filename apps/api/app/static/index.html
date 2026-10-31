@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>DubsiBhai · Core API</title>
+  <style>
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f4f7f2; color:#173c37; font:16px/1.6 system-ui,sans-serif; }
+    main { max-width:1000px; margin:auto; padding:36px 24px 48px; }
+    header, .row, nav { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px; }
+    .brand { font-weight:750; font-size:21px; text-decoration:none; }
+    .tag { border:1px solid #d8e5de; border-radius:30px; padding:6px 12px; font-size:13px; }
+    .hero { margin:32px 0 24px; padding:40px; background:#153f36; color:white; border-radius:24px; }
+    .eyebrow { font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+    h1 { font-size:clamp(34px,5vw,50px); line-height:1.15; letter-spacing:-.04em; margin:12px 0 16px; }
+    .hero p { color:#cfdfd7; max-width:650px; }
+    h2 { margin:0 0 10px; font-size:21px; letter-spacing:-.02em; }
+    p { margin:0 0 20px; }
+    a { color:#166653; text-underline-offset:4px; }
+    .button { display:inline-block; padding:10px 16px; border:1px solid #166653; border-radius:10px; background:#166653; color:white; font:600 14px/1.5 system-ui,sans-serif; text-decoration:none; cursor:pointer; }
+    .hero .button { background:#d2efab; border-color:#d2efab; color:#153f36; }
+    .hero .secondary { background:transparent; border-color:#88aa9d; color:white; margin-left:8px; }
+    .panel { padding:26px; border:1px solid #d8e5de; border-radius:20px; background:white; margin-bottom:20px; }
+    .muted { color:#5d716c; font-size:14px; }
+    .status { font-weight:650; }
+    .status[data-state="ok"] { color:#17644c; }
+    .status[data-state="error"] { color:#a13d28; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; text-align:left; font-size:14px; }
+    th { color:#5d716c; font-size:12px; text-transform:uppercase; letter-spacing:.07em; }
+    td, th { padding:14px 10px; border-bottom:1px solid #e4ece6; }
+    tr:last-child td { border:0; }
+    code { font:13px ui-monospace,monospace; }
+    pre { background:#edf3ec; border-radius:12px; padding:18px; white-space:pre-wrap; overflow-wrap:anywhere; font:13px/1.6 ui-monospace,monospace; }
+    nav { justify-content:flex-start; font-size:14px; }
+    footer { margin-top:28px; font-size:13px; color:#5d716c; }
+    button:disabled { opacity:.6; cursor:wait; }
+    :focus-visible { outline:3px solid #ce9b21; outline-offset:4px; }
+    @media(max-width:600px) { main { padding:22px 16px; } .hero { padding:26px; } .panel { padding:20px; } .hero .button { margin:6px 6px 0 0; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header><a class="brand" href="/">DubsiBhai <span aria-hidden="true">/</span> Core API</a><span class="tag">FastAPI · Port 8000</span></header>
+    <section class="hero">
+      <div class="eyebrow">The engine behind the community</div>
+      <h1>Your backend, at a glance.</h1>
+      <p>This service powers accounts, complaints, community updates, and worker workflows. Explore its endpoints and check that the API process is responding.</p>
+      <a class="button" href="/docs">Explore interactive docs &rarr;</a>
+      <a class="button secondary" href="/redoc">Read API reference</a>
+    </section>
+    <section class="panel" aria-labelledby="health-title">
+      <div class="row"><div><h2 id="health-title">Process health</h2><div id="status" class="status" role="status">Checking API liveness…</div></div><button id="refresh" class="button" type="button">Refresh status</button></div>
+      <p class="muted" style="margin:14px 0">Liveness confirms this API process responds. It does not check the database, Redis, or background workers.</p>
+      <pre id="health-output" aria-label="Health response">Waiting for /health…</pre>
+    </section>
+    <section class="panel" aria-labelledby="routes-title">
+      <h2 id="routes-title">Useful endpoints</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th scope="col">Endpoint</th><th scope="col">What you can do</th></tr></thead>
+        <tbody>
+          <tr><td><a href="/docs"><code>/docs</code></a></td><td>Browse and try API operations with Swagger UI.</td></tr>
+          <tr><td><a href="/redoc"><code>/redoc</code></a></td><td>Read the generated API reference.</td></tr>
+          <tr><td><a href="/health"><code>/health</code></a></td><td>View process liveness as JSON.</td></tr>
+          <tr><td><a href="/api/v1/health"><code>/api/v1/health</code></a></td><td>Check liveness through the versioned API.</td></tr>
+          <tr><td><a href="/openapi.json"><code>/openapi.json</code></a></td><td>View the machine-readable API schema.</td></tr>
+        </tbody>
+      </table></div>
+    </section>
+    <nav aria-label="Other local services"><a href="http://localhost:8080/" data-port="8080">Service hub &rarr;</a><a href="http://localhost:3000/" data-port="3000">Community app &rarr;</a><a href="http://localhost:8001/" data-port="8001">ML service &rarr;</a></nav>
+    <noscript><p>JavaScript is disabled. Use the health and documentation links above to inspect the service.</p></noscript>
+    <footer>DubsiBhai · API data endpoints continue to return JSON.</footer>
+  </main>
+  <script>
+    document.querySelectorAll('[data-port]').forEach(link => {
+      const url = new URL(link.href);
+      url.hostname = location.hostname;
+      url.protocol = location.protocol;
+      link.href = url.href;
+    });
+    const status = document.getElementById('status');
+    const output = document.getElementById('health-output');
+    const refresh = document.getElementById('refresh');
+    async function checkHealth() {
+      refresh.disabled = true;
+      status.textContent = 'Checking API liveness…';
+      status.dataset.state = '';
+      output.textContent = 'Waiting for /health…';
+      try {
+        const response = await fetch('/health', { cache:'no-store', signal:AbortSignal.timeout(8000) });
+        const data = await response.json();
+        output.textContent = JSON.stringify(data, null, 2);
+        if (!response.ok || data.status !== 'ok') throw new Error('Unhealthy response');
+        status.textContent = 'API process is responding · Checked ' + new Date().toLocaleTimeString();
+        status.dataset.state = 'ok';
+      } catch {
+        status.textContent = 'Could not confirm API health. Check service logs and try again.';
+        status.dataset.state = 'error';
+        output.textContent = 'No successful health response. Open /health to inspect the endpoint.';
+      } finally { refresh.disabled = false; }
+    }
+    refresh.addEventListener('click', checkHealth);
+    checkHealth();
+  </script>
+</body>
+</html>

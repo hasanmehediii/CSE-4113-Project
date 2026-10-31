@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>DubsiBhai · Local services</title>
+  <style>
+    :root { color-scheme:light; --ink:#173c37; --muted:#5d716c; --line:#d8e5de; --green:#166653; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#f4f7f2; color:var(--ink); font:16px/1.6 system-ui,sans-serif; }
+    main { max-width:1120px; margin:auto; padding:36px 24px 48px; }
+    header, .row { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+    .brand { display:flex; align-items:center; gap:12px; font-weight:750; font-size:21px; }
+    .mark { display:grid; place-items:center; width:40px; height:40px; border-radius:13px; background:var(--green); color:white; }
+    .eyebrow { font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+    .tag { border:1px solid var(--line); border-radius:30px; padding:6px 12px; font-size:13px; }
+    .hero { position:relative; overflow:hidden; margin:34px 0 28px; padding:44px; border-radius:24px; background:#153f36; color:white; }
+    .hero::after { content:""; position:absolute; width:280px; height:280px; border:50px solid #235a49; border-radius:50%; right:-90px; bottom:-150px; pointer-events:none; }
+    h1 { font-size:clamp(34px,5vw,54px); line-height:1.12; letter-spacing:-.045em; margin:12px 0 18px; max-width:650px; }
+    .hero p { color:#cfdfd7; max-width:620px; margin-bottom:24px; }
+    h2 { margin:0 0 8px; font-size:22px; letter-spacing:-.025em; }
+    p { margin:0 0 18px; }
+    .muted { color:var(--muted); }
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; }
+    .card { display:flex; flex-direction:column; background:white; border:1px solid var(--line); border-radius:20px; padding:26px; }
+    .icon { display:grid; place-items:center; width:44px; height:44px; background:#edf6f0; border-radius:14px; font-size:21px; margin-bottom:24px; font-weight:700; }
+    .port { font:12px ui-monospace,monospace; color:var(--muted); margin-bottom:10px; }
+    .card p { color:var(--muted); font-size:14px; flex:1; }
+    a { color:var(--green); text-underline-offset:4px; }
+    .button { display:inline-block; border:1px solid var(--green); border-radius:10px; background:var(--green); color:white; padding:10px 16px; text-decoration:none; font:600 14px/1.5 system-ui,sans-serif; text-align:center; cursor:pointer; }
+    .hero .button { background:#d2efab; border-color:#d2efab; color:#153f36; position:relative; z-index:1; }
+    .links { display:flex; gap:16px; flex-wrap:wrap; margin-top:16px; font-size:13px; }
+    .status-panel { margin-top:24px; border:1px solid var(--line); border-radius:18px; padding:22px 26px; background:#edf3ec; }
+    .status { font-size:14px; font-weight:600; }
+    .status[data-state="ok"] { color:#17644c; }
+    .status[data-state="error"] { color:#a13d28; }
+    button:disabled { opacity:.6; cursor:wait; }
+    :focus-visible { outline:3px solid #ce9b21; outline-offset:4px; }
+    footer { color:var(--muted); font-size:13px; margin-top:28px; }
+    @media(max-width:800px) { .grid { grid-template-columns:1fr; } .hero { padding:28px; } .card .icon { margin-bottom:14px; } }
+    @media(max-width:420px) { main { padding:22px 16px; } .hero { padding:24px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand"><span class="mark" aria-hidden="true">D</span> DubsiBhai</div>
+      <span class="tag">Local development · Gateway :8080</span>
+    </header>
+    <section class="hero" aria-labelledby="welcome">
+      <div class="eyebrow">A clearer view of your city</div>
+      <h1 id="welcome">Your project.<br>All in one place.</h1>
+      <p>Welcome to the DubsiBhai service hub. Open the community app, explore the backend, or try the Bengali complaint classifier.</p>
+      <a class="button" href="http://localhost:3000/" data-port="3000">Open the community app &rarr;</a>
+    </section>
+    <div class="row" style="margin-bottom:16px">
+      <h2>Explore your services</h2>
+      <span class="muted" style="font-size:13px">Choose a service to get started</span>
+    </div>
+    <section class="grid" aria-label="Project services">
+      <article class="card">
+        <div class="icon" aria-hidden="true">↗</div>
+        <div class="port">NEXT.JS / PORT 3000</div>
+        <h2>Community app</h2>
+        <p>The main website for reporting waterlogging, viewing the city map, and following community updates.</p>
+        <a class="button" href="http://localhost:3000/" data-port="3000">Open website &rarr;</a>
+        <div class="links"><a href="http://localhost:3000/map" data-port="3000">City map</a><a href="http://localhost:3000/login" data-port="3000">Sign in</a></div>
+      </article>
+      <article class="card">
+        <div class="icon" aria-hidden="true">{ }</div>
+        <div class="port">FASTAPI / PORT 8000</div>
+        <h2>Core API</h2>
+        <p>Authentication, complaints, worker assignments, and the data behind the community platform.</p>
+        <a class="button" href="http://localhost:8000/" data-port="8000">View API overview &rarr;</a>
+        <div class="links"><a href="http://localhost:8000/docs" data-port="8000">Interactive docs</a><a href="/api/v1/health">Health JSON</a></div>
+      </article>
+      <article class="card">
+        <div class="icon" aria-hidden="true">✦</div>
+        <div class="port">MACHINE LEARNING / PORT 8001</div>
+        <h2>Complaint classifier</h2>
+        <p>Check model readiness and classify Bengali complaints into drainage and waterlogging categories.</p>
+        <a class="button" href="http://localhost:8001/" data-port="8001">Try the classifier &rarr;</a>
+        <div class="links"><a href="http://localhost:8001/docs" data-port="8001">Interactive docs</a><a href="http://localhost:8001/ready" data-port="8001">Readiness JSON</a></div>
+      </article>
+    </section>
+    <section class="status-panel" aria-labelledby="gateway-title">
+      <div class="row">
+        <div><h2 id="gateway-title" style="font-size:17px">Gateway connection</h2><div id="status" class="status" role="status">Checking the API through Nginx…</div></div>
+        <button id="refresh" type="button" class="button">Check again</button>
+      </div>
+      <p class="muted" style="font-size:13px;margin:12px 0 0">This checks API process liveness through <code>/api/v1/health</code>. Open each service to inspect it further.</p>
+    </section>
+    <noscript><p>JavaScript is disabled. You can still use every service link and open the health JSON directly.</p></noscript>
+    <footer>DubsiBhai · Drainage and waterlogging management for Dhaka</footer>
+  </main>
+  <script>
+    // Keep local links on the same host when using 127.0.0.1 instead of localhost.
+    document.querySelectorAll('[data-port]').forEach(link => {
+      const url = new URL(link.href);
+      url.hostname = location.hostname;
+      url.protocol = location.protocol;
+      link.href = url.href;
+    });
+    const status = document.getElementById('status');
+    const refresh = document.getElementById('refresh');
+    async function checkHealth() {
+      refresh.disabled = true;
+      status.textContent = 'Checking the API through Nginx…';
+      status.dataset.state = '';
+      try {
+        const response = await fetch('/api/v1/health', { cache:'no-store', signal:AbortSignal.timeout(8000) });
+        const data = await response.json();
+        if (!response.ok || data.status !== 'ok') throw new Error('Unhealthy response');
+        status.textContent = 'API reachable through Nginx · Checked ' + new Date().toLocaleTimeString();
+        status.dataset.state = 'ok';
+      } catch {
+        status.textContent = 'API unreachable through Nginx. Check the API container and try again.';
+        status.dataset.state = 'error';
+      } finally { refresh.disabled = false; }
+    }
+    refresh.addEventListener('click', checkHealth);
+    checkHealth();
+  </script>
+</body>
+</html>

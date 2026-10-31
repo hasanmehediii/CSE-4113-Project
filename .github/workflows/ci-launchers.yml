@@ -1,0 +1,20 @@
+name: Linux Docker launcher checks
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bash-launchers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate launcher behavior without starting Docker services
+        run: python -m unittest discover -s scripts/tests -v
