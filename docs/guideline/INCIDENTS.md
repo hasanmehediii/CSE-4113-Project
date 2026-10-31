@@ -48,6 +48,27 @@ identity. Phone OTP and automatic identity verification remain outside this feat
 False-incident moderation keeps the existing forfeiture policy for the original incident reporter;
 it does not automatically forfeit every corroborating citizen's balance.
 
+### Completion lifecycle and moderation
+
+Only the current completion can receive verification votes. Starting a new work
+assignment marks older completions `superseded_at`; their evidence, votes and
+timestamps remain visible as read-only history. This marker does not depend on
+timestamp ordering, so work submitted within the same second is handled safely.
+A partial unique index permits at most one current completion per incident.
+
+Dismissing false-incident moderation restores the current work state: pending
+completion → `awaiting_confirmation`, confirmed completion → `resolved`, disputed
+completion → `disputed`. If there is no current completion, the incident reopens;
+unfinished assignments cancelled by the false ruling are not automatically revived.
+An old completion or moderation review cannot overwrite a replacement work cycle.
+
+Migration `20261031_06` preserves completion/vote records and marks superseded
+legacy work. An already-stuck incident with an active replacement assignment is
+restored to `assigned`. For older incidents with equally recent completion
+timestamps, the migration does not guess a current completion from random IDs:
+it retires the ambiguous completions and reopens the incident for a fresh assignment.
+Existing points-ledger history is retained.
+
 Queues, map/hotspot counts and work-status analytics count an incident once.
 `total_reports` and per-incident report counts include every submission. Classification
 is queued once for the incident, with its existing category-confidence fallback.
@@ -65,7 +86,7 @@ is queued once for the incident, with its existing category-confidence fallback.
 - Complaint responses include `incident_id`, `incident_report_count` and
   `incident_reporter_count`. Creation also returns `points_awarded` (0 or 1).
 
-Apply migration `20261031_05` with `uv run alembic upgrade head` before using the
+Apply migrations through `20261031_06` with `uv run alembic upgrade head` before using the
 updated API. The root launchers do this automatically. Back up shared databases
 before upgrading. The nullable link preserves existing data; the SQL snapshot is
 stamped at the current migration head and its generator no longer rewrites history.

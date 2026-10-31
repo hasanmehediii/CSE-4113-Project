@@ -352,3 +352,30 @@ test("incident votes wait for membership, hide for every reporter, and leave wor
   assert.equal(votes().length, 2);
   assert.equal(requests, 4);
 });
+
+test("historical completions retain evidence and counts but only current work can be verified", async t => {
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => {
+    const path = new URL(String(url)).pathname;
+    const completion = { worker_id: "worker", worker_name: "Worker", status: "pending", created_at: 1, dislikes: 0 };
+    const body = path.endsWith("/auth/me") ? { id: "citizen", role: "citizen", email_verified: true }
+      : path.endsWith("/participation") ? { is_reporter: false }
+      : { ...report, status: "awaiting_confirmation", resolutions: [
+        { ...completion, id: "old", comment: "Original historical work evidence", likes: 4, superseded: true, image_url: "https://example.com/old-work.png" },
+        { ...completion, id: "current", comment: "Current replacement work", likes: 0, superseded: false },
+      ] };
+    return new Response(JSON.stringify(body));
+  });
+  const { Providers } = await import("../src/components/Providers");
+  const { default: ComplaintDetail } = await import("../src/components/ComplaintDetail");
+  const { changePreference } = await import("../src/lib/preferences");
+  await renderNode(<Providers><ComplaintDetail id="incident"/></Providers>);
+  const articles = Array.from(document.querySelectorAll("article"));
+  const old = articles.find(article => article.textContent?.includes("Original historical work evidence"))!;
+  const current = articles.find(article => article.textContent?.includes("Current replacement work"))!;
+  assert.equal(old.querySelectorAll("button, form").length, 0);
+  assert.ok(old.textContent?.includes("4/5 community approvals"));
+  assert.equal(old.querySelector("a")?.href, "https://example.com/old-work.png");
+  assert.ok(current.textContent?.includes("I confirm this work"));
+  await act(async () => { changePreference("language", "bn"); });
+  assert.ok(old.textContent?.includes("আগের ভোটগুলো শুধু দেখা যাবে"));
+});

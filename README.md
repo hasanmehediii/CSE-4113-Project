@@ -77,6 +77,11 @@ totals. Incident voting controls recognize every reporter without hiding complet
 verification. Fresh-checkout/browser testing also fixed direct Docker authentication
 requests being rejected without a proxy header, and a tall sticky location panel
 covering the complaint submit button.
+False-case dismissal now restores the appropriate completion state. Superseded
+completions and stale moderation reviews cannot resolve or dispute replacement
+work; their evidence and votes remain read-only history. Migration `20261031_06`
+also repairs active work blocked by the older lifecycle bug; see the incident guide
+for its legacy-history reconciliation policy.
 There is no claim that all undiscovered defects have been eliminated.
 
 ### Not started in this repository
