@@ -1,7 +1,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.dependencies import Database, require_csrf, require_roles
@@ -30,15 +30,20 @@ Worker = Annotated[object, Depends(require_roles("worker"))]
 
 
 @router.get("/me/points")
-def points(user: Member, db: Database):
+def points(
+    user: Member, db: Database,
+    limit: int = Query(default=100, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
     entries = db.scalars(
         select(PointEntry)
         .where(PointEntry.user_id == user.id)
         .order_by(PointEntry.created_at.desc(), PointEntry.id)
-        .limit(100)
+        .offset(offset).limit(limit)
     ).all()
     return {
         "balance": service.balance(db, user.id),
+        "total": db.scalar(select(func.count()).select_from(PointEntry).where(PointEntry.user_id == user.id)),
         "entries": [
             {
                 "id": e.id,
@@ -53,8 +58,28 @@ def points(user: Member, db: Database):
 
 
 @router.get("/me/complaints")
-def my_complaints(user: Member, db: Database):
-    return [service.public_complaint(db, row) for row in service.list_complaints(db, mine=user.id)]
+def my_complaints(
+    user: Member, db: Database,
+    limit: int = Query(default=30, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    include_total: bool = False,
+):
+    items = [service.public_complaint(db, row) for row in service.list_complaints(
+        db, mine=user.id, limit=limit, offset=offset
+    )]
+    if not include_total:
+        return items  # Preserve the existing array response for older clients.
+    return {"items": items, "total": db.scalar(select(func.count()).select_from(Complaint).where(
+        Complaint.author_id == user.id
+    ))}
+
+
+@router.get("/me/complaints/{complaint_id}/participation")
+def participation(complaint_id: str, user: Member, db: Database):
+    report = service.get_complaint(db, complaint_id)
+    return {"is_reporter": db.scalar(select(Complaint.id).where(
+        service.incident_members(report.incident_id or report.id), Complaint.author_id == user.id
+    ).limit(1)) is not None}
 
 
 @router.get("/workers/application")
