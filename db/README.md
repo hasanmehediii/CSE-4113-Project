@@ -2,7 +2,8 @@
 
 The executable PostgreSQL schema is [`schema.sql`](schema.sql), a **file** under
 `db/`. It targets PostgreSQL 17. The existing auth tables remain compatible; the
-new domain tables are maintained by Alembic revisions `20261015_02` and `20261015_03`.
+new domain tables are maintained by Alembic, including incident-report grouping
+in revision `20261031_05`.
 
 ## Install and migrate
 
@@ -19,9 +20,10 @@ creates the same tables, indexes, category catalog and Alembic revision marker.
 Use **one** installation path; do not import the snapshot into an existing database.
 Neither path drops existing auth accounts. Take a backup before upgrading a shared database.
 
-`generate_schema.py` documents how the snapshot was generated. Its migration
-generation is for initial development only: freeze released migrations and add
-new revisions for future changes.
+`generate_schema.py` regenerates only the fresh-install snapshot, stamps the
+current Alembic head and never rewrites released migrations. After snapshot import,
+run the bootstrap command above to seed the road catalog and optional mayor.
+Existing databases must use new Alembic revisions rather than importing the snapshot.
 
 ## Ownership and normalization
 

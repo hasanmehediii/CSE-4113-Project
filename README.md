@@ -17,6 +17,99 @@ The repository root is `CSE-4113-Project/`.
 - [Live map, Google Maps switch and road-risk model](docs/guideline/LIVE_MAP.md)
 - [Automatic release versions after dev-to-main merges](docs/guideline/RELEASES.md)
 - [Database schema, normalization and indexes](db/README.md)
+- [Incident grouping: matching, preserved evidence and shared work](docs/guideline/INCIDENTS.md)
+
+## Project status
+
+Status reviewed on **31 October 2026** against the checked-in implementation.
+"Implemented" means a working application path exists; it is not a claim that
+every browser/device has been tested or that the application is production-ready.
+
+### Implemented
+
+| Area | Working features |
+| --- | --- |
+| Accounts | Citizen/worker registration, email or phone identifier + password login, Google sign-in, email verification/resend, password reset/recovery, password history |
+| Sessions and access | Session listing/revocation, logout/all-device logout, backend role checks, CSRF protection, Redis rate limits and administrator bootstrap |
+| Reporting | Complaints and road observations, category/address, map pin/GPS/manual Dhaka coordinates, image uploads/HTTPS links, public search/filter/detail pages |
+| Incident grouping | Nearby reports about the same active problem share one incident; all submissions, authors, timestamps, locations and photos are retained. Ambiguous matches require a choice; a separate-incident override is available |
+| Community | Incident-level voting, false-report evidence and mayor moderation, completion verification/disputes, personal contributions and an auditable points ledger |
+| Workers | Identity application/review, availability/location sharing, manual/automatic assignment, explicit reassignment with history, completion submission and paginated active assignments |
+| Mayor workspace | User blocking/unblocking, application review, assignments/reassignments, moderation, area/road creation, status/category/area summaries and point leaders |
+| Maps and weather | Leaflet/OpenStreetMap, optional configured Google Maps, road/report overlays, search/filter/selection, periodic refresh and a Dhaka weather widget |
+| ML integration | Bengali complaint category suggestions with durable retry/fallback, plus a separate synthetic-data waterlogging/traffic scenario model |
+| Interface | English/Bangla switching, worker/workspace translations, light/dark themes, stale-response protection and request/upload failure handling |
+| Local development | Windows host/Docker launchers, Linux Docker launchers, migrations/bootstrap, persistent local media/model volumes and API/ML service dashboards |
+| Checks and releases | API, Web, ML, release-automation and Linux-launcher CI. A dev-to-main PR publishes the next V-number release after all five checks pass on its merge commit |
+
+### Partially implemented / remaining work
+
+| Area | What remains |
+| --- | --- |
+| Prediction quality | Obtain and validate real Dhaka observations. Current results use simulated data and uncalibrated probabilities; the saved report shows weak precision, particularly for waterlogging |
+| Prediction inputs | Feed verified live/forecast weather and traffic into inference. The weather widget is separate; prediction rainfall is still a user-entered scenario |
+| Geographic coverage | Validate the dataset-to-road mapping and expand overlays. The 14 map corridors currently cover 82 of 210 dataset segments; the other 128 have no overlay |
+| Hotspots | The API has a deterministic grid baseline; geographic ML clustering is not implemented |
+| Incident matching | Matching is a documented location/category/time rule, not semantic understanding. Human selection is needed for ambiguous nearby problems; administrative merge/split correction tools are not implemented |
+| Email | Verification/reset delivery works with configured SMTP; local Mailpit captures messages instead of delivering to real inboxes. Delivery is not backed by a durable email queue |
+| Identity and media | NID review is manual, not government verification. Managed private document storage, deep image inspection and retention/cleanup remain deployment work |
+| Production operations | Local Docker/Nginx exists; public HTTPS deployment, monitored hosting, tested backup/restore and operational alerting remain to be configured |
+
+### Known open bugs and verification gaps
+
+- **Citizen history pagination:** My contributions currently exposes only the newest
+  30 reports and 100 point-ledger entries without older-page controls. Older records
+  remain stored. Worker active-work pagination is implemented separately.
+- **Own-report vote controls:** citizen reporters can still see voting controls on
+  their own incident. The API rejects self-voting; the UI should hide/disable these
+  controls before the request.
+- **Browser coverage:** API/database regression tests and simulated UI interaction
+  tests exist; a complete automated real-browser end-to-end suite is not in the repo.
+- **Release publication:** numbering/retry/gating tests use a fake GitHub client;
+  actual first publication must also be checked after installing the workflow on main.
+- **Matching limits:** very close, same-category problems can be genuinely different.
+  Use the separate-incident option. Old reports are deliberately not retroactively
+  merged, and grouped reports cannot yet be moved/split through an admin screen.
+
+Recently fixed defects include stuck assignments after worker unavailability,
+completed history hiding unfinished work, stale report responses after navigation,
+uploads blocking later saves, unreadable responses appearing successful, and
+independent work orders being created for corroborating reports of one incident.
+There is no claim that all undiscovered defects have been eliminated.
+
+### Not started in this repository
+
+- IoT sensor ingestion and sensor-based water-level/drainage monitoring.
+- SMS/phone OTP ownership verification.
+- In-app/push notifications for assignment and status changes.
+- ML-based geographic clustering and semantic duplicate matching.
+- A managed private NID-document upload/review storage service.
+- A durable authentication-email delivery queue and retry worker.
+- A comprehensive real-browser end-to-end test suite and a public production
+  deployment/backup-monitoring workflow.
+
+### How repeated road complaints are handled
+
+Ten citizens reporting the same blockage should mean **one incident, ten preserved
+reports and ten distinct reporters**, rather than ten independent worker jobs.
+New complaints can join an active same-category incident within **80 metres** of
+its original report when it has activity in the last **24 hours**. Two known,
+different road IDs do not match. Matching does not chain reports along an entire
+road. Multiple eligible incidents require an explicit choice, and users can mark
+a genuinely different blockage as separate.
+
+Assignment, completion, verification and incident status are shared. Each person's
+evidence stays individually accessible; personal contributions retain every
+submission. Each person receives at most one complaint-contribution point per
+incident, so repeated submissions do not multiply their points or reporter count.
+These limits count accounts, not independently verified human identities.
+Voting and false-incident moderation also apply to the shared blockage; one person
+cannot vote repeatedly by opening different report URLs. The existing false-report
+points-forfeiture policy applies to the original incident reporter, not an automatic
+penalty on every corroborating citizen.
+Road observations remain independent. A resolved or false incident is not reused
+for a new blockage. Public map/queue/hotspot/analytics work counts count an incident
+once, while report totals retain the full number of submissions.
 
 ## High-level architecture
 
@@ -31,8 +124,9 @@ map overlays, worker approval/assignment/completion, community verification,
 points, moderation and mayor analytics. Background workers project transactional
 events into **MongoDB** and obtain category suggestions from the existing ML service.
 PostgreSQL remains the source of truth; Redis provides shared rate limits and
-short-lived auth state. Duplicate detection, improved road-risk prediction,
-ML geographic clustering, IoT ingestion and production HTTPS remain future work.
+short-lived auth state. Rule-based incident grouping preserves corroborating reports
+under one work item. Improved road-risk prediction, semantic matching, ML geographic
+clustering, IoT ingestion and production HTTPS remain future work.
 The diagram predates these additions; the linked database/workflow guides describe
 the implementation. External integrations provide Google sign-in, map tiles and email.
 
@@ -199,4 +293,4 @@ verification, password recovery, and account/session management. See the
 [web setup guide](apps/web/README.md) for Google sign-in. Local verification and
 reset messages are captured at http://localhost:8025; they are not delivered to
 real inboxes. Phone verification, improved prediction/clustering, IoT readings,
-duplicate detection and production deployment remain future work.
+semantic matching and production deployment remain future work.

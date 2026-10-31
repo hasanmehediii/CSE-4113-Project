@@ -1,10 +1,10 @@
 -- DubsiBhai PostgreSQL 17 schema. Generated from SQLAlchemy metadata.
 -- Fresh EMPTY database only: psql -v ON_ERROR_STOP=1 -f db/schema.sql
--- Existing databases: use `uv run alembic upgrade head` instead.
+-- Existing databases: use uv run alembic upgrade head instead.
+-- Run app.workers.bootstrap after import to seed roads and an optional mayor.
 -- All *_at columns are UTC Unix seconds, except password_history.retired_at (microseconds).
 -- UUID-shaped IDs remain varchar(36) for compatibility with existing auth migrations.
 -- No plaintext passwords, NID numbers, image bytes, or point balance caches.
--- CLUSTER preference is recorded below; physical clustering is explicit maintenance.
 BEGIN;
 CREATE TABLE areas (
 	id VARCHAR(36) NOT NULL,
@@ -14,7 +14,6 @@ CREATE TABLE areas (
 	UNIQUE (name)
 );
 
-
 CREATE TABLE complaint_categories (
 	code VARCHAR(40) NOT NULL,
 	label VARCHAR(100) NOT NULL,
@@ -22,7 +21,6 @@ CREATE TABLE complaint_categories (
 	PRIMARY KEY (code),
 	CONSTRAINT ck_category_priority CHECK (base_priority BETWEEN 0 AND 100)
 );
-
 
 CREATE TABLE outbox_events (
 	id VARCHAR(36) NOT NULL,
@@ -33,6 +31,7 @@ CREATE TABLE outbox_events (
 	delivered_at BIGINT,
 	PRIMARY KEY (id)
 );
+
 CREATE INDEX ix_outbox_pending ON outbox_events (delivered_at, created_at);
 
 CREATE TABLE users (
@@ -54,7 +53,6 @@ CREATE TABLE users (
 	UNIQUE (phone)
 );
 
-
 CREATE TABLE auth_action_tokens (
 	token_hash VARCHAR(64) NOT NULL,
 	user_id VARCHAR(36) NOT NULL,
@@ -63,7 +61,9 @@ CREATE TABLE auth_action_tokens (
 	PRIMARY KEY (token_hash),
 	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
 CREATE INDEX ix_auth_action_tokens_expires_at ON auth_action_tokens (expires_at);
+
 CREATE INDEX ix_auth_action_tokens_user_id ON auth_action_tokens (user_id);
 
 CREATE TABLE auth_identities (
@@ -75,6 +75,7 @@ CREATE TABLE auth_identities (
 	UNIQUE (provider, subject),
 	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
 CREATE INDEX ix_auth_identities_user_id ON auth_identities (user_id);
 
 CREATE TABLE auth_sessions (
@@ -89,7 +90,9 @@ CREATE TABLE auth_sessions (
 	UNIQUE (token_hash),
 	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
 CREATE INDEX ix_auth_sessions_expires_at ON auth_sessions (expires_at);
+
 CREATE INDEX ix_auth_sessions_user_id ON auth_sessions (user_id);
 
 CREATE TABLE password_history (
@@ -100,6 +103,7 @@ CREATE TABLE password_history (
 	PRIMARY KEY (id),
 	FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
 );
+
 CREATE INDEX ix_password_history_user_id ON password_history (user_id);
 
 CREATE TABLE roads (
@@ -113,6 +117,7 @@ CREATE TABLE roads (
 	CONSTRAINT ck_road_coordinates CHECK (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180),
 	FOREIGN KEY(area_id) REFERENCES areas (id)
 );
+
 CREATE INDEX ix_roads_area_id ON roads (area_id);
 
 CREATE TABLE worker_applications (
@@ -131,6 +136,7 @@ CREATE TABLE worker_applications (
 	UNIQUE (nid_digest),
 	FOREIGN KEY(reviewed_by) REFERENCES users (id)
 );
+
 CREATE INDEX ix_worker_review_queue ON worker_applications (status, submitted_at);
 
 CREATE TABLE worker_locations (
@@ -144,10 +150,10 @@ CREATE TABLE worker_locations (
 	FOREIGN KEY(user_id) REFERENCES users (id)
 );
 
-
 CREATE TABLE complaints (
 	id VARCHAR(36) NOT NULL,
 	author_id VARCHAR(36) NOT NULL,
+	incident_id VARCHAR(36),
 	road_id VARCHAR(36),
 	category_code VARCHAR(40) NOT NULL,
 	kind VARCHAR(20) NOT NULL,
@@ -165,14 +171,24 @@ CREATE TABLE complaints (
 	CONSTRAINT ck_road_condition CHECK (condition IN ('bad','good','unknown')),
 	CONSTRAINT ck_complaint_status CHECK (status IN ('open','assigned','awaiting_confirmation','resolved','disputed','false')),
 	CONSTRAINT ck_complaint_coordinates CHECK (latitude BETWEEN -90 AND 90 AND longitude BETWEEN -180 AND 180),
+	CONSTRAINT ck_complaint_incident CHECK (incident_id IS NULL OR (kind = 'complaint' AND incident_id <> id)),
 	FOREIGN KEY(author_id) REFERENCES users (id),
+	FOREIGN KEY(incident_id) REFERENCES complaints (id),
 	FOREIGN KEY(road_id) REFERENCES roads (id),
 	FOREIGN KEY(category_code) REFERENCES complaint_categories (code)
 );
+
 CREATE INDEX ix_complaints_author_time ON complaints (author_id, created_at);
+
 CREATE INDEX ix_complaints_created ON complaints (created_at);
+
+CREATE INDEX ix_complaints_incident ON complaints (incident_id);
+
 CREATE INDEX ix_complaints_queue ON complaints (status, category_code, created_at);
+
 CREATE INDEX ix_complaints_road_time ON complaints (road_id, created_at);
+
+CREATE INDEX ix_incident_candidates ON complaints (category_code, updated_at) WHERE kind = 'complaint' AND incident_id IS NULL;
 
 CREATE TABLE assignments (
 	id VARCHAR(36) NOT NULL,
@@ -190,8 +206,11 @@ CREATE TABLE assignments (
 	FOREIGN KEY(worker_id) REFERENCES users (id),
 	FOREIGN KEY(assigned_by) REFERENCES users (id)
 );
+
 CREATE INDEX ix_assignments_complaint_id ON assignments (complaint_id);
+
 CREATE INDEX ix_assignments_worker_status ON assignments (worker_id, status, created_at);
+
 CREATE UNIQUE INDEX uq_assignment_active ON assignments (complaint_id) WHERE status = 'active';
 
 CREATE TABLE complaint_false_reports (
@@ -205,7 +224,6 @@ CREATE TABLE complaint_false_reports (
 	FOREIGN KEY(worker_id) REFERENCES users (id)
 );
 
-
 CREATE TABLE complaint_images (
 	id VARCHAR(36) NOT NULL,
 	complaint_id VARCHAR(36) NOT NULL,
@@ -213,6 +231,7 @@ CREATE TABLE complaint_images (
 	PRIMARY KEY (id),
 	FOREIGN KEY(complaint_id) REFERENCES complaints (id) ON DELETE CASCADE
 );
+
 CREATE INDEX ix_complaint_images_complaint_id ON complaint_images (complaint_id);
 
 CREATE TABLE complaint_predictions (
@@ -230,6 +249,7 @@ CREATE TABLE complaint_predictions (
 	FOREIGN KEY(complaint_id) REFERENCES complaints (id),
 	FOREIGN KEY(predicted_category) REFERENCES complaint_categories (code)
 );
+
 CREATE INDEX ix_prediction_retry ON complaint_predictions (status, next_attempt_at);
 
 CREATE TABLE complaint_votes (
@@ -242,7 +262,6 @@ CREATE TABLE complaint_votes (
 	FOREIGN KEY(complaint_id) REFERENCES complaints (id) ON DELETE CASCADE,
 	FOREIGN KEY(user_id) REFERENCES users (id)
 );
-
 
 CREATE TABLE resolutions (
 	id VARCHAR(36) NOT NULL,
@@ -261,7 +280,9 @@ CREATE TABLE resolutions (
 	FOREIGN KEY(complaint_id) REFERENCES complaints (id),
 	FOREIGN KEY(worker_id) REFERENCES users (id)
 );
+
 CREATE INDEX ix_resolutions_complaint ON resolutions (complaint_id, created_at);
+
 CREATE INDEX ix_resolutions_worker_id ON resolutions (worker_id);
 
 CREATE TABLE moderation_cases (
@@ -285,7 +306,9 @@ CREATE TABLE moderation_cases (
 	UNIQUE (source_key),
 	FOREIGN KEY(reviewed_by) REFERENCES users (id)
 );
+
 CREATE INDEX ix_moderation_cases_subject_user_id ON moderation_cases (subject_user_id);
+
 CREATE INDEX ix_moderation_queue ON moderation_cases (status, created_at);
 
 CREATE TABLE point_entries (
@@ -303,6 +326,7 @@ CREATE TABLE point_entries (
 	FOREIGN KEY(complaint_id) REFERENCES complaints (id),
 	FOREIGN KEY(resolution_id) REFERENCES resolutions (id)
 );
+
 CREATE INDEX ix_point_entries_account ON point_entries (user_id, created_at);
 
 CREATE TABLE resolution_votes (
@@ -318,7 +342,6 @@ CREATE TABLE resolution_votes (
 	FOREIGN KEY(resolution_id) REFERENCES resolutions (id),
 	FOREIGN KEY(user_id) REFERENCES users (id)
 );
-
 
 CREATE EXTENSION IF NOT EXISTS cube;
 CREATE EXTENSION IF NOT EXISTS earthdistance;
@@ -342,5 +365,5 @@ INSERT INTO complaint_categories (code, label, base_priority) VALUES
 ('road_damage', 'Road damage', 65),
 ('other', 'Other civic issue', 40);
 CREATE TABLE alembic_version (version_num varchar(32) PRIMARY KEY);
-INSERT INTO alembic_version VALUES ('20261015_03');
+INSERT INTO alembic_version VALUES ('20261031_05');
 COMMIT;

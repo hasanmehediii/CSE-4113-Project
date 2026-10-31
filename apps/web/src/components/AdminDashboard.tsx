@@ -33,6 +33,8 @@ interface Case {
     }[];
 }
 interface Analytics {
+    total_reports?: number;
+    incident_count?: number;
     by_status: Record<string, number>;
     by_category: Record<string, number>;
     by_area: {
@@ -67,7 +69,7 @@ function Overview() {
     const { tr, number } = useCivicLocale();
     const stats = useResource<Analytics>("/admin/analytics", 20000);
     const data = stats.data;
-    return <><Feedback loading={stats.loading} error={stats.error} retry={() => void stats.reload()}/>{data && <><div className="civic-stats"><div><strong>{number(Object.values(data.by_status).reduce((a, b) => a + b, 0))}</strong><span>{tr("Total reports")}</span></div><div><strong>{number(data.by_status.resolved || 0)}</strong><span>{tr("Confirmed resolutions")}</span></div><div><strong>{number(data.users)}</strong><span>{tr("Accounts")}</span></div><div><strong>{number(data.workers)}</strong><span>{tr("Approved workers")}</span></div></div><div className="civic-detail-grid"><Bars title={tr("Reports by status")} values={data.by_status}/><Bars title={tr("Reports by category")} values={data.by_category}/></div><div className="civic-detail-grid"><section className="civic-card"><h2>{tr("Where help is needed")}</h2>{data.by_area.map(a => <div className="civic-ledger-row" key={a.area}><strong>{a.area}</strong><span>{number(a.total)}{tr(" reports \u00B7 ")}{number(a.resolved)}{tr(" resolved")}</span></div>)}<p>{number(data.unmapped_reports)}{tr(" reports are not yet linked to a catalogued road.")}</p></section><section className="civic-card"><h2>{tr("Community point leaders")}</h2>{data.leaders.map((p, i) => <div className="civic-ledger-row" key={p.id}><span>{number(i + 1)}. {p.name}</span><strong>{number(p.points)}{tr(" pts")}</strong></div>)}{!data.leaders.length && <p>{tr("Contributions will appear here.")}</p>}</section></div></>}</>;
+    return <><Feedback loading={stats.loading} error={stats.error} retry={() => void stats.reload()}/>{data && <><div className="civic-stats"><div><strong>{number(data.total_reports ?? Object.values(data.by_status).reduce((a, b) => a + b, 0))}</strong><span>{tr("Total reports")}</span></div><div><strong>{number(data.by_status.resolved || 0)}</strong><span>{tr("Confirmed resolutions")}</span></div><div><strong>{number(data.users)}</strong><span>{tr("Accounts")}</span></div><div><strong>{number(data.workers)}</strong><span>{tr("Approved workers")}</span></div></div><p>{tr("Charts count each incident and road update once. Total reports include every submission.")}</p><div className="civic-detail-grid"><Bars title={tr("Reports by status")} values={data.by_status}/><Bars title={tr("Reports by category")} values={data.by_category}/></div><div className="civic-detail-grid"><section className="civic-card"><h2>{tr("Where help is needed")}</h2>{data.by_area.map(a => <div className="civic-ledger-row" key={a.area}><strong>{a.area}</strong><span>{number(a.total)}{tr(" reports \u00B7 ")}{number(a.resolved)}{tr(" resolved")}</span></div>)}<p>{number(data.unmapped_reports)}{tr(" reports are not yet linked to a catalogued road.")}</p></section><section className="civic-card"><h2>{tr("Community point leaders")}</h2>{data.leaders.map((p, i) => <div className="civic-ledger-row" key={p.id}><span>{number(i + 1)}. {p.name}</span><strong>{number(p.points)}{tr(" pts")}</strong></div>)}{!data.leaders.length && <p>{tr("Contributions will appear here.")}</p>}</section></div></>}</>;
 }
 function Reports() {
     const { tr } = useCivicLocale();

@@ -113,9 +113,21 @@ class Complaint(Base):
         Index("ix_complaints_road_time", "road_id", "created_at"),
         Index("ix_complaints_author_time", "author_id", "created_at"),
         Index("ix_complaints_created", "created_at"),
+        Index("ix_complaints_incident", "incident_id"),
+        Index(
+            "ix_incident_candidates", "category_code", "updated_at",
+            postgresql_where=text("kind = 'complaint' AND incident_id IS NULL"),
+            sqlite_where=text("kind = 'complaint' AND incident_id IS NULL"),
+        ),
+        CheckConstraint(
+            "incident_id IS NULL OR (kind = 'complaint' AND incident_id <> id)",
+            name="ck_complaint_incident",
+        ),
     )
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     author_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
+    # NULL identifies the original report/incident. Additional reports reference it.
+    incident_id: Mapped[str | None] = mapped_column(ForeignKey("complaints.id"))
     road_id: Mapped[str | None] = mapped_column(ForeignKey("roads.id"))
     category_code: Mapped[str] = mapped_column(ForeignKey("complaint_categories.code"))
     kind: Mapped[str] = mapped_column(String(20), default="complaint")

@@ -25,6 +25,7 @@ def complaints(
     limit: int = Query(default=30, ge=1, le=30),
     offset: int = Query(default=0, ge=0, le=10000),
     ranked: bool = False,
+    all_reports: bool = False,
 ):
     if (latitude is None) != (longitude is None):
         raise HTTPException(422, "Supply both latitude and longitude")
@@ -39,6 +40,7 @@ def complaints(
         limit=limit,
         offset=offset,
         ranked=ranked,
+        all_reports=all_reports,
     )
     return [service.public_complaint(db, row) for row in rows]
 
@@ -47,6 +49,27 @@ def complaints(
 def create(data: ComplaintInput, user: Contributor, request: Request, db: Database):
     enforce(request, "report-create", user.id, 10, 3600)
     return service.public_complaint(db, service.create_complaint(db, user, data), detail=True)
+
+
+@router.get("/similar")
+def similar(
+    db: Database,
+    latitude: float = Query(ge=23.6, le=24, allow_inf_nan=False),
+    longitude: float = Query(ge=90.2, le=90.6, allow_inf_nan=False),
+    category_code: str = Query(min_length=1, max_length=40),
+    road_id: str | None = Query(default=None, max_length=36),
+):
+    return [service.public_complaint(db, row) for row in service.incident_candidates(
+        db, latitude, longitude, category_code, road_id
+    )]
+
+
+@router.get("/{complaint_id}/reports")
+def reports(
+    complaint_id: str, db: Database,
+    limit: int = Query(default=10, ge=1, le=30), offset: int = Query(default=0, ge=0),
+):
+    return service.incident_reports(db, complaint_id, limit, offset)
 
 
 @router.get("/{complaint_id}")

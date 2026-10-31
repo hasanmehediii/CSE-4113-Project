@@ -29,7 +29,12 @@ before(async () => {
   ({ createRoot } = await import("react-dom/client"));
   ({ useResource } = await import("../src/lib/civic"));
 });
-afterEach(async () => { if (root) await act(async () => root!.unmount()); root = undefined; localStorage.clear(); });
+afterEach(async () => {
+  if (root) await act(async () => root!.unmount());
+  root = undefined; localStorage.clear();
+  document.documentElement.lang = "en";
+  document.documentElement.dataset.theme = "light";
+});
 after(() => { globalThis.fetch = originalFetch; dom.window.close(); });
 
 function Probe({ path }: { path: string }) {
@@ -171,4 +176,99 @@ test("the worker workspace translates and paginates active work without requesti
   await act(async () => { unavailable.click(); });
   assert.equal(stopped, true);
   assert.ok(content()?.includes("স্বয়ংক্রিয়ভাবে এখন আপনাকে নতুন কাজ দেওয়া হবে না।"));
+});
+
+test("incident choices require a match when ambiguous and preserve the separate option across languages", async t => {
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => new Response(JSON.stringify(
+    String(url).includes("/auth/me") ? { id: "citizen", role: "citizen", email_verified: true }
+      : [{ ...report, id: "first-incident", title: "First blockage", incident_reporter_count: 3 },
+         { ...report, id: "second-incident", title: "Another nearby blockage", incident_reporter_count: 2 }]
+  )));
+  const { Providers } = await import("../src/components/Providers");
+  const { default: IncidentChoice } = await import("../src/components/IncidentChoice");
+  const { changePreference } = await import("../src/lib/preferences");
+  await renderNode(<Providers><form><IncidentChoice latitude={23.75} longitude={90.37} category="road_flooding" roadId=""/></form></Providers>);
+  const select = document.querySelector<HTMLSelectElement>('select[name="incident_id"]')!;
+  assert.equal(select.required, true);
+  assert.equal(select.checkValidity(), false);
+  select.value = "second-incident";
+  assert.equal(select.checkValidity(), true);
+  const checkbox = document.querySelector<HTMLInputElement>('input[name="separate_incident"]')!;
+  await act(async () => { checkbox.click(); });
+  assert.equal(select.disabled, true);
+  await act(async () => { changePreference("language", "bn"); });
+  assert.equal(checkbox.checked, true);
+  assert.ok(content()?.includes("আলাদা ঘটনা হিসেবে রাখুন"));
+  const data = new dom.window.FormData(document.querySelector("form")!);
+  assert.equal(data.get("separate_incident"), "on");
+  assert.equal(data.get("incident_id"), null);
+});
+
+test("the quick-road complaint sends the chosen shared incident with its evidence", async t => {
+  let submitted: Record<string, unknown> | null = null;
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL, options?: RequestInit) => {
+    const path = new URL(String(url)).pathname;
+    const body = path.endsWith("/auth/me") ? { id: "citizen", role: "citizen", email_verified: true }
+      : path.endsWith("/csrf") ? { csrf_token: "token" }
+      : path.endsWith("/similar") ? [{ ...report, id: "shared-incident" }]
+      : options?.method === "POST" ? (submitted = JSON.parse(String(options.body)), { id: "new-evidence" }) : [];
+    return new Response(JSON.stringify(body));
+  });
+  const { Providers } = await import("../src/components/Providers");
+  const { default: RoadReportForm } = await import("../src/components/map/RoadReportForm");
+  const road = { id: "road", name: "Selected corridor", area_id: "area", latitude: 23.75, longitude: 90.37,
+    condition: "bad", open_complaints: 1, sensitivity: "insufficient_data", historical_reports_90d: 1, last_report_at: 1 };
+  await renderNode(<Providers><RoadReportForm road={road} onSaved={() => {}} onClose={() => {}}/></Providers>);
+  const complaint = Array.from(document.querySelectorAll("button")).find(button => button.textContent === "File a complaint")!;
+  await act(async () => { complaint.click(); });
+  const select = document.querySelector<HTMLSelectElement>('select[name="incident_id"]')!;
+  select.value = "shared-incident";
+  const textarea = document.querySelector("textarea")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, "Another witness confirms the blockage.");
+    textarea.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+  });
+  await act(async () => { document.querySelector("form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
+  assert.equal((submitted as Record<string, unknown> | null)?.incident_id, "shared-incident");
+  assert.equal((submitted as Record<string, unknown> | null)?.description, "Another witness confirms the blockage.");
+});
+
+test("incident evidence remains individually visible and paginated", async t => {
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => {
+    const request = new URL(String(url));
+    const offset = Number(request.searchParams.get("offset") || 0);
+    const body = request.pathname.endsWith("/auth/me") ? { id: "citizen", role: "citizen", email_verified: true }
+      : Array.from({ length: offset ? 2 : 10 }, (_, index) => ({
+        id: `evidence-${offset + index}`, title: `Witness report ${offset + index}`, description: `Original evidence ${offset + index}`,
+        address: "Original location", author_name: `Witness ${offset + index}`, created_at: 1,
+        images: offset ? ["https://example.com/preserved.jpg"] : [],
+      }));
+    return new Response(JSON.stringify(body));
+  });
+  const { Providers } = await import("../src/components/Providers");
+  const { default: IncidentReports } = await import("../src/components/IncidentReports");
+  await renderNode(<Providers><IncidentReports incidentId="shared-incident" total={12} reporters={10}/></Providers>);
+  assert.ok(content()?.includes("12 reports from 10 people"));
+  const next = Array.from(document.querySelectorAll("button")).find(button => button.textContent === "Next")!;
+  await act(async () => { next.click(); });
+  assert.ok(content()?.includes("Original evidence 10"));
+  assert.ok(!content()?.includes("Original evidence 0"));
+  assert.equal(document.querySelector("img")?.getAttribute("src"), "https://example.com/preserved.jpg");
+});
+
+test("retrying incident suggestions never submits the report form", async t => {
+  let reads = 0;
+  let submissions = 0;
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => {
+    if (String(url).includes("/auth/me")) return new Response(JSON.stringify({ id: "citizen", role: "citizen", email_verified: true }));
+    reads++;
+    return reads === 1 ? new Response(JSON.stringify({ detail: "Temporarily unavailable" }), { status: 503 }) : new Response("[]");
+  });
+  const { Providers } = await import("../src/components/Providers");
+  const { default: IncidentChoice } = await import("../src/components/IncidentChoice");
+  await renderNode(<Providers><form onSubmit={event => { event.preventDefault(); submissions++; }}><IncidentChoice latitude={23.75} longitude={90.37} category="road_flooding" roadId=""/></form></Providers>);
+  const retry = Array.from(document.querySelectorAll("button")).find(button => button.textContent === "Retry")!;
+  await act(async () => { retry.click(); });
+  assert.equal(reads, 2);
+  assert.equal(submissions, 0);
 });

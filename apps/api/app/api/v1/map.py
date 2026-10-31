@@ -47,11 +47,16 @@ def roads(
         query = query.where(Road.area_id == area_id)
     catalog = db.scalars(query.order_by(Road.name).offset(offset).limit(limit)).all()
     ids = [r.id for r in catalog]
+    last_reports = dict(db.execute(
+        select(Complaint.road_id, func.max(Complaint.created_at))
+        .where(Complaint.road_id.in_(ids), Complaint.status != "false")
+        .group_by(Complaint.road_id)
+    ).all()) if ids else {}
     # Restrict observations to selected roads. Reports never expose account contact/NID data.
     reports = (
         db.scalars(
             select(Complaint)
-            .where(Complaint.road_id.in_(ids), Complaint.status != "false")
+            .where(Complaint.road_id.in_(ids), Complaint.status != "false", Complaint.incident_id.is_(None))
             .order_by(Complaint.created_at.desc(), Complaint.id)
         ).all()
         if ids
@@ -94,7 +99,7 @@ def roads(
                 "longitude": longitude,
                 "condition": condition,
                 "open_complaints": len(active),
-                "last_report_at": rows[0].created_at if rows else None,
+                "last_report_at": last_reports.get(road.id),
                 "historical_reports_90d": historical,
                 "sensitivity": "high" if historical >= 3 else "insufficient_data",
                 "sensitivity_source": "historical_report_count",
@@ -147,7 +152,7 @@ def hotspots(db: Database):
             func.avg(Complaint.latitude),
             func.avg(Complaint.longitude),
         )
-        .where(Complaint.kind == "complaint", Complaint.status.in_(OPEN))
+        .where(Complaint.kind == "complaint", Complaint.status.in_(OPEN), Complaint.incident_id.is_(None))
         .group_by(lat_cell, lon_cell)
         .order_by(func.count().desc())
         .limit(100)
