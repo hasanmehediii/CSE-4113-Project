@@ -1,5 +1,5 @@
 {
-  "model_version": "road-risk-bilingual-v2-5a9298fc817c",
+  "model_version": "road-risk-bilingual-v2-af9b3f52f1d5",
   "data_source": "synthetic",
   "dataset": "packages/new-data",
   "dataset_hashes": {
@@ -7,8 +7,8 @@
     "dhaka_directed_road_segments_bilingual.csv": "05af5fe54c0a95ce558f08afd586cd3afd8350b417b4a8d0110f9db2bbe3f9d5",
     "dhaka_major_road_nodes_bilingual.csv": "33702386f48328b6e8af8c8f0011faaa33ae3d1d24836cf647e677bfb24a34d4"
   },
-  "mapping_sha256": "17ec83173c54a90fc2c839bec1962eb0897efe34e5f01e43285ddbd3b0cf35f2",
-  "training_code_sha256": "ac46901c860a6afdc51375b44f67cfde35720481a912384545949ef7deab9db6",
+  "mapping_sha256": "ae7d3936fbb0fa4a04a521c7f885fa544661a1b5aebccdac85b96d979e252eb0",
+  "training_code_sha256": "e13ddbe85bb83320e5892cca57650bef7d2f7a2b07ce89f0a8a523b1ee0c3704",
   "rows": 20790,
   "segments": 210,
   "map_roads": 14,
@@ -3061,6 +3061,6 @@
   "aggregation": "maximum_segment_probability",
   "mapping_basis": "Conceptual endpoint/corridor matches to packages/new-data. Both simulated directions are included. These are not verified navigation links.",
   "scikit_learn_version": "1.9.1",
-  "trained_at": "2026-10-20T21:14:09.453841+06:00",
+  "trained_at": "2026-10-30T15:43:01.166996+06:00",
   "limitations": "Synthetic simulator data with only 99 shared scenarios. Sparse hour and rain coverage. No real-world accuracy established. Uncalibrated probabilities; a corridor displays its highest segment probability, not a probability of the entire corridor being closed."
 }
