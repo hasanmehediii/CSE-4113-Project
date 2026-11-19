@@ -20,10 +20,10 @@ remains responsible for understanding and verifying the changes.
 
 | Member | Main responsibility | Workload | Main deliverable |
 | --- | --- | --- | --- |
-| **Moin** | Frontend and user experience | Medium | Reliable citizen, worker and mayor screens on desktop and mobile |
-| **Biplob** | Backend, database and local service integration | Medium | Verified API rules, persistent data and working service setup |
-| **Nafisha** | ML service, map predictions and integration testing | Slightly challenging | Tested prediction flow, clear model limitations and one automated browser workflow |
-| **Mehedi** | Manual testing, bug tracking and small fixes | Light implementation | Reproducible bug reports, simple fixes and retest results |
+| **Moin** | Frontend and user experience | Moderate | Reliable citizen, worker and mayor screens on desktop and mobile |
+| **Biplob** | Backend, database and local service integration | Moderate | Verified API rules, persistent data and working service setup |
+| **Nafisha** | ML service, map predictions and integration testing | Moderate | Tested prediction flow, clear model limitations and one automated browser workflow |
+| **Mehedi** | Manual testing, bug tracking and small fixes | QA | Reproducible bug reports, simple fixes and retest results |
 
 Ownership means coordinating changes in an area, explaining its behavior and
 reviewing fixes that touch it. It does not mean implementing every future feature
