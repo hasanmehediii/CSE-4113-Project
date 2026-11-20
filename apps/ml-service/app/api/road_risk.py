@@ -1,7 +1,9 @@
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+
+from app.core.diagnostics import require_model
 
 router = APIRouter(prefix="/road-risk", tags=["Road risk"])
 
@@ -14,10 +16,7 @@ class Scenario(BaseModel):
 
 
 def loaded(request):
-    model = getattr(request.app.state, "road_risk", None)
-    if model is None:
-        raise HTTPException(503, "Road-risk model unavailable. Run python -m app.train_road_risk and restart.")
-    return model
+    return require_model(request, "road_risk")
 
 
 @router.post("/predict")

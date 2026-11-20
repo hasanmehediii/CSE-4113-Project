@@ -1,4 +1,6 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
+
+from app.core.diagnostics import require_model
 
 router = APIRouter(tags=["Health"])
 
@@ -11,7 +13,12 @@ def health() -> dict[str, str]:
 
 @router.get("/ready")
 def ready(request: Request) -> dict[str, str]:
-    model = getattr(request.app.state, "classifier", None)
-    if model is None:
-        raise HTTPException(503, "Classifier unavailable. Train a model and restart the service.")
-    return {"status": "ready", "model_version": model.metadata["model_version"]}
+    """Ready means the classifier is loaded; road-risk status is reported, not required."""
+    model = require_model(request, "classifier")
+    road_risk = getattr(request.app.state, "road_risk", None)
+    return {
+        "status": "ready",
+        "model_version": model.metadata["model_version"],
+        "road_risk_model": "loaded" if road_risk is not None else (
+            getattr(request.app.state, "road_risk_error", None) or "unavailable"),
+    }
