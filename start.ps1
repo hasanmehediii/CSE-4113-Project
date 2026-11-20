@@ -47,6 +47,10 @@ try {
     if (-not $Stop -and -not $Logs -and -not $Status -and $clientIds['GOOGLE_CLIENT_ID'] -and $clientIds['NEXT_PUBLIC_GOOGLE_CLIENT_ID'] -and $clientIds['GOOGLE_CLIENT_ID'] -ne $clientIds['NEXT_PUBLIC_GOOGLE_CLIENT_ID']) {
         throw 'The Google client IDs in .env and apps/web/.env.local differ. Set them to the same OAuth web client ID.'
     }
+    $postgresHostPort = 5432
+    foreach ($configLine in Get-Content -LiteralPath (Join-Path $PSScriptRoot '.env')) {
+        if ($configLine -match '^\s*POSTGRES_HOST_PORT\s*=\s*(\d+)\s*$') { $postgresHostPort = [int]$Matches[1] }
+    }
     $composeArguments = @(
         'compose', '--project-directory', (Join-Path $PSScriptRoot 'infra'),
         '--env-file', (Join-Path $PSScriptRoot '.env'),
@@ -83,6 +87,15 @@ try {
             }
         }
     }
+    if (Get-Command Get-NetTCPConnection -ErrorAction SilentlyContinue) {
+        $dbListener = Get-NetTCPConnection -State Listen -LocalPort $postgresHostPort -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($dbListener) {
+            $dbProcess = Get-Process -Id $dbListener.OwningProcess -ErrorAction SilentlyContinue
+            if ($dbProcess -and $dbProcess.ProcessName -notmatch 'docker|wsl|vpnkit') {
+                throw "Port $postgresHostPort is used by $($dbProcess.ProcessName) (often a locally installed PostgreSQL service). Either stop it (admin PowerShell: Stop-Service postgresql-x64-*), or set POSTGRES_HOST_PORT=5433 in .env and change the port in DATABASE_URL to match."
+            }
+        }
+    }
     $upArguments = @('up', '--detach', '--wait', '--wait-timeout', [string]$StartupTimeoutSeconds)
     if ($DataOnly) {
         Write-Host 'Starting PostgreSQL, MongoDB, Redis and Mailpit in Docker.'
@@ -94,14 +107,14 @@ try {
     }
     Invoke-Docker ($composeArguments + $upArguments)
     if ($DataOnly) {
-        Write-Host 'Data services ready. PostgreSQL: 5432 | MongoDB: 27017 | Redis: 6379'
+        Write-Host "Data services ready. PostgreSQL: $postgresHostPort | MongoDB: 27017 | Redis: 6379"
         Write-Host 'Development email inbox: http://localhost:8025'
         return
     }
     Write-Host 'Frontend: http://localhost:3000'
     Write-Host 'API docs: http://localhost:8000/docs | ML docs: http://localhost:8001/docs'
     Write-Host 'Email inbox: http://localhost:8025 | API proxy: http://localhost:8080'
-    Write-Host 'PostgreSQL: localhost:5432 (database/user dubsibhai, password local-dev-only)'
+    Write-Host "PostgreSQL: localhost:$postgresHostPort (database/user dubsibhai, password local-dev-only)"
     Write-Host 'Redis: localhost:6379 | MongoDB: mongodb://localhost:27017/dubsibhai'
     Write-Host 'Logs: ./start.ps1 -Logs | Stop: ./start.ps1 -Stop'
 } catch {

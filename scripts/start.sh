@@ -72,7 +72,7 @@ case "$action" in
         fi
         run_compose "${args[@]}" "${targets[@]}"
         if [[ $data_only == true ]]; then
-            printf 'Data services ready. PostgreSQL: 5432 | MongoDB: 27017 | Redis: 6379\n'
+            printf 'Data services ready. PostgreSQL: %s | MongoDB: 27017 | Redis: 6379\n' "${POSTGRES_HOST_PORT:-5432}"
         else
             printf 'Frontend: http://localhost:3000\n'
             printf 'API docs: http://localhost:8000/docs | ML docs: http://localhost:8001/docs\n'
