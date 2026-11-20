@@ -11,6 +11,7 @@ let createRoot: typeof import("react-dom/client").createRoot;
 let Providers: typeof import("../src/components/Providers").Providers;
 let Navbar: typeof import("../src/components/Navbar").default;
 let CityMap: typeof import("../src/components/CityMap").default;
+let DhakaWeather: typeof import("../src/components/map/DhakaWeather").default;
 let AdminDashboard: typeof import("../src/components/AdminDashboard").default;
 let LandingHero: typeof import("../src/components/LandingHero").default;
 let AuthForm: typeof import("../src/components/AuthForm").default;
@@ -119,6 +120,7 @@ before(async () => {
   ({ Providers } = await import("../src/components/Providers"));
   ({ default: Navbar } = await import("../src/components/Navbar"));
   ({ default: CityMap } = await import("../src/components/CityMap"));
+  ({ default: DhakaWeather } = await import("../src/components/map/DhakaWeather"));
   ({ default: AdminDashboard } = await import("../src/components/AdminDashboard"));
   ({ default: LandingHero } = await import("../src/components/LandingHero"));
   ({ default: AuthForm } = await import("../src/components/AuthForm"));
@@ -683,6 +685,25 @@ test("predictions use Dhaka time, switch hazard probabilities, and hide stale sc
   });
   await act(async () => { document.querySelector(".road-prediction-panel form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
   assert.equal(new URLSearchParams(predictionQuery).get("forecast_horizon_min"), "120");
+});
+
+test("scenario rainfall is explained as user input, not weather-widget data, in both languages", async () => {
+  mapFixtures = true;
+  await mount(CityMap);
+  await act(async () => { document.querySelectorAll<HTMLButtonElement>(".road-mode-tabs button")[2].click(); });
+  const rain = document.querySelector<HTMLInputElement>('.road-prediction-panel input[type="number"]')!;
+  const help = document.getElementById(rain.getAttribute("aria-describedby")!)!;
+  assert.ok(help.textContent!.includes("not taken from the Dhaka weather widget"));
+  await toggle();
+  assert.ok(help.textContent!.includes("ঢাকার আবহাওয়া উইজেট"));
+});
+
+test("the weather widget says road-risk predictions do not use its reading", async () => {
+  await mount(DhakaWeather);
+  const text = () => document.getElementById("root")!.textContent!;
+  assert.ok(text().includes("Road-risk predictions on the map use the rainfall amount you enter, not this reading."));
+  await toggle();
+  assert.ok(text().includes("আপনার দেওয়া বৃষ্টির পরিমাণ ব্যবহার হয়"));
 });
 
 test("redesigned login translates labels and validation, preserves input and signs in successfully", async () => {

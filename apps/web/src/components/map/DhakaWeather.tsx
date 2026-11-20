@@ -79,6 +79,7 @@ export default function DhakaWeather() {
       </> : <p className="weather-placeholder">{failed ? t("Weather is temporarily unavailable.", "আবহাওয়ার তথ্য আপাতত পাওয়া যাচ্ছে না।") : t("Loading Dhaka weather…", "ঢাকার আবহাওয়া লোড হচ্ছে…")}</p>}
       {failed && <div className="weather-error">{weather && <p>{t("Refresh unavailable. Showing the last update.", "নতুন তথ্য পাওয়া যায়নি। সর্বশেষ তথ্য দেখানো হচ্ছে।")}</p>}<button type="button" onClick={() => { setFailed(false); setAttempt(value => value + 1); }}>{t("Try again", "আবার চেষ্টা করুন")}</button></div>}
     </div>
+    <p className="weather-note">{t("For information only. Road-risk predictions on the map use the rainfall amount you enter, not this reading.", "শুধু তথ্যের জন্য। মানচিত্রের রাস্তার ঝুঁকির পূর্বাভাসে এই তথ্য নয়, আপনার দেওয়া বৃষ্টির পরিমাণ ব্যবহার হয়।")}</p>
     <p className="weather-source">{t("Weather model data by", "আবহাওয়ার মডেল তথ্য")} <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo ↗</a></p>
   </section>;
 }

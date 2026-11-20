@@ -282,6 +282,7 @@ export const civicTranslations: Record<string, string> = {
   "Community reports will appear here as people share updates.": "এলাকাবাসীর দেওয়া অভিযোগ ও রাস্তার খবর এখানে দেখা যাবে।",
   "Roads will appear here when the city road catalog is added.": "শহরের রাস্তার তালিকা যোগ হলে এখানে দেখা যাবে।",
   "Clear filters": "সব তথ্য দেখুন", "Share a local update": "এলাকার খবর জানান",
+  "You choose this amount. It is not taken from the Dhaka weather widget or any live weather feed.": "এই পরিমাণ আপনি নির্ধারণ করেন। এটি ঢাকার আবহাওয়া উইজেট বা কোনো সরাসরি আবহাওয়ার তথ্য থেকে নেওয়া হয় না।",
   "How are conditions determined?": "রাস্তার অবস্থা কীভাবে নির্ধারিত হয়?", "Reset view": "আগের দৃশ্যে ফিরুন",
   "Some street tiles could not load. Reports are still available in the activity panel.": "মানচিত্রের কিছু অংশ আসেনি। পাশের তথ্য তালিকায় অভিযোগগুলো দেখা যাবে।",
   "Passwords do not match.": "পাসওয়ার্ড দুটি মিলছে না।",
