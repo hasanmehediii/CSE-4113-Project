@@ -91,4 +91,6 @@ A multi-output random forest predicts the two probabilities from cyclic hour fea
 
 **Presentation wording:** “Our working prototype combines community observations and an independent road-risk model using open-source maps. The initial model is trained on generated hourly scenarios. It demonstrates the prediction pipeline; real-world forecast accuracy has not yet been established. We can switch the live map to Google Maps through environment settings.”
 
+The Dhaka weather widget is informational only: prediction rainfall is always the scenario amount typed into the map, never the widget's reading. See the [road coverage and prediction explanation audit](ROAD_COVERAGE_AUDIT.md) for mapped/unmapped segment counts and mapping findings.
+
 The displayed probabilities are uncalibrated model outputs. Synthetic holdout scores measure how well the model learns the simulator, not performance on Dhaka roads. Before treating this as a real forecast, collect independently observed road conditions and timestamped weather/traffic features, replace the simulated factors and labels, retrain, calibrate, and validate on a separate real time period. Do not relabel generated rows as real observations.

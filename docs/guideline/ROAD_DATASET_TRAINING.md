@@ -98,6 +98,8 @@ probability** for each hazard in each displayed corridor. This is a score for th
 at-risk mapped segment, not a calibrated probability that the entire corridor is closed
 or a probability union across directions. The conceptual dataset-to-corridor mappings
 still require geospatial validation because the supplied junctions have no coordinates.
+The [road coverage audit](ROAD_COVERAGE_AUDIT.md) lists the current counts and the corridors
+flagged for review; rerun it with `uv run python -m app.audit_road_mapping`.
 The display shapes now use checked-in OpenStreetMap geometry (see [map geometry](LIVE_MAP.md#road-catalog-and-geometry));
 updating those shapes does not make the synthetic dataset geographically observed.
 
