@@ -1,5 +1,5 @@
 "use client";
-import type { FormEvent } from "react";
+import { useRef, type FormEvent } from "react";
 import { useCivicLocale } from "@/hooks/useCivicLocale";
 import type { RoadForecast } from "@/lib/road-map";
 
@@ -13,11 +13,12 @@ interface Props {
 
 export default function RoadPredictionPanel(props: Props) {
   const { tr, number } = useCivicLocale();
+  const form = useRef<HTMLFormElement>(null);
   return <section className="road-prediction-panel">
     <span className="road-demo-badge">{tr("SYNTHETIC MODEL · DEMO")}</span>
     <h3>{tr("Look ahead, plan your route")}</h3>
     <p>{tr("Explore rainwater and traffic risk. These are simulated scenarios, not a verified forecast.")}</p>
-    <form onSubmit={props.onPredict}>
+    <form ref={form} onSubmit={props.onPredict}>
       <label>{tr("Date & time · Asia/Dhaka (UTC+6)")}<input type="datetime-local" required value={props.at} onChange={event => props.onAt(event.target.value)} /></label>
       <label>{tr("Forecast horizon · minutes")}<select value={props.horizon} onChange={event => props.onHorizon(Number(event.target.value))}>
         {[30, 60, 120].map(value => <option key={value} value={value}>{number(value)}</option>)}
@@ -29,7 +30,8 @@ export default function RoadPredictionPanel(props: Props) {
       <button type="button" aria-pressed={props.hazard === "waterlogging"} onClick={() => props.onHazard("waterlogging")}>{tr("Rainwater")}</button>
       <button type="button" aria-pressed={props.hazard === "traffic"} onClick={() => props.onHazard("traffic")}>{tr("Traffic jam")}</button>
     </div>
-    {props.error && <p role="alert" className="road-form-error">{props.error}</p>}
+    {/* Retry resubmits the same inputs through the form, so browser validation still applies. */}
+    {props.error && <p role="alert" className="road-form-error">{props.error} <button type="button" className="road-retry" disabled={props.predicting} onClick={() => form.current?.requestSubmit()}>{tr("Retry")}</button></p>}
     {props.stale && <p role="status">{tr("Inputs changed. Run the prediction again to update the map.")}</p>}
     {props.forecast && !props.stale && <>
       <p className="road-model-version">{tr("Scenario result")} · {props.forecast.at.replace("T", " ")}<br />{props.forecast.model_version}</p>

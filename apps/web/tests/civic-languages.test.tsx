@@ -27,6 +27,7 @@ let emptyAdmin = false;
 let application: null | { status: string; review_note: string } = null;
 let submittedReport: Record<string, unknown> | null = null;
 let predictionQuery = "";
+let predictionFailures = 0;
 let destination = "";
 const originalFetch = globalThis.fetch;
 
@@ -63,6 +64,10 @@ before(async () => {
     const path = url.pathname;
     if (path.endsWith("/map/predictions")) {
       predictionQuery = url.search;
+      if (predictionFailures > 0) {
+        predictionFailures -= 1;
+        return new Response(JSON.stringify({ detail: "Road prediction service is not reachable. Start the ML service, then try again." }), { status: 503 });
+      }
       return new Response(JSON.stringify({ at: url.searchParams.get("at"), rainfall_mm: Number(url.searchParams.get("rainfall_mm")), forecast_horizon_min: Number(url.searchParams.get("forecast_horizon_min") || 60), timezone: "Asia/Dhaka", data_source: "synthetic", model_version: "test-road-risk-v1", roads: [
         { road_id: "bad-road", waterlogging_probability: .8, traffic_probability: .2, risk: "high" },
         { road_id: "good-road", waterlogging_probability: .1, traffic_probability: .7, risk: "high" },
@@ -131,6 +136,7 @@ afterEach(async () => {
   application = null;
   submittedReport = null;
   predictionQuery = "";
+  predictionFailures = 0;
   destination = "";
   userRole = "citizen";
   adminMutation = null;
@@ -683,6 +689,23 @@ test("predictions use Dhaka time, switch hazard probabilities, and hide stale sc
   });
   await act(async () => { document.querySelector(".road-prediction-panel form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
   assert.equal(new URLSearchParams(predictionQuery).get("forecast_horizon_min"), "120");
+});
+
+test("a failed prediction explains the cause and Retry reruns the same scenario", async () => {
+  mapFixtures = true;
+  predictionFailures = 1;
+  await mount(CityMap);
+  await act(async () => { document.querySelectorAll<HTMLButtonElement>(".road-mode-tabs button")[2].click(); });
+  await act(async () => { document.querySelector(".road-prediction-panel form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
+  const alert = document.querySelector(".road-prediction-panel .road-form-error")!;
+  assert.ok(alert.textContent!.includes("not reachable. Start the ML service"));
+  assert.ok([...document.querySelectorAll(".road-risk-value")].every(element => element.textContent === "—"));
+  const failedQuery = predictionQuery;
+  predictionQuery = "";
+  await act(async () => { alert.querySelector<HTMLButtonElement>("button.road-retry")!.click(); });
+  assert.equal(predictionQuery, failedQuery);
+  assert.equal(document.querySelector(".road-prediction-panel .road-form-error"), null);
+  assert.deepEqual([...document.querySelectorAll(".road-risk-value")].map(element => element.textContent), ["80%", "10%"]);
 });
 
 test("redesigned login translates labels and validation, preserves input and signs in successfully", async () => {
