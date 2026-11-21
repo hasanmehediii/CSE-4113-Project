@@ -11,7 +11,7 @@
     "dhaka-bijoy": ["DHK058A", "DHK058B"],
     "dhaka-kazi-nazrul": ["DHK060A", "DHK060B", "DHK061A", "DHK061B", "DHK062A", "DHK062B"],
     "dhaka-pragati": ["DHK013A", "DHK013B", "DHK014A", "DHK014B", "DHK015A", "DHK015B", "DHK016A", "DHK016B", "DHK017A", "DHK017B"],
-    "dhaka-manik-mia": ["DHK055A", "DHK055B", "DHK056A", "DHK056B", "DHK057A", "DHK057B"],
+    "dhaka-manik-mia": ["DHK055A", "DHK055B", "DHK056A", "DHK056B"],
     "dhaka-satmasjid": ["DHK073A", "DHK073B", "DHK074A", "DHK074B", "DHK075A", "DHK075B", "DHK076A", "DHK076B"],
     "dhaka-gulshan": ["DHK021A", "DHK021B"],
     "dhaka-vip": ["DHK090A", "DHK090B", "DHK091A", "DHK091B", "DHK092A", "DHK092B"],

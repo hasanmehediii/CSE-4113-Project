@@ -27,8 +27,8 @@ without a mapping. Endpoint and length findings are printed as review notes.
 | Measure | Count |
 | --- | ---: |
 | Directed segments in the dataset (and in the trained model) | 210 |
-| Segments mapped to a map corridor | 82 (39%) |
-| Segments with no map overlay | 128 |
+| Segments mapped to a map corridor | 80 (38%) |
+| Segments with no map overlay | 130 |
 | Map corridors | 14 |
 | Corridors with at least one mapped segment | 14 |
 | Structural mapping errors | 0 |
@@ -36,16 +36,17 @@ without a mapping. Endpoint and length findings are printed as review notes.
 Every mapped segment exists, is used by exactly one corridor and is mapped in both
 simulated directions (`…A` and `…B`).
 
-The 128 unmapped segments fall into two groups:
+The 130 unmapped segments fall into two groups:
 
 - **18 continuations outside the drawn corridors** — correctly unmapped. Airport Road
   `DHK001`–`DHK004` (Abdullahpur → Airport, north of the drawn Airport–Kakoli corridor),
   Begum Rokeya Sarani `DHK028`–`DHK030` (Mirpur 12 → Mirpur 10, before the drawn
   Mirpur 10 start) and Pragati Sarani `DHK018`–`DHK019` (Rampura → Malibagh, past the
   drawn Rampura end).
-- **110 segments on 50 dataset roads with no map corridor** — for example Green Road
-  (6), Panthapath (6) and Mirpur Main Road (4). The model is trained on them, but the
-  map has no geometry to display them. Adding them needs new OpenStreetMap corridors
+- **112 segments on 51 dataset roads with no map corridor** — for example Green Road
+  (6), Panthapath (6) and Mirpur Main Road (4), plus the Farmgate Arterial Link removed
+  from Manik Mia Avenue. The model is trained on them, but the map has no geometry to
+  display them. Adding them needs new OpenStreetMap corridors
   (see [LIVE_MAP.md](LIVE_MAP.md#road-catalog-and-geometry)) and a retrained model.
 
 ## Per-corridor check
@@ -65,7 +66,7 @@ Roads curve, so a ratio of about 1.3–2.0 is normal; above 2.2 is flagged for r
 | Bijoy Sarani | 2 | Bijoy Sarani → Khejur Bagan | 1.9 | 0.58 | **Review** |
 | Kazi Nazrul Islam Avenue | 6 | Farmgate → Shahbag | 4.7 | 2.42 | OK |
 | Pragati Sarani | 10 | Kuril Bishwa Road → Rampura | 9.2 | 6.74 | OK |
-| Manik Mia Avenue | 6 | Asad Gate → Farmgate | 3.7 | 0.98 | **Review** |
+| Manik Mia Avenue | 4 | Asad Gate → Khamarbari | 2.9 | 0.98 | **Review** (length only) |
 | Satmasjid Road | 8 | Dhanmondi 27 → Mohammadpur Bus Stand | 6.2 | 2.54 | **Review** |
 | Gulshan Avenue | 2 | Gulshan 2 → Gulshan 1 | 2.4 | 1.64 | OK |
 | VIP Road · Kakrail–Motijheel | 6 | Kakrail → Motijheel | 4.0 | 1.67 | **Review** |
@@ -77,10 +78,12 @@ The supplied junctions have no coordinates, so these are findings from names and
 drawn geometry, not a surveyed validation. Each affects only that corridor's displayed
 probability, which is the **highest** probability among its mapped segments.
 
-1. **Manik Mia Avenue — likely error.** The corridor ends at Khamar Bari junction, but
-   the mapping continues one segment further: `DHK057A/B` "Farmgate Arterial Link",
-   Khamarbari → Farmgate (0.8 km). That road is not part of the drawn corridor.
-   Suggested correction: remove `DHK057A` and `DHK057B` from `dhaka-manik-mia`.
+1. **Manik Mia Avenue — corrected (issue #7).** The mapping used to continue one segment
+   past the corridor's Khamar Bari end: `DHK057A/B` "Farmgate Arterial Link", Khamarbari →
+   Farmgate (0.8 km). Both were removed from `dhaka-manik-mia` and the model was retrained
+   (`road-risk-bilingual-v2-0a8c3fd5bb5a`; evaluation metrics unchanged). The chain now ends
+   at Khamarbari. The remaining length note compares the dataset's estimated 2.9 km with a
+   0.98 km straight-line span and needs the same geospatial check as the roads below.
 2. **Bijoy Sarani — likely mismatch.** The drawn corridor is the short link from
    Begum Rokeya Sarani to the Airport Road junction (0.58 km). Its only mapped segment,
    `DHK058A/B` "Bijoy Sarani / Parliament Link", runs Bijoy Sarani → Khejur Bagan
@@ -133,8 +136,8 @@ Both lines are covered by frontend tests in English and Bangla and were checked 
 
 ## Presentation summary
 
-“The map covers 14 main-road corridors. They connect to 82 of the dataset's 210
-synthetic road segments; the other 128 have no map geometry yet. Predictions come from
+“The map covers 14 main-road corridors. They connect to 80 of the dataset's 210
+synthetic road segments; the other 130 have no map geometry yet. Predictions come from
 a model trained on simulated scenarios and the rainfall you type in; the weather widget
 and community reports are not model inputs. Four corridor mappings are flagged for
 geospatial review, and real-world accuracy has not been established.”

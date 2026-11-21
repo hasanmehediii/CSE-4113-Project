@@ -50,7 +50,7 @@ every browser/device has been tested or that the application is production-ready
 | --- | --- |
 | Prediction quality | Obtain and validate real Dhaka observations. Current results use simulated data and uncalibrated probabilities; the saved report shows weak precision, particularly for waterlogging |
 | Prediction inputs | Feed verified live/forecast weather and traffic into inference. The weather widget is separate; prediction rainfall is still a user-entered scenario |
-| Geographic coverage | Validate the dataset-to-road mapping and expand overlays. The 14 map corridors currently cover 82 of 210 dataset segments; the other 128 have no overlay |
+| Geographic coverage | Validate the dataset-to-road mapping and expand overlays. The 14 map corridors currently cover 80 of 210 dataset segments; the other 130 have no overlay |
 | Hotspots | The API has a deterministic grid baseline; geographic ML clustering is not implemented |
 | Incident matching | Matching is a documented location/category/time rule, not semantic understanding. Human selection is needed for ambiguous nearby problems; administrative merge/split correction tools are not implemented |
 | Email | Verification/reset delivery works with configured SMTP; local Mailpit captures messages instead of delivering to real inboxes. Delivery is not backed by a durable email queue |

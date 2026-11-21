@@ -89,8 +89,8 @@ segment IDs are not used as numeric shortcuts.
 ## Mapping the dataset back to the map
 
 `packages/data/dhaka-road-segment-mapping.json` explicitly connects the existing 14 map
-corridors to 82 covered directed segments. The model is trained across all 210 segments;
-the remaining 128 currently have no map overlay. The supplied junction file has no
+corridors to 80 covered directed segments. The model is trained across all 210 segments;
+the remaining 130 currently have no map overlay. The supplied junction file has no
 coordinates, so no new geographic positions are invented.
 
 Inference evaluates the mapped dataset segment profiles and shows the **highest segment
