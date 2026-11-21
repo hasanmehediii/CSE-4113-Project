@@ -15,6 +15,9 @@ let DhakaWeather: typeof import("../src/components/map/DhakaWeather").default;
 let AdminDashboard: typeof import("../src/components/AdminDashboard").default;
 let LandingHero: typeof import("../src/components/LandingHero").default;
 let AuthForm: typeof import("../src/components/AuthForm").default;
+let RecoveryPage: typeof import("../src/app/recover/page").default;
+let AccountPage: typeof import("../src/app/account/page").default;
+let changePreference: typeof import("../src/lib/preferences").changePreference;
 let reducedMotion = false;
 let signedIn = true;
 let mapFixtures = false;
@@ -75,7 +78,7 @@ before(async () => {
       ] }));
     }
     if (path.endsWith("/auth/me") && !signedIn) return new Response(JSON.stringify({ detail: "Authentication required" }), { status: 401 });
-    if ((path.endsWith("/auth/login") || path.endsWith("/auth/register")) && options?.method === "POST") {
+    if ((path.endsWith("/auth/login") || path.endsWith("/auth/register") || path.endsWith("/auth/recover")) && options?.method === "POST") {
       authMutation = { path, body: JSON.parse(String(options.body)) };
       return new Response(JSON.stringify(path.endsWith("/login") ? { id: "resident", name: "Resident Alpha", role: "citizen", email_verified: true } : { message: "If eligible, an email will be sent. Check your inbox." }), { status: path.endsWith("/login") ? 200 : 202 });
     }
@@ -89,6 +92,7 @@ before(async () => {
     }
     const body = path.endsWith("/auth/me") ? { id: "resident", name: "Resident Alpha", role: userRole, email_verified: true }
       : path.endsWith("/auth/csrf") ? { csrf_token: "test-csrf" }
+      : path.endsWith("/auth/sessions") ? [{ id: "session-1", current: true, created_at: 1792058400, last_seen_at: 1792058400, expires_at: 1792058400 }]
       : path.endsWith("/admin/analytics") ? {
         by_status: emptyAdmin ? {} : { assigned: 2, resolved: 1 }, by_category: emptyAdmin ? {} : { blocked_drain: 3 },
         by_area: emptyAdmin ? [] : [{ area: "Original area name", total: 3, resolved: 1 }],
@@ -129,6 +133,9 @@ before(async () => {
   ({ default: AdminDashboard } = await import("../src/components/AdminDashboard"));
   ({ default: LandingHero } = await import("../src/components/LandingHero"));
   ({ default: AuthForm } = await import("../src/components/AuthForm"));
+  ({ default: RecoveryPage } = await import("../src/app/recover/page"));
+  ({ default: AccountPage } = await import("../src/app/account/page"));
+  ({ changePreference } = await import("../src/lib/preferences"));
   workspace = await import("../src/components/ComplaintWorkspace");
 });
 
@@ -150,8 +157,8 @@ afterEach(async () => {
   lineFixtures = false;
   authMutation = null;
   Reflect.deleteProperty(navigator, "geolocation");
-  document.documentElement.lang = "en";
-  document.documentElement.dataset.theme = "light";
+  changePreference("language", "en");
+  changePreference("theme", "light");
   localStorage.clear();
 });
 after(() => { globalThis.fetch = originalFetch; dom.window.close(); });
@@ -241,6 +248,7 @@ async function changeCoordinate(name: string, value: string) {
   await act(async () => {
     Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, "value")!.set!.call(input, value);
     input.dispatchEvent(new dom.window.Event("input", { bubbles: true }));
+    await new Promise(resolve => setTimeout(resolve, 30));
   });
 }
 
@@ -793,4 +801,40 @@ test("worker signup preserves the selected role and identity across language cha
   assert.deepEqual(capturedAuthRequest()?.body.worker_identity, { nid_number: "1234567890", nid_image_url: null });
   assert.equal(capturedAuthRequest()?.body.account_type, "worker");
   assert.ok(content().includes("Worker signup includes an application for the mayor to review."));
+});
+
+test("recovery page translates, preserves draft inputs across language switch and submits successfully", async () => {
+  signedIn = false;
+  await mount(() => <RecoveryPage />);
+  assert.ok(content().includes("Recover with a password you remember."));
+  coordinate("email").value = "recovery@example.com";
+  coordinate("date_of_birth").value = "1995-05-15";
+  coordinate("remembered_password").value = "old-secret-pass";
+  await toggle();
+  assert.ok(content().includes("মনে থাকা পাসওয়ার্ড দিয়ে অ্যাকাউন্ট উদ্ধার করুন।"));
+  assert.equal(coordinate("email").value, "recovery@example.com");
+  assert.equal(coordinate("date_of_birth").value, "1995-05-15");
+  assert.equal(coordinate("remembered_password").value, "old-secret-pass");
+  await submitForm(coordinate("email").form!);
+  assert.deepEqual(capturedAuthRequest()?.body, {
+    email: "recovery@example.com",
+    date_of_birth: "1995-05-15",
+    remembered_password: "old-secret-pass",
+  });
+  assert.ok(content().includes("ইনবক্স দেখুন"));
+});
+
+test("account service links translate properly between English and Bangla", async () => {
+  signedIn = true;
+  userRole = "citizen";
+  await mount(() => <AccountPage />);
+  assert.ok(content().includes("My reports & points"));
+  assert.ok(content().includes("Community reports"));
+  assert.ok(content().includes("Report an issue"));
+  assert.ok(content().includes("Apply as worker"));
+  await toggle();
+  assert.ok(content().includes("আমার অভিযোগ ও পয়েন্ট"));
+  assert.ok(content().includes("কমিউনিটি রিপোর্ট"));
+  assert.ok(content().includes("সমস্যা জানান"));
+  assert.ok(content().includes("সেবাকর্মী আবেদন"));
 });
