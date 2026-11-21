@@ -290,8 +290,13 @@ export const civicTranslations: Record<string, string> = {
   "Too many attempts. Wait a few minutes and try again.": "অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।",
   "Could not connect. Please try again.": "সংযোগ করা যায়নি। আবার চেষ্টা করুন।",
   "Please fill out this field.": "এই ঘরটি পূরণ করুন।", "Enter a valid link.": "একটি সঠিক লিংক দিন।",
+  "Enter a valid email address.": "একটি সঠিক ইমেইল ঠিকানা দিন।",
   "Enter a valid value.": "সঠিক তথ্য দিন।", "Minimum characters:": "সর্বনিম্ন অক্ষর:", "Maximum characters:": "সর্বোচ্চ অক্ষর:",
   "Minimum value:": "সর্বনিম্ন মান:", "Maximum value:": "সর্বোচ্চ মান:", "Use a 10, 13 or 17 digit NID number.": "১০, ১৩ অথবা ১৭ সংখ্যার এনআইডি নম্বর দিন।",
+  "Road prediction service is not reachable. Start the ML service, then try again.": "রাস্তার পূর্বাভাস সেবা পাওয়া যাচ্ছে না। এমএল সেবা চালু করে আবার চেষ্টা করুন।",
+  "The ML service returned an invalid prediction response. Try again.": "এমএল সেবা থেকে সঠিক পূর্বাভাস পাওয়া যায়নি। আবার চেষ্টা করুন।",
+  "Road prediction unavailable. The road-risk model is not loaded.": "রাস্তার পূর্বাভাস পাওয়া যাচ্ছে না। ঝুঁকি মডেলটি লোড করা নেই।",
+  "The road-risk model is not loaded.": "রাস্তার ঝুঁকি মডেলটি লোড করা নেই।",
   "Recover with a password you remember.": "মনে থাকা পাসওয়ার্ড দিয়ে অ্যাকাউন্ট উদ্ধার করুন।",
   "Use your current password or one of your last four passwords, your date of birth, and a link delivered to your email.": "বর্তমান বা আগের ৪টি পাসওয়ার্ডের একটি, জন্মতারিখ ও ইমেইলে পাঠানো লিংক ব্যবহার করুন।",
   "Check your inbox": "ইনবক্স দেখুন",
@@ -320,6 +325,7 @@ export function civicValidationMessage(
   if (validity.rangeOverflow) return `${tr("Maximum value:")} ${civicNumber(Number(field.max), language)}`;
   if (validity.patternMismatch && field.name === "nid_number") return tr("Use a 10, 13 or 17 digit NID number.");
   if (validity.typeMismatch && field.type === "url") return tr("Enter a valid link.");
+  if (validity.typeMismatch && (field.type === "email" || field.name === "email")) return tr("Enter a valid email address.");
   return tr("Enter a valid value.");
 }
 
@@ -338,6 +344,8 @@ export function civicText(value: string, language: CivicLanguage = "en"): string
   const translated = civicTranslations[key];
   if (translated) return value.replace(key, translated);
   if (key.startsWith("Value error, ")) return civicText(key.slice(13), language);
+  if (key.startsWith("Road prediction unavailable.")) return "রাস্তার পূর্বাভাস সাময়িকভাবে পাওয়া যাচ্ছে না। পরে আবার চেষ্টা করুন।";
+  if (key.startsWith("The ML service could not complete this prediction")) return "এমএল সেবা থেকে পূর্বাভাস সম্পন্ন করা যায়নি। আবার চেষ্টা করুন।";
   if (/String should match pattern|valid URL|Input should be a valid/.test(key)) return "তথ্যের ধরন সঠিক নয়। দেওয়া নির্দেশনা অনুযায়ী লিখুন।";
   const length = key.match(/String should have (at least|at most) (\d+) characters/);
   if (length) return `${length[1] === "at least" ? "কমপক্ষে" : "সর্বোচ্চ"} ${civicNumber(Number(length[2]), language)} অক্ষর ব্যবহার করুন।`;
