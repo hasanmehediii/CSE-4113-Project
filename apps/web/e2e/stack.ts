@@ -1,12 +1,66 @@
 // Shared settings for the isolated browser smoke stack. Only synthetic data is used.
 import { execFileSync, spawnSync, type SpawnSyncOptions } from "node:child_process";
-import { existsSync, copyFileSync } from "node:fs";
+import { existsSync, copyFileSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 export const REPO_ROOT = path.resolve(__dirname, "../../..");
-export const PROJECT = process.env.E2E_PROJECT || "dubsibhai-e2e";
 export const WEB_PORT = Number(process.env.E2E_WEB_PORT || 13000);
 export const API_PORT = Number(process.env.E2E_API_PORT || 18000);
+
+/**
+ * Each port pair gets its own Compose project, and therefore its own containers and
+ * volumes, so a second run on other ports cannot reset or delete the first run's data.
+ */
+export function projectName(webPort: number, apiPort: number, explicit?: string) {
+  if (explicit) return explicit;
+  return webPort === 13000 && apiPort === 18000 ? "dubsibhai-e2e" : `dubsibhai-e2e-${webPort}-${apiPort}`;
+}
+export const PROJECT = projectName(WEB_PORT, API_PORT, process.env.E2E_PROJECT);
+
+/**
+ * One run per project at a time. The lock is taken before any setup step and released
+ * after teardown; a lock left by a process that no longer exists is reclaimed.
+ */
+export function acquireRunLock(project: string, dir = os.tmpdir(), pid = process.pid) {
+  const file = path.join(dir, `${project}.e2e.lock`);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      writeFileSync(file, JSON.stringify({ pid, startedAt: new Date().toISOString() }), { flag: "wx" });
+      return file;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      let owner = 0;
+      try { owner = Number(JSON.parse(readFileSync(file, "utf-8")).pid) || 0; } catch { /* unreadable: treat as stale */ }
+      if (owner && owner !== pid && processExists(owner)) {
+        throw new Error(`[e2e] Another browser smoke run (process ${owner}) is using project ${project}. ` +
+          "Wait for it to finish, or start this run on other ports (E2E_WEB_PORT/E2E_API_PORT) " +
+          "so it gets its own stack.");
+      }
+      rmSync(file, { force: true });
+    }
+  }
+  throw new Error(`[e2e] Could not take the run lock ${file}.`);
+}
+
+export function ownsRunLock(project: string, dir = os.tmpdir(), pid = process.pid) {
+  try {
+    return Number(JSON.parse(readFileSync(path.join(dir, `${project}.e2e.lock`), "utf-8")).pid) === pid;
+  } catch {
+    return false;
+  }
+}
+
+export function releaseRunLock(project: string, dir = os.tmpdir(), pid = process.pid) {
+  const file = path.join(dir, `${project}.e2e.lock`);
+  try {
+    if (Number(JSON.parse(readFileSync(file, "utf-8")).pid) === pid) rmSync(file, { force: true });
+  } catch { /* already released */ }
+}
+
+function processExists(pid: number) {
+  try { process.kill(pid, 0); return true; } catch (error) { return (error as NodeJS.ErrnoException).code === "EPERM"; }
+}
 export const WEB_URL = `http://localhost:${WEB_PORT}`;
 export const API_URL = `http://localhost:${API_PORT}/api/v1`;
 

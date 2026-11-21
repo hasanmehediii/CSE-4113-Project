@@ -32,7 +32,7 @@ several minutes. Later runs reuse Docker's build cache.
 
 The test never uses the normal development stack or its data.
 
-- **Separate stack.** `global-setup.ts` starts Compose project `dubsibhai-e2e` from
+- **Separate stack.** `global-setup.ts` starts Compose project `dubsibhai-e2e` (default ports; see below) from
   `infra/docker-compose.local.yml` plus `e2e/docker-compose.e2e.yml`. It has its own
   containers and volumes. Only the web app (`localhost:13000`) and API
   (`localhost:18000`) are published; the database, Redis, MongoDB, Mailpit and ML are
@@ -43,8 +43,16 @@ The test never uses the normal development stack or its data.
   random password, so no credential is stored in the repository. The script refuses to
   run unless the container carries the `E2E_ISOLATED_STACK` marker set by the override.
   The real mayor settings in the root `.env` are blanked for this stack.
-- **Cleanup.** `global-teardown.ts` runs `docker compose -p dubsibhai-e2e down --volumes`,
+- **Cleanup.** `global-teardown.ts` runs `docker compose -p <project> down --volumes`,
   removing the test containers and all test data, whether the test passed or failed.
+- **One run per stack.** Each port pair is its own Compose project: the default ports use
+  `dubsibhai-e2e`; other ports use `dubsibhai-e2e-<web>-<api>`, with separate containers
+  and volumes. A run takes a lock for its project before setup (`<project>.e2e.lock` in the
+  system temp folder) and releases it after teardown, so a second run on the same project
+  stops with a clear message before it can reset accounts or delete the first run's data.
+  A lock left by a crashed run is reclaimed automatically. A default run also refuses to
+  start if that project already has running containers (for example a stack kept with
+  `E2E_KEEP_STACK=1`); reuse it with `E2E_REUSE_STACK=1` or remove it first.
 - **Root `.env`.** The API container reads it. If it does not exist, setup copies
   `.env.example`, as `start.ps1` does.
 
@@ -54,7 +62,8 @@ The test never uses the normal development stack or its data.
 | --- | --- |
 | `E2E_KEEP_STACK=1` | Keep the test stack after the run, for inspection at `http://localhost:13000` |
 | `E2E_REUSE_STACK=1` | Skip startup and teardown; use an already-running test stack (fast reruns) |
-| `E2E_WEB_PORT`, `E2E_API_PORT` | Change the published test ports (defaults 13000 and 18000) |
+| `E2E_WEB_PORT`, `E2E_API_PORT` | Change the published test ports (defaults 13000 and 18000); non-default ports get their own project and volumes |
+| `E2E_PROJECT` | Use an explicit Compose project name instead of the one derived from the ports |
 | `E2E_BROWSER_CHANNEL=chrome` | Use an installed Chrome (or `msedge`) instead of Playwright's Chromium |
 
 In PowerShell, set a variable for one run with `$env:E2E_KEEP_STACK = "1"; pnpm test:e2e`,
@@ -73,7 +82,8 @@ so when reusing a stack wait a few minutes between repeated runs.
   console errors and failed API calls, labelled by account) and `service-logs.txt`
   (the last 150 log lines from the test API, web and ML containers).
 - If setup fails before the browser starts, rerun with `E2E_KEEP_STACK=1` and inspect
-  `docker compose -p dubsibhai-e2e ps` and `docker compose -p dubsibhai-e2e logs api`.
+  `docker compose -p dubsibhai-e2e ps` and `docker compose -p dubsibhai-e2e logs api`
+  (use `dubsibhai-e2e-<web>-<api>` for non-default ports; setup prints the project name).
 
 ## Scope
 
