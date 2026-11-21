@@ -11,6 +11,7 @@ from app.models.road_features import DATASET_FEATURES, binary_probabilities, dat
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 CATALOG = json.loads((REPO_ROOT / "packages/data/dhaka-main-roads.json").read_text("utf-8"))
+SEGMENT_MAPPING = REPO_ROOT / "packages/data/dhaka-road-segment-mapping.json"
 DHAKA = timezone(timedelta(hours=6), name="Asia/Dhaka")
 FEATURES = ["hour_sin", "hour_cos", "weekday", "month", "rainfall_mm",
             "flood_factor", "traffic_factor"]
@@ -39,6 +40,15 @@ class RoadRiskModel:
                 raise ValueError("Artifact mapping does not match the current map catalog")
             if any(not ids or not set(ids) <= set(self.profiles) for ids in self.road_segments.values()):
                 raise ValueError("Artifact contains unknown or empty segment mappings")
+            # A model saved before a mapping correction would keep serving the old segments.
+            current = json.loads(SEGMENT_MAPPING.read_text("utf-8"))["roads"]
+            changed = sorted(road for road, ids in current.items()
+                             if set(ids) != set(self.road_segments.get(road, ())))
+            if changed:
+                raise ValueError(
+                    f"Artifact segment mapping differs from {SEGMENT_MAPPING.name} for "
+                    f"{', '.join(changed)}; retrain so these roads use the current segments"
+                )
 
     @classmethod
     def load(cls, path: Path):
