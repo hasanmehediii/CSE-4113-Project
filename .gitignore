@@ -11,6 +11,10 @@ out/
 *.tsbuildinfo
 apps/web/next-env.d.ts
 
+# Browser smoke-test output
+apps/web/playwright-report/
+apps/web/test-results/
+
 # Python
 .venv/
 __pycache__/

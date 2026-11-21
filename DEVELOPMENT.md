@@ -300,6 +300,16 @@ Run `uv run pytest` separately from `apps/api` and `apps/ml-service`. Optional
 PostgreSQL integration checks require a dedicated test database; follow the
 [civic guide](docs/guideline/CIVIC_DEVELOPMENT.md) before enabling them.
 
+The real-browser smoke test (citizen report → mayor assignment → worker completion →
+citizen verification) runs against its own isolated Docker stack and removes it
+afterwards. From `apps/web`, after `pnpm exec playwright install chromium` once:
+
+```powershell
+npx.cmd --yes pnpm@10.34.5 test:e2e
+```
+
+See [apps/web/e2e/README.md](apps/web/e2e/README.md) for fixtures, options and failure output.
+
 ## Troubleshooting
 
 - **Scripts blocked:** use a policy override for this invocation, for example
