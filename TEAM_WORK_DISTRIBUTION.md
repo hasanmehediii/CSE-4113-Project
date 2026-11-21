@@ -61,6 +61,29 @@ Coordinate ML worker changes with Nafisha and visible API errors with Moin.
 Keep fixes focused. Major authentication redesigns, incident merge/split tools and
 production hosting are outside this assignment.
 
+### Biplob validation record — 21 November 2026
+
+- Environment: Linux, Docker Engine/Compose v2, PostgreSQL 17, MongoDB 8,
+  Redis 7 and Mailpit.
+- Fresh migrations applied successfully and reached Alembic head
+  `20261031_06`. The bootstrap was rerun successfully and remained idempotent.
+  A database stop/start preserved the migration state.
+- The API suite passed 101 tests with 7 optional real-database tests skipped.
+  The focused auth, registration, civic, assignment, lifecycle and incident
+  suites passed 71 tests. Seven opt-in PostgreSQL/Mongo integration tests passed
+  with `RUN_POSTGRES_TESTS=1`.
+- The complete Docker stack started API, ML, web, Nginx, event projection and
+  classification workers. API and ML health endpoints were ready; the stack
+  was stopped without deleting volumes.
+- Setup correction: Git now tracks the Linux `.sh` launchers as executable,
+  so `./scripts/migrate.sh` and `./scripts/start.sh` can be used directly.
+- The reported PowerShell/VS Code crash could not be reproduced on this Linux
+  machine because Windows tools and logs were unavailable. The existing
+  PowerShell launchers record startup failures and direct the user to service
+  logs; still required: rerun `.\run.ps1 -Check` on the affected Windows/VS
+  Code machine and attach the launcher logs under `.cache/run-all/<run-id>/`
+  if the crash recurs.
+
 ## Nafisha — ML, maps and integration testing
 
 **Primary files:** `apps/ml-service/`, `packages/data/`, `packages/new-data/`,

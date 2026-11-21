@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Script from "next/script";
 import "./globals.css";
 import "./landing-enhancements.css";
 import "./landing-hero.css";
@@ -25,7 +26,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{ __html: `try{var d=document.documentElement;var t=localStorage.getItem('dubsi-theme');d.dataset.theme=t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';d.lang=localStorage.getItem('dubsi-language')==='bn'?'bn':'en'}catch(e){}` }} /></head>
+      <head><Script id="theme-init" strategy="beforeInteractive">{`try{var d=document.documentElement;var t=localStorage.getItem('dubsi-theme');d.dataset.theme=t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';d.lang=localStorage.getItem('dubsi-language')==='bn'?'bn':'en'}catch(e){}`}</Script></head>
       <body><Providers><Navbar />{children}<Footer /></Providers></body>
     </html>
   );
