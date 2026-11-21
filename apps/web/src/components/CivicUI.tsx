@@ -68,14 +68,15 @@ export function Gate({ roles, children }: {
         return <CivicShell title={tr("This workspace needs a different account role")}><Link className="button" href="/community">{tr("My contributions")}</Link></CivicShell>;
     return children;
 }
-export function Feedback({ error, loading, empty, retry }: {
+export function Feedback({ error, loading, empty, emptyMessage, retry }: {
     error?: string;
     loading?: boolean;
     empty?: boolean;
+    emptyMessage?: string;
     retry?: () => void;
 }) {
     const { tr } = useCivicLocale();
-    return <>{error && <p role="alert" className="alert error">{tr(error)} {retry && <button type="button" onClick={retry}>{tr("Retry")}</button>}</p>}{loading && <p role="status">{tr("Loading\u2026")}</p>}{!loading && !error && empty && <p className="civic-empty">{tr("No reports match this view yet.")}</p>}</>;
+    return <>{error && <p role="alert" className="alert error">{tr(error)} {retry && <button type="button" onClick={retry}>{tr("Retry")}</button>}</p>}{loading && <p role="status">{tr("Loading\u2026")}</p>}{!loading && !error && empty && <p className="civic-empty">{tr(emptyMessage || "No reports match this view yet.")}</p>}</>;
 }
 export function ComplaintCard({ row }: {
     row: Complaint;

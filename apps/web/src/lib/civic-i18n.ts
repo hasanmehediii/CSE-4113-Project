@@ -292,6 +292,19 @@ export const civicTranslations: Record<string, string> = {
   "Please fill out this field.": "এই ঘরটি পূরণ করুন।", "Enter a valid link.": "একটি সঠিক লিংক দিন।",
   "Enter a valid value.": "সঠিক তথ্য দিন।", "Minimum characters:": "সর্বনিম্ন অক্ষর:", "Maximum characters:": "সর্বোচ্চ অক্ষর:",
   "Minimum value:": "সর্বনিম্ন মান:", "Maximum value:": "সর্বোচ্চ মান:", "Use a 10, 13 or 17 digit NID number.": "১০, ১৩ অথবা ১৭ সংখ্যার এনআইডি নম্বর দিন।",
+  "Recover with a password you remember.": "মনে থাকা পাসওয়ার্ড দিয়ে অ্যাকাউন্ট উদ্ধার করুন।",
+  "Use your current password or one of your last four passwords, your date of birth, and a link delivered to your email.": "বর্তমান বা আগের ৪টি পাসওয়ার্ডের একটি, জন্মতারিখ ও ইমেইলে পাঠানো লিংক ব্যবহার করুন।",
+  "Check your inbox": "ইনবক্স দেখুন",
+  "If your details match an eligible account, a single-use password reset link will arrive by email.": "তথ্য মিলে গেলে পাসওয়ার্ড পরিবর্তনের একটি একক ব্যবহারের লিংক ইমেইলে পাঠানো হবে।",
+  "Enter email token": "ইমেইল টোকেন দিন",
+  "Email": "ইমেইল",
+  "Date of birth": "জন্মতারিখ",
+  "A password you remember": "মনে থাকা একটি পাসওয়ার্ড",
+  "These details do not sign you in. You must still open the email link and choose a new password.": "এই তথ্যে সরাসরি লগইন হবে না। ইমেইল লিংক খুলে নতুন পাসওয়ার্ড দিতে হবে।",
+  "Checking…": "যাচাই করা হচ্ছে…",
+  "Request recovery email": "অ্যাকাউন্ট উদ্ধারের ইমেইল পাঠান",
+  "Use ordinary email password reset": "সাধারণ ইমেইল পাসওয়ার্ড পরিবর্তন ব্যবহার করুন",
+  "You have not submitted any reports yet.": "আপনি এখনো কোনো অভিযোগ বা তথ্য জমা দেননি।",
 };
 
 export function civicValidationMessage(
