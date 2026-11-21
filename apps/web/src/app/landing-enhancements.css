@@ -145,3 +145,4 @@ html .footer-bottom { padding-block: 16px; gap: 12px; }
 @media (forced-colors: active) {
   html .hero h1 em, html .mission-words span { -webkit-text-fill-color: currentColor; background: none; }
 }
+.weather-note { font-size: 10px; line-height: 15px; margin: 10px 0 0; }

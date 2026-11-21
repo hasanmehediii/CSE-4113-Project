@@ -23,7 +23,8 @@ export default function RoadPredictionPanel(props: Props) {
       <label>{tr("Forecast horizon · minutes")}<select value={props.horizon} onChange={event => props.onHorizon(Number(event.target.value))}>
         {[30, 60, 120].map(value => <option key={value} value={value}>{number(value)}</option>)}
       </select></label>
-      <label>{tr("Scenario rainfall · mm in one hour")}<input type="number" required min="0" max="150" step="0.1" value={props.rain} onChange={event => props.onRain(event.target.value)} /></label>
+      <label>{tr("Scenario rainfall · mm in one hour")}<input type="number" required min="0" max="150" step="0.1" aria-describedby="road-rain-help" value={props.rain} onChange={event => props.onRain(event.target.value)} /></label>
+      <small id="road-rain-help" className="road-rain-help">{tr("You choose this amount. It is not taken from the Dhaka weather widget or any live weather feed.")}</small>
       <button type="submit" className="button" disabled={props.predicting}>{tr(props.predicting ? "Predicting…" : "Predict road risk")}</button>
     </form>
     <div className="road-form-tabs" role="group" aria-label={tr("Risk type")}>
