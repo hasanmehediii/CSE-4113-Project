@@ -38,7 +38,7 @@ function Contributions() {
         <div className="civic-stats"><div><strong>{points.data ? number(points.data.balance) : "—"}</strong><span>{tr("Community points")}</span></div><div><strong>{reports.data ? number(reports.data.total) : "—"}</strong><span>{tr("Total reports")}</span></div></div>
         <div className="civic-toolbar"><Link className="button" href="/complaints/new">{tr("+ Add a report")}</Link><Link className="button secondary" href="/account">{tr("Account & security")}</Link></div>
         <section aria-label={tr("My reports")}>
-            <Feedback error={reports.error} loading={reports.loading} empty={!reports.data?.items.length} retry={() => void reports.reload()}/>
+            <Feedback error={reports.error} loading={reports.loading} empty={!reports.data?.items.length} emptyMessage="You have not submitted any reports yet." retry={() => void reports.reload()}/>
             <div className="civic-grid">{reports.data?.items.map(row => <ComplaintCard key={row.id} row={row}/>)}</div>
             <HistoryPages page={reportPage} setPage={setReportPage} size={30} total={reports.data?.total} loading={reports.loading}/>
         </section>
