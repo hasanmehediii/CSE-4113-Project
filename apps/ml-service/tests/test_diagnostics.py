@@ -1,3 +1,5 @@
+import json
+
 import joblib
 import pytest
 from fastapi.testclient import TestClient
@@ -5,6 +7,7 @@ from fastapi.testclient import TestClient
 from app.core.config import get_settings
 from app.main import app
 from app.models.road_features import DATASET_FEATURES
+from app.models.road_risk import SEGMENT_MAPPING, RoadRiskModel
 from app.train import DEFAULT_DATASET, train
 
 AT = {"at": "2026-10-20T08:00:00+06:00", "rainfall_mm": 20}
@@ -79,3 +82,25 @@ def test_ready_reports_loaded_road_risk(service, classifier_path):
     with service(classifier_path, classifier_path.parent / "missing.joblib") as client:
         app.state.road_risk = object()
         assert client.get("/ready").json()["road_risk_model"] == "loaded"
+
+
+def mapped_artifact(roads):
+    """A loadable format-2 artifact; loading only checks structure, not the fitted model."""
+    segments = {s for ids in roads.values() for s in ids}
+    return {"format": 2, "features": DATASET_FEATURES, "model": None, "metadata": {},
+            "profiles": {s: {} for s in segments}, "road_segments": roads}
+
+
+def test_saved_segment_mapping_must_match_the_deployment_mapping(service, tmp_path, classifier_path):
+    # Issue #11: a model saved before a mapping change must not silently serve old segments.
+    current = json.loads(SEGMENT_MAPPING.read_text("utf-8"))["roads"]
+    assert RoadRiskModel(mapped_artifact(current)).road_segments == current
+    stale = {road: list(ids) for road, ids in current.items()}
+    stale["dhaka-manik-mia"] = stale["dhaka-manik-mia"][:-2] or ["DHK001A", "DHK001B"]
+    road_risk = tmp_path / "road-risk.joblib"
+    joblib.dump(mapped_artifact(stale), road_risk)
+    with service(classifier_path, road_risk) as client:
+        message = detail(client.get("/road-risk/model"))
+        assert "road-risk.joblib is incompatible" in message
+        assert "differs from dhaka-road-segment-mapping.json for dhaka-manik-mia" in message
+        assert detail(client.post("/road-risk/predict", json=AT)) == message

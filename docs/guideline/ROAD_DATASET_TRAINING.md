@@ -89,8 +89,8 @@ segment IDs are not used as numeric shortcuts.
 ## Mapping the dataset back to the map
 
 `packages/data/dhaka-road-segment-mapping.json` explicitly connects the existing 14 map
-corridors to 82 covered directed segments. The model is trained across all 210 segments;
-the remaining 128 currently have no map overlay. The supplied junction file has no
+corridors to 80 covered directed segments. The model is trained across all 210 segments;
+the remaining 130 currently have no map overlay. The supplied junction file has no
 coordinates, so no new geographic positions are invented.
 
 Inference evaluates the mapped dataset segment profiles and shows the **highest segment
@@ -100,6 +100,12 @@ or a probability union across directions. The conceptual dataset-to-corridor map
 still require geospatial validation because the supplied junctions have no coordinates.
 The [road coverage audit](ROAD_COVERAGE_AUDIT.md) lists the current counts and the corridors
 flagged for review; rerun it with `uv run python -m app.audit_road_mapping`.
+
+The trained artifact stores the road-to-segment assignment it was trained with. On startup
+the ML service compares it with `dhaka-road-segment-mapping.json`; if any road differs, the
+model is refused and road-risk endpoints return 503 naming the changed roads. After editing
+the mapping, retrain (in Docker, use the retraining command above) and restart ML. This stops
+a persisted model volume from silently serving an outdated mapping.
 The display shapes now use checked-in OpenStreetMap geometry (see [map geometry](LIVE_MAP.md#road-catalog-and-geometry));
 updating those shapes does not make the synthetic dataset geographically observed.
 

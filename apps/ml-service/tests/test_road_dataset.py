@@ -1,4 +1,5 @@
 import csv
+import json
 import shutil
 from datetime import datetime
 
@@ -8,7 +9,7 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.models.road_features import DATASET_FEATURES, dataset_features
-from app.models.road_risk import RoadRiskModel
+from app.models.road_risk import SEGMENT_MAPPING, RoadRiskModel
 from app.train_road_dataset import (
     DEFAULT_DATASET,
     NODES,
@@ -93,7 +94,8 @@ def test_training_report_and_mapped_inference(supplied_model):
     model, report = supplied_model
     assert report["serving_training_rows"] == 15120
     assert report["test_rows"] == 5670
-    assert report["mapped_segments"] == 82
+    mapping = json.loads(SEGMENT_MAPPING.read_text("utf-8"))["roads"]
+    assert report["mapped_segments"] == len({s for ids in mapping.values() for s in ids})
     assert report["data_source"] == "synthetic"
     assert set(report["evaluation"]) == {"waterlogging", "traffic_jam"}
     at = datetime.fromisoformat("2026-10-20T18:00:00+06:00")
@@ -104,6 +106,8 @@ def test_training_report_and_mapped_inference(supplied_model):
     assert result["coverage"]["trained_segments"] == 210
     for row in result["roads"]:
         assert set(row["segment_ids"]) <= set(model.profiles)
+        # A model rebuilt from the deployment mapping serves exactly those segments (issue #11).
+        assert set(row["segment_ids"]) == set(mapping[row["road_id"]])
         assert 0 <= row["waterlogging_probability"] <= 1
         assert 0 <= row["traffic_probability"] <= 1
 
