@@ -59,7 +59,7 @@ This avoids another deployment, environment, and monitoring stack for a small CP
 | `POST /road-risk/predict` on ML | Internal inference, body `{"at":"2026-10-20T18:00:00+06:00","rainfall_mm":25}` |
 | `GET /road-risk/model` on ML | Version, dataset hash, evaluation and limitations |
 
-Missing or incompatible road-risk weights produce 503 for prediction while complaint classification and liveness remain independent. `/ready` continues to mean the complaint classifier is ready; it does not promise that the road model is loaded.
+Missing or incompatible road-risk weights produce 503 for prediction while complaint classification and liveness remain independent. The 503 `detail` states whether the file is missing, unreadable or incompatible (for example, its road mapping no longer matches the catalog) and which training command to run. `/ready` continues to mean the complaint classifier is ready; it does not promise that the road model is loaded, but its `road_risk_model` field shows `loaded` or the road-risk load error.
 
 ## Generate and train
 
