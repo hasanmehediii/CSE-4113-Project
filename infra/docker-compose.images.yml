@@ -1,0 +1,128 @@
+name: dubsibhai-images
+
+x-backend-image: &backend-image ${DUBSIBHAI_REGISTRY:-ghcr.io/hasanmehediii}/dubsibhai-backend:${DUBSIBHAI_TAG:-latest}
+x-backend-environment: &backend-environment
+  DATABASE_URL: postgresql+psycopg://dubsibhai:local-dev-only@db:5432/dubsibhai
+  REDIS_URL: redis://redis:6379/0
+  MONGODB_URL: mongodb://mongodb:27017/dubsibhai
+  ML_SERVICE_URL: http://ml-service:8001
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: dubsibhai
+      POSTGRES_USER: dubsibhai
+      POSTGRES_PASSWORD: local-dev-only
+    volumes: ["postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "dubsibhai", "-d", "dubsibhai"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: ["redis:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mongodb:
+    image: mongo:8.0.34
+    environment:
+      GLIBC_TUNABLES: glibc.pthread.rseq=1
+    volumes: ["mongodb:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand({ping: 1}).ok === 1 ? 0 : 1)"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports: ["127.0.0.1:${DUBSIBHAI_MAIL_PORT:-8025}:8025"]
+
+  ml-service:
+    image: ${DUBSIBHAI_REGISTRY:-ghcr.io/hasanmehediii}/dubsibhai-ml-service:${DUBSIBHAI_TAG:-latest}
+    healthcheck:
+      test:
+        - CMD
+        - /workspace/apps/ml-service/.venv/bin/python
+        - -c
+        - >-
+          import json, urllib.request;
+          response = urllib.request.urlopen('http://127.0.0.1:8001/ready', timeout=5);
+          raise SystemExit(json.load(response).get('road_risk_model') != 'loaded')
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  api:
+    image: *backend-image
+    environment:
+      <<: *backend-environment
+      AUTH_SECRET: ${AUTH_SECRET:-development-only-change-before-deployment}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_NAME: ${ADMIN_NAME:-Mayor}
+      FRONTEND_URL: http://localhost:${DUBSIBHAI_WEB_PORT:-3000}
+      API_CORS_ORIGINS: '["http://localhost:${DUBSIBHAI_WEB_PORT:-3000}"]'
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      MAIL_FROM: noreply@dubsibhai.local
+    volumes: ["media:/workspace/apps/api/media"]
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      mongodb: {condition: service_healthy}
+      mailpit: {condition: service_started}
+    command:
+      - sh
+      - -ec
+      - |
+        uv run --no-sync alembic upgrade head
+        uv run --no-sync python -m app.workers.bootstrap
+        exec uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000
+    healthcheck:
+      test: ["CMD", "/workspace/apps/api/.venv/bin/python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
+      interval: 5s
+      timeout: 10s
+      start_period: 30s
+      retries: 20
+
+  project-events:
+    image: *backend-image
+    environment: *backend-environment
+    depends_on:
+      api: {condition: service_healthy}
+    command: ["uv", "run", "--no-sync", "python", "-m", "app.workers.project_events"]
+
+  classify-reports:
+    image: *backend-image
+    environment: *backend-environment
+    depends_on:
+      api: {condition: service_healthy}
+      ml-service: {condition: service_healthy}
+    command: ["uv", "run", "--no-sync", "python", "-m", "app.workers.classify_reports"]
+
+  web:
+    image: ${DUBSIBHAI_REGISTRY:-ghcr.io/hasanmehediii}/dubsibhai-frontend:${DUBSIBHAI_TAG:-latest}
+    ports: ["127.0.0.1:${DUBSIBHAI_WEB_PORT:-3000}:3000"]
+    depends_on:
+      api: {condition: service_healthy}
+      ml-service: {condition: service_healthy}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(response => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+volumes:
+  postgres:
+  redis:
+  mongodb:
+  media:

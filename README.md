@@ -138,6 +138,41 @@ clustering, IoT ingestion and production HTTPS remain future work.
 The diagram predates these additions; the linked database/workflow guides describe
 the implementation. External integrations provide Google sign-in, map tiles and email.
 
+## Run the published Docker images
+
+The [container workflow](.github/workflows/publish-containers.yml) builds and
+smoke-tests the stack on `dev` and `main`. After the checks pass on `main`, it
+publishes these Linux x86-64 images with the full Git commit SHA and `latest` tags.
+
+- `ghcr.io/hasanmehediii/dubsibhai-frontend`
+- `ghcr.io/hasanmehediii/dubsibhai-backend`
+- `ghcr.io/hasanmehediii/dubsibhai-ml-service`
+
+From the repository root, run these commands with Docker and Compose v2.
+If the packages are private, first sign in to `ghcr.io` with `docker login ghcr.io`
+using a GitHub classic personal access token with `read:packages` and access to
+the packages.
+
+```sh
+docker compose -f infra/docker-compose.images.yml pull
+docker compose -f infra/docker-compose.images.yml up -d --wait
+```
+
+Open http://localhost:3000. Mailpit is available at http://localhost:8025. This
+Compose stack uses its own database and media volumes. The backend image also
+runs both background workers, and the ML image contains both trained models.
+The frontend routes API and media requests through the Compose service named
+`api` on port 8000.
+
+Set `DUBSIBHAI_TAG` to a published commit SHA in the shell or root `.env` to use a
+matching set of images. For a local mayor account, set `ADMIN_EMAIL` and
+`ADMIN_PASSWORD` before starting the stack. This stack is configured for local
+use with Mailpit and email/password sign-in.
+
+```sh
+docker compose -f infra/docker-compose.images.yml down
+```
+
 ## Run on Linux with Docker
 
 Install Bash, Docker Engine (or Docker Desktop) and the Docker Compose v2 plugin.

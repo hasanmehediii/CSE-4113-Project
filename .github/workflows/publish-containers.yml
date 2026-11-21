@@ -1,0 +1,97 @@
+name: Publish Docker images
+
+on:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+concurrency:
+  group: container-images-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  COMPOSE_FILE: infra/docker-compose.images.yml
+  DUBSIBHAI_TAG: ${{ github.sha }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  containers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set registry namespace
+        run: echo "DUBSIBHAI_REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: Build frontend, backend and ML images
+        run: |
+          labels=(
+            --label "org.opencontainers.image.source=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+            --label "org.opencontainers.image.revision=$GITHUB_SHA"
+          )
+          docker build "${labels[@]}" -f infra/docker/frontend.Dockerfile \
+            -t "$DUBSIBHAI_REGISTRY/dubsibhai-frontend:$DUBSIBHAI_TAG" .
+          docker build "${labels[@]}" -f infra/docker/api.Dockerfile \
+            -t "$DUBSIBHAI_REGISTRY/dubsibhai-backend:$DUBSIBHAI_TAG" .
+          docker build "${labels[@]}" -f infra/docker/ml-service.Dockerfile --target published \
+            -t "$DUBSIBHAI_REGISTRY/dubsibhai-ml-service:$DUBSIBHAI_TAG" .
+
+      - name: Smoke-test the Compose stack
+        env:
+          ADMIN_EMAIL: smoke@example.com
+          ADMIN_PASSWORD: SmokeTestPassword-123
+        run: |
+          docker compose up --wait --wait-timeout 180
+
+          origin=http://localhost:3000
+          cookies="$(mktemp)"
+          csrf="$(curl -fsS -c "$cookies" "$origin/api/v1/auth/csrf" | jq -er .csrf_token)"
+          login="$(jq -nc --arg email "$ADMIN_EMAIL" --arg password "$ADMIN_PASSWORD" \
+            '{identifier: $email, password: $password}')"
+          curl -fsS -b "$cookies" -c "$cookies" \
+            -H "Origin: $origin" -H "X-CSRF-Token: $csrf" -H "Content-Type: application/json" \
+            --data "$login" "$origin/api/v1/auth/login" | jq -e '.role == "admin"'
+          curl -fsS -b "$cookies" "$origin/api/v1/auth/me" | jq -e '.role == "admin"'
+
+          curl -fsSG --data-urlencode "at=$(date -u +%FT%TZ)" \
+            "$origin/api/v1/map/predictions" | jq -e '.roads | length > 0'
+          docker compose exec -T project-events uv run --no-sync python -m app.workers.project_events --once
+          docker compose exec -T classify-reports uv run --no-sync python -m app.workers.classify_reports --once
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail 100
+
+      - name: Remove the smoke-test stack
+        if: always()
+        run: docker compose down --volumes
+
+      - name: Push commit tags and update latest on main
+        if: github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$GITHUB_ACTOR" --password-stdin
+          for component in frontend backend ml-service; do
+            docker push "$DUBSIBHAI_REGISTRY/dubsibhai-$component:$DUBSIBHAI_TAG"
+          done
+
+          # Re-running an older commit must not move latest backwards.
+          main_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)"
+          if [[ "$main_sha" == "$GITHUB_SHA" ]]; then
+            for component in frontend backend ml-service; do
+              image="$DUBSIBHAI_REGISTRY/dubsibhai-$component"
+              docker tag "$image:$DUBSIBHAI_TAG" "$image:latest"
+              docker push "$image:latest"
+            done
+          fi

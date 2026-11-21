@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim AS base
 
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /workspace/apps/ml-service
@@ -12,3 +12,9 @@ COPY docs/dataset /workspace/docs/dataset
 RUN mkdir -p weights
 EXPOSE 8001
 CMD ["uv", "run", "--no-sync", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001"]
+
+FROM base AS published
+RUN uv run --no-sync python -m app.train \
+    && uv run --no-sync python -m app.train_road_risk
+
+FROM base AS development
