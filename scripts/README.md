@@ -51,8 +51,9 @@ model volumes. These scripts do not terminate competing host processes; stop the
 other server before retrying a port conflict.
 
 The scripts find the repository from their own location, so absolute script
-paths work from other directories. The commands use `bash`, so executable file
-permissions are not required. `.gitattributes` keeps shell files on LF endings.
+paths work from other directories. They are executable and also work when
+explicitly invoked through `bash`, for example `bash scripts/start.sh`.
+`.gitattributes` keeps shell files on LF endings.
 
 ## Other Linux helpers
 
