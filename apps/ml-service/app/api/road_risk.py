@@ -1,9 +1,10 @@
 from typing import Literal
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from app.core.diagnostics import require_model
+from app.models.road_risk import LEGACY_HORIZON_MESSAGE
 
 router = APIRouter(prefix="/road-risk", tags=["Road risk"])
 
@@ -21,7 +22,10 @@ def loaded(request):
 
 @router.post("/predict")
 def predict(payload: Scenario, request: Request):
-    return loaded(request).predict(payload.at, payload.rainfall_mm, payload.forecast_horizon_min)
+    model = loaded(request)
+    if payload.forecast_horizon_min not in getattr(model, "supported_horizons", (30, 60, 120)):
+        raise HTTPException(422, LEGACY_HORIZON_MESSAGE)
+    return model.predict(payload.at, payload.rainfall_mm, payload.forecast_horizon_min)
 
 
 @router.get("/model")
