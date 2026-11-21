@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.diagnostics import require_model
 from app.models.classifier import normalize_text
 
 router = APIRouter(tags=["Classification"])
@@ -28,15 +29,11 @@ class ClassifyResponse(BaseModel):
 
 @router.post("/classify", response_model=ClassifyResponse)
 def classify(payload: ClassifyRequest, request: Request) -> dict:
-    model = getattr(request.app.state, "classifier", None)
-    if model is None:
-        raise HTTPException(503, "Classifier unavailable. Run training and restart the ML service.")
+    model = require_model(request, "classifier")
     return model.predict(payload.text)
 
 
 @router.get("/model")
 def model_info(request: Request) -> dict:
-    model = getattr(request.app.state, "classifier", None)
-    if model is None:
-        raise HTTPException(503, "Classifier unavailable. Run training and restart the ML service.")
+    model = require_model(request, "classifier")
     return model.metadata

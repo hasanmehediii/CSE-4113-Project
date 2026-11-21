@@ -134,9 +134,30 @@ def predictions(
     )
     try:
         with urlopen(request, timeout=10) as response:
-            return json.load(response)
-    except (HTTPError, URLError, TimeoutError, ValueError):
-        raise HTTPException(503, "Road prediction unavailable. Train the road-risk model and start the ML service.") from None
+            result = json.load(response)
+    except HTTPError as error:
+        raise HTTPException(*ml_failure(error)) from None
+    except (URLError, TimeoutError, OSError):
+        raise HTTPException(
+            503, "Road prediction service is not reachable. Start the ML service, then try again."
+        ) from None
+    except ValueError:
+        raise HTTPException(502, "The ML service returned an invalid prediction response. Try again.") from None
+    if not isinstance(result, dict) or not isinstance(result.get("roads"), list):
+        raise HTTPException(502, "The ML service returned an invalid prediction response. Try again.")
+    return result
+
+
+def ml_failure(error: HTTPError) -> tuple[int, str]:
+    """Keep the ML service's own reason (missing/incompatible model) visible to the map."""
+    try:
+        detail = json.load(error).get("detail")
+    except (ValueError, AttributeError, OSError):
+        detail = None
+    if error.code == 503:
+        reason = detail if isinstance(detail, str) and detail else "The road-risk model is not loaded."
+        return 503, f"Road prediction unavailable. {reason[:400]}"
+    return 502, f"The ML service could not complete this prediction (HTTP {error.code}). Try again."
 
 
 @router.get("/map/hotspots")

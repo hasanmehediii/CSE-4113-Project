@@ -59,7 +59,7 @@ This avoids another deployment, environment, and monitoring stack for a small CP
 | `POST /road-risk/predict` on ML | Internal inference, body `{"at":"2026-10-20T18:00:00+06:00","rainfall_mm":25}` |
 | `GET /road-risk/model` on ML | Version, dataset hash, evaluation and limitations |
 
-Missing or incompatible road-risk weights produce 503 for prediction while complaint classification and liveness remain independent. `/ready` continues to mean the complaint classifier is ready; it does not promise that the road model is loaded.
+Missing or incompatible road-risk weights produce 503 for prediction while complaint classification and liveness remain independent. The 503 `detail` states whether the file is missing, unreadable or incompatible (for example, its road mapping no longer matches the catalog) and which training command to run. `/ready` continues to mean the complaint classifier is ready; it does not promise that the road model is loaded, but its `road_risk_model` field shows `loaded` or the road-risk load error.
 
 ## Generate and train
 
@@ -90,5 +90,7 @@ The dataset contains `road_id`, offset-aware `at`, `rainfall_mm`, and binary `wa
 A multi-output random forest predicts the two probabilities from cyclic hour features, weekday, month, rainfall, and assumed road factors. Evaluation uses the earlier 80% of timestamps for training and the later 20% for holdout, grouping every road at the same timestamp together. F1 and Brier scores are recorded separately for each label; the serving model is then fitted on all rows. The generated labels are stochastic, so perfect scores are neither expected nor desirable.
 
 **Presentation wording:** “Our working prototype combines community observations and an independent road-risk model using open-source maps. The initial model is trained on generated hourly scenarios. It demonstrates the prediction pipeline; real-world forecast accuracy has not yet been established. We can switch the live map to Google Maps through environment settings.”
+
+The Dhaka weather widget is informational only: prediction rainfall is always the scenario amount typed into the map, never the widget's reading. See the [road coverage and prediction explanation audit](ROAD_COVERAGE_AUDIT.md) for mapped/unmapped segment counts and mapping findings.
 
 The displayed probabilities are uncalibrated model outputs. Synthetic holdout scores measure how well the model learns the simulator, not performance on Dhaka roads. Before treating this as a real forecast, collect independently observed road conditions and timestamped weather/traffic features, replace the simulated factors and labels, retrain, calibrate, and validate on a separate real time period. Do not relabel generated rows as real observations.

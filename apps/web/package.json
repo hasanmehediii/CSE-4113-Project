@@ -12,7 +12,8 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "node --test tests/*.test.mjs && tsx --test tests/*.test.tsx",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts"
   },
   "dependencies": {
     "leaflet": "1.9.4",
@@ -21,6 +22,7 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.57.0",
     "@tailwindcss/postcss": "4.3.3",
     "@types/jsdom": "^21.1.7",
     "@types/leaflet": "^1.9.22",
