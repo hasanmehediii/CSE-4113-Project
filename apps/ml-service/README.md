@@ -61,7 +61,7 @@ http://localhost:8001/. Swagger UI: http://localhost:8001/docs.
 | --- | --- |
 | `GET /` | HTML model overview and classification playground |
 | `GET /health` | Process liveness, independent of the model |
-| `GET /ready` | Returns 200 only when a classifier is loaded; otherwise 503 |
+| `GET /ready` | Returns 200 only when a classifier is loaded; otherwise 503. Also reports `road_risk_model` (`loaded` or the load error) |
 | `POST /classify` | Classify a complaint supplied as `{"text": "..."}` |
 | `GET /model` | Inspect model metadata and its training report |
 
@@ -76,8 +76,12 @@ categories, `model_version`, and `data_source`. Confidence is an uncalibrated mo
 not a guarantee of correctness. The classifier always selects one of the six categories;
 unrelated or unfamiliar text may still receive an incorrect prediction.
 Blank text, missing text, and text longer than 5000 characters return 422.
-If the artifact is missing, corrupt, or incompatible, classification returns 503 with a
-training instruction while `/health` remains available. Startup logs contain the load error.
+If the artifact is missing, corrupt, or incompatible, classification returns 503 while
+`/health` remains available. The 503 `detail` names the file and the reason: a missing
+file says which training command to run; a corrupt or incompatible file (for example a
+road-risk model trained before a road-catalog change, or a different scikit-learn version)
+says why it failed and to retrain explicitly, because startup never replaces an existing
+artifact. The same text is logged at startup.
 
 ## Replace the dataset and retrain
 

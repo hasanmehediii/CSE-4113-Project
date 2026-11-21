@@ -1,0 +1,32 @@
+# Isolated browser smoke-test stack, layered on infra/docker-compose.local.yml.
+# Used by `pnpm test:e2e` with its own project name (dubsibhai-e2e), so it gets
+# separate containers and volumes and never touches the normal development data.
+# Only the web app and API are published, on alternate localhost ports.
+services:
+  db:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  mongodb:
+    ports: !reset []
+  mailpit:
+    ports: !reset []
+  ml-service:
+    ports: !reset []
+  api:
+    ports: !override ["127.0.0.1:${E2E_API_PORT:-18000}:8000"]
+    environment:
+      FRONTEND_URL: http://localhost:${E2E_WEB_PORT:-13000}
+      API_CORS_ORIGINS: '["http://localhost:${E2E_WEB_PORT:-13000}"]'
+      # Never provision the real mayor from the root .env; fixtures create synthetic accounts.
+      ADMIN_EMAIL: ""
+      ADMIN_PASSWORD: ""
+      # The fixture script refuses to run anywhere this marker is missing.
+      E2E_ISOLATED_STACK: "1"
+  web:
+    ports: !override ["127.0.0.1:${E2E_WEB_PORT:-13000}:3000"]
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:${E2E_API_PORT:-18000}
+  nginx:
+    # Not needed by the browser test; keep it from claiming port 8080.
+    profiles: ["e2e-unused"]
