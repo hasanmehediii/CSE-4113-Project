@@ -1,11 +1,11 @@
 "use client";
 import { useRef, type FormEvent } from "react";
 import { useCivicLocale } from "@/hooks/useCivicLocale";
-import type { RoadForecast } from "@/lib/road-map";
+import type { PredictionFailure, RoadForecast } from "@/lib/road-map";
 
 interface Props {
   at: string; rain: string; horizon: number; hazard: "waterlogging" | "traffic";
-  forecast: RoadForecast | null; error: string; predicting: boolean; stale: boolean;
+  forecast: RoadForecast | null; error: PredictionFailure | null; predicting: boolean; stale: boolean;
   onAt: (value: string) => void; onRain: (value: string) => void;
   onHorizon: (value: number) => void; onHazard: (value: "waterlogging" | "traffic") => void;
   onPredict: (event: FormEvent) => void;
@@ -32,7 +32,11 @@ export default function RoadPredictionPanel(props: Props) {
       <button type="button" aria-pressed={props.hazard === "traffic"} onClick={() => props.onHazard("traffic")}>{tr("Traffic jam")}</button>
     </div>
     {/* Retry resubmits the same inputs through the form, so browser validation still applies. */}
-    {props.error && <p role="alert" className="road-form-error">{props.error} <button type="button" className="road-retry" disabled={props.predicting} onClick={() => form.current?.requestSubmit()}>{tr("Retry")}</button></p>}
+    {props.error && <div role="alert" className="road-form-error">
+      <p>{tr(props.error.message)} <button type="button" className="road-retry" disabled={props.predicting} onClick={() => form.current?.requestSubmit()}>{tr("Retry")}</button></p>
+      {/* The ML service's own reason is for whoever runs the service; it is not translated. */}
+      {props.error.detail && <details className="road-error-detail"><summary>{tr("Technical details")}</summary><code>{props.error.detail}</code></details>}
+    </div>}
     {props.stale && <p role="status">{tr("Inputs changed. Run the prediction again to update the map.")}</p>}
     {props.forecast && !props.stale && <>
       <p className="road-model-version">{tr("Scenario result")} · {props.forecast.at.replace("T", " ")}<br />{props.forecast.model_version}</p>
