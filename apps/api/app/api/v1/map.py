@@ -142,10 +142,37 @@ def predictions(
             503, "Road prediction service is not reachable. Start the ML service, then try again."
         ) from None
     except ValueError:
-        raise HTTPException(502, "The ML service returned an invalid prediction response. Try again.") from None
-    if not isinstance(result, dict) or not isinstance(result.get("roads"), list):
-        raise HTTPException(502, "The ML service returned an invalid prediction response. Try again.")
+        raise HTTPException(502, INVALID_PREDICTION) from None
+    if not valid_forecast(result, forecast_horizon_min):
+        raise HTTPException(502, INVALID_PREDICTION)
     return result
+
+
+INVALID_PREDICTION = "The ML service returned an invalid prediction response. Try again."
+
+
+def _probability(value) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool) and 0 <= value <= 1
+
+
+def valid_forecast(result, horizon: int) -> bool:
+    """The map renders `at` and every road's probabilities, so require them before answering 200."""
+    if not isinstance(result, dict) or not isinstance(result.get("roads"), list):
+        return False
+    try:
+        if datetime.fromisoformat(result["at"]).tzinfo is None:
+            return False
+    except (KeyError, TypeError, ValueError):
+        return False
+    # A response for another horizon would be shown against the wrong scenario.
+    if result.get("forecast_horizon_min", horizon) != horizon:
+        return False
+    return all(
+        isinstance(road, dict) and isinstance(road.get("road_id"), str)
+        and _probability(road.get("waterlogging_probability"))
+        and _probability(road.get("traffic_probability"))
+        for road in result["roads"]
+    )
 
 
 def ml_failure(error: HTTPError) -> tuple[int, str]:
@@ -157,6 +184,9 @@ def ml_failure(error: HTTPError) -> tuple[int, str]:
     if error.code == 503:
         reason = detail if isinstance(detail, str) and detail else "The road-risk model is not loaded."
         return 503, f"Road prediction unavailable. {reason[:400]}"
+    if error.code == 422 and isinstance(detail, str) and detail:
+        # A scenario the loaded model cannot serve, e.g. a legacy model and a 30-minute horizon.
+        return 422, detail[:400]
     return 502, f"The ML service could not complete this prediction (HTTP {error.code}). Try again."
 
 

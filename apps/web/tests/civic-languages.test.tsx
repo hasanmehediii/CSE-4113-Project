@@ -32,6 +32,8 @@ let application: null | { status: string; review_note: string } = null;
 let submittedReport: Record<string, unknown> | null = null;
 let predictionQuery = "";
 let predictionFailures = 0;
+// Scripted /map/predictions responses, used in order before the default success body.
+let predictionScript: ((url: URL) => Response)[] = [];
 let destination = "";
 const originalFetch = globalThis.fetch;
 
@@ -72,6 +74,8 @@ before(async () => {
         predictionFailures -= 1;
         return new Response(JSON.stringify({ detail: "Road prediction service is not reachable. Start the ML service, then try again." }), { status: 503 });
       }
+      const scripted = predictionScript.shift();
+      if (scripted) return scripted(url);
       return new Response(JSON.stringify({ at: url.searchParams.get("at"), rainfall_mm: Number(url.searchParams.get("rainfall_mm")), forecast_horizon_min: Number(url.searchParams.get("forecast_horizon_min") || 60), timezone: "Asia/Dhaka", data_source: "synthetic", model_version: "test-road-risk-v1", roads: [
         { road_id: "bad-road", waterlogging_probability: .8, traffic_probability: .2, risk: "high" },
         { road_id: "good-road", waterlogging_probability: .1, traffic_probability: .7, risk: "high" },
@@ -146,6 +150,7 @@ afterEach(async () => {
   submittedReport = null;
   predictionQuery = "";
   predictionFailures = 0;
+  predictionScript = [];
   destination = "";
   userRole = "citizen";
   adminMutation = null;
@@ -699,6 +704,78 @@ test("predictions use Dhaka time, switch hazard probabilities, and hide stale sc
   });
   await act(async () => { document.querySelector(".road-prediction-panel form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
   assert.equal(new URLSearchParams(predictionQuery).get("forecast_horizon_min"), "120");
+});
+
+function predictionBody(url: URL, changes: Record<string, unknown> = {}) {
+  return new Response(JSON.stringify({ at: url.searchParams.get("at"), rainfall_mm: Number(url.searchParams.get("rainfall_mm")), timezone: "Asia/Dhaka", data_source: "synthetic", model_version: "legacy-road-risk", roads: [
+    { road_id: "bad-road", waterlogging_probability: .8, traffic_probability: .2, risk: "high" },
+    { road_id: "good-road", waterlogging_probability: .1, traffic_probability: .7, risk: "high" },
+  ], ...changes }));
+}
+async function openPredictions() {
+  await act(async () => { document.querySelectorAll<HTMLButtonElement>(".road-mode-tabs button")[2].click(); });
+}
+async function submitPrediction() {
+  await act(async () => { document.querySelector(".road-prediction-panel form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
+}
+async function retryPrediction() {
+  await act(async () => { document.querySelector<HTMLButtonElement>(".road-prediction-panel .road-form-error button.road-retry")!.click(); });
+}
+const riskValues = () => [...document.querySelectorAll(".road-risk-value")].map(element => element.textContent);
+
+test("an incomplete prediction response shows Retry instead of crashing the map (issue #6)", async () => {
+  mapFixtures = true;
+  predictionScript = [() => new Response(JSON.stringify({ data_source: "synthetic", roads: [] }))];
+  await mount(CityMap);
+  await openPredictions();
+  await submitPrediction();
+  const alert = document.querySelector(".road-prediction-panel .road-form-error")!;
+  assert.ok(alert.textContent!.includes("The ML service returned an invalid prediction response."));
+  assert.ok(riskValues().every(value => value === "—"));
+  await retryPrediction();
+  assert.equal(document.querySelector(".road-prediction-panel .road-form-error"), null);
+  assert.deepEqual(riskValues(), ["80%", "10%"]);
+});
+
+test("prediction failures explain the problem and next step in Bangla (issue #5)", async () => {
+  mapFixtures = true;
+  predictionFailures = 1;
+  predictionScript = [() => new Response(JSON.stringify({ detail: "Road prediction unavailable. Road-risk model unavailable: road-risk.joblib is incompatible: Artifact mapping does not match the current map catalog." }), { status: 503 })];
+  await mount(CityMap);
+  await toggle();
+  await openPredictions();
+  await submitPrediction();
+  let alert = document.querySelector(".road-prediction-panel .road-form-error")!;
+  assert.ok(alert.textContent!.includes("এমএল সেবা চালু করে আবার চেষ্টা করুন"));
+  assert.ok(!/[A-Za-z]/.test(alert.querySelector("p")!.textContent!), "the visible message is fully Bangla");
+  assert.equal(alert.querySelector("button.road-retry")!.textContent, "আবার চেষ্টা করুন");
+  await retryPrediction();
+  alert = document.querySelector(".road-prediction-panel .road-form-error")!;
+  assert.ok(alert.querySelector("p")!.textContent!.includes("রাস্তার ঝুঁকির মডেল লোড না থাকায়"));
+  assert.equal(alert.querySelector("summary")!.textContent, "কারিগরি বিস্তারিত");
+  assert.ok(alert.querySelector("code")!.textContent!.includes("road-risk.joblib is incompatible"));
+  await retryPrediction();
+  assert.equal(document.querySelector(".road-prediction-panel .road-form-error"), null);
+  assert.deepEqual(riskValues(), ["৮০%", "১০%"]);
+});
+
+test("30 and 120 minute results stay visible even when the response omits the horizon (issue #12)", async () => {
+  mapFixtures = true;
+  predictionScript = [url => predictionBody(url), url => predictionBody(url)];
+  await mount(CityMap);
+  await openPredictions();
+  const horizon = document.querySelector<HTMLSelectElement>(".road-prediction-panel select")!;
+  for (const minutes of ["30", "120"]) {
+    await act(async () => { horizon.value = minutes; horizon.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
+    await submitPrediction();
+    assert.equal(new URLSearchParams(predictionQuery).get("forecast_horizon_min"), minutes);
+    assert.ok(!content().includes("Inputs changed. Run the prediction again"), `${minutes}-minute result is not hidden`);
+    assert.deepEqual(riskValues(), ["80%", "10%"]);
+  }
+  predictionScript = [() => new Response(JSON.stringify({ detail: "The loaded road-risk model supports only the 60-minute horizon. Choose 60 minutes, or retrain the model with the supplied dataset." }), { status: 422 })];
+  await act(async () => { horizon.value = "30"; horizon.dispatchEvent(new dom.window.Event("change", { bubbles: true })); });
+  await submitPrediction();
+  assert.ok(document.querySelector(".road-prediction-panel .road-form-error")!.textContent!.includes("supports only the 60-minute horizon"));
 });
 
 test("a failed prediction explains the cause and Retry reruns the same scenario", async () => {

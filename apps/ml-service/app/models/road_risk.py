@@ -14,6 +14,10 @@ CATALOG = json.loads((REPO_ROOT / "packages/data/dhaka-main-roads.json").read_te
 DHAKA = timezone(timedelta(hours=6), name="Asia/Dhaka")
 FEATURES = ["hour_sin", "hour_cos", "weekday", "month", "rainfall_mm",
             "flood_factor", "traffic_factor"]
+LEGACY_HORIZON_MESSAGE = (
+    "The loaded road-risk model supports only the 60-minute horizon. "
+    "Choose 60 minutes, or retrain the model with the supplied dataset."
+)
 
 
 def features(at: datetime, rainfall_mm: float, road: dict) -> list[float]:
@@ -34,6 +38,8 @@ class RoadRiskModel:
         self.metadata = artifact["metadata"]
         self.profiles = artifact.get("profiles", {})
         self.road_segments = artifact.get("road_segments", {})
+        # Format 1 has no horizon feature; it must not pretend to forecast 30 or 120 minutes.
+        self.supported_horizons = (30, 60, 120) if self.format == 2 else (60,)
         if self.format == 2:
             if set(self.road_segments) != {road["id"] for road in CATALOG}:
                 raise ValueError("Artifact mapping does not match the current map catalog")
@@ -61,6 +67,7 @@ class RoadRiskModel:
                           "traffic_probability": round(traffic, 4),
                           "risk": "high" if risk >= .65 else "moderate" if risk >= .35 else "low"})
         return {"at": at.astimezone(DHAKA).isoformat(), "timezone": "Asia/Dhaka",
+                "forecast_horizon_min": 60,
                 "rainfall_mm": rainfall_mm, "weather_source": "user_scenario",
                 "data_source": self.metadata["data_source"],
                 "model_version": self.metadata["model_version"],

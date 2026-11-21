@@ -9,8 +9,7 @@ import LiveRoadMap from "./map/LiveRoadMap";
 import RoadReportForm from "./map/RoadReportForm";
 import RoadPredictionPanel from "./map/RoadPredictionPanel";
 import { api } from "@/lib/api-client";
-import { dhakaDateTime, mapProvider, type RoadForecast } from "@/lib/road-map";
-import { message } from "@/lib/civic";
+import { dhakaDateTime, isRoadForecast, mapProvider, PREDICTION_INVALID, predictionFailure, type PredictionFailure, type RoadForecast } from "@/lib/road-map";
 
 function reportCondition(row: Complaint) {
   return row.status === "resolved" ? "good" : row.condition || (row.kind === "complaint" ? "bad" : "unknown");
@@ -29,22 +28,26 @@ export default function CityMap() {
   const [rain, setRain] = useState("0");
   const [horizon, setHorizon] = useState(60);
   const [hazard, setHazard] = useState<"waterlogging" | "traffic">("waterlogging");
-  const [forecast, setForecast] = useState<RoadForecast | null>(null);
-  const [forecastError, setForecastError] = useState("");
+  // The scenario a forecast answers is the one we submitted; responses need not echo every field.
+  const [forecast, setForecast] = useState<{ result: RoadForecast; at: string; rain: number; horizon: number } | null>(null);
+  const [forecastError, setForecastError] = useState<PredictionFailure | null>(null);
   const [predicting, setPredicting] = useState(false);
   const predictionRequest = useRef(0);
   const selectRoad = useCallback((road: Road) => { setFocus(road); setPanel("roads"); }, []);
   const selected = roads.data?.find(road => road.id === focus?.id) || focus;
   const predictionMode = mode === "predictions";
-  const scenarioChanged = Boolean(forecast && (forecast.at.slice(0, 16) !== at || forecast.rainfall_mm !== Number(rain) || (forecast.forecast_horizon_min ?? 60) !== horizon));
+  const scenarioChanged = Boolean(forecast && (forecast.at !== at || forecast.rain !== Number(rain) || forecast.horizon !== horizon));
+  const result = forecast?.result ?? null;
   async function predict(event: FormEvent) {
     event.preventDefault();
     const request = ++predictionRequest.current;
-    setPredicting(true); setForecastError(""); setForecast(null);
+    const scenario = { at, rain: Number(rain), horizon };
+    setPredicting(true); setForecastError(null); setForecast(null);
     try {
-      const result = await api<RoadForecast>(`/map/predictions?at=${encodeURIComponent(`${at}:00+06:00`)}&rainfall_mm=${encodeURIComponent(rain)}&forecast_horizon_min=${horizon}`);
-      if (request === predictionRequest.current) setForecast(result);
-    } catch (error) { if (request === predictionRequest.current) setForecastError(message(error)); }
+      const response = await api<unknown>(`/map/predictions?at=${encodeURIComponent(`${at}:00+06:00`)}&rainfall_mm=${encodeURIComponent(rain)}&forecast_horizon_min=${horizon}`);
+      if (!isRoadForecast(response)) throw new Error(PREDICTION_INVALID);
+      if (request === predictionRequest.current) setForecast({ result: response, ...scenario });
+    } catch (error) { if (request === predictionRequest.current) setForecastError(predictionFailure(error)); }
     finally { if (request === predictionRequest.current) setPredicting(false); }
   }
   const search = query.trim().toLocaleLowerCase();
@@ -70,16 +73,16 @@ export default function CityMap() {
         </div>
         <div className="city-map-feedback"><Feedback error={roads.error || reports.error} retry={() => { void roads.reload(); void reports.reload(); }} /></div>
         <div className="city-map-workspace">
-          <div className="city-map-surface"><LiveRoadMap roads={selectedRoads} complaints={mode === "community" ? selectedReports : []} focus={selected} onSelectRoad={selectRoad} risks={scenarioChanged ? undefined : forecast?.roads} hazard={hazard} predictionMode={predictionMode} /><div className="road-map-instruction"><span aria-hidden="true">↗</span><div><strong>{tr(predictionMode ? "Explore a time & rain scenario" : "Tap a highlighted road")}</strong><span>{tr(predictionMode ? "Dashed lines show predicted risk, not live conditions." : "Choose a segment, then share what you see.")}</span></div></div><span className="city-map-access-label">{tr("Public map · No account needed")}</span></div>
+          <div className="city-map-surface"><LiveRoadMap roads={selectedRoads} complaints={mode === "community" ? selectedReports : []} focus={selected} onSelectRoad={selectRoad} risks={scenarioChanged ? undefined : result?.roads} hazard={hazard} predictionMode={predictionMode} /><div className="road-map-instruction"><span aria-hidden="true">↗</span><div><strong>{tr(predictionMode ? "Explore a time & rain scenario" : "Tap a highlighted road")}</strong><span>{tr(predictionMode ? "Dashed lines show predicted risk, not live conditions." : "Choose a segment, then share what you see.")}</span></div></div><span className="city-map-access-label">{tr("Public map · No account needed")}</span></div>
           <aside className="city-map-activity" aria-label={tr("Map activity")}>
             <div className="city-map-panel-heading"><span className="city-map-live-dot" aria-hidden="true" /><h2>{tr(predictionMode ? "Road forecast" : "Road watch")}</h2><span>{tr(predictionMode ? "Scenario view" : "Updates every 20s")}</span></div>
             {!predictionMode && <div className="city-map-panel-tabs" role="group" aria-label={tr("Map activity")}><button type="button" aria-pressed={panel === "reports"} onClick={() => setPanel("reports")}>{tr("Recent reports")}<span>{number(selectedReports.length)}</span></button><button type="button" aria-pressed={panel === "roads"} onClick={() => setPanel("roads")}>{tr("Roads")}<span>{number(selectedRoads.length)}</span></button></div>}
             <div className="city-map-activity-list">
               <h3 className="city-map-list-title">{tr(predictionMode ? "Road risk estimates" : panel === "reports" ? "Latest community reports" : "Road conditions")}</h3>
               {(roads.loading || reports.loading) && <p className="city-map-loading" role="status">{tr("Loading…")}</p>}
-              {predictionMode && <RoadPredictionPanel at={at} rain={rain} horizon={horizon} hazard={hazard} forecast={forecast} error={forecastError} predicting={predicting} stale={scenarioChanged} onAt={setAt} onRain={setRain} onHorizon={setHorizon} onHazard={setHazard} onPredict={predict} />}
+              {predictionMode && <RoadPredictionPanel at={at} rain={rain} horizon={horizon} hazard={hazard} forecast={result} error={forecastError} predicting={predicting} stale={scenarioChanged} onAt={setAt} onRain={setRain} onHorizon={setHorizon} onHazard={setHazard} onPredict={predict} />}
               {selected && !predictionMode && <RoadReportForm key={selected.id} road={selected} onClose={() => setFocus(null)} onSaved={() => { void roads.reload(); void reports.reload(); }} />}
-              {panel === "reports" && !predictionMode ? selectedReports.map(row => <Link className="city-map-report" key={row.id} href={`/complaints/${row.id}`}><div><span className={`civic-badge ${row.status}`}>{label(row.status)}</span><span>{label(row.category_code)}</span></div><h3>{row.title}</h3><p>{row.address}</p><span className="city-map-report-link">{tr("View report")} →</span></Link>) : selectedRoads.map(row => { const risk = !scenarioChanged && forecast?.roads.find(r => r.road_id === row.id); const probability = risk ? hazard === "waterlogging" ? risk.waterlogging_probability : risk.traffic_probability : null; return <button type="button" className="city-map-road" key={row.id} aria-pressed={focus?.id === row.id} onClick={() => selectRoad(row)}><span><strong>{row.name}</strong>{predictionMode ? <span className="road-risk-value">{probability === null ? "—" : `${number(Math.round(probability * 100))}%`}</span> : <span className={`civic-badge ${row.condition}`}>{label(row.condition)}</span>}</span><small>{row.segment_from ? `${row.segment_from} → ${row.segment_to}` : `${number(row.open_complaints)}${tr(" open · ")}${number(row.historical_reports_90d)}${tr(" in 90 days")}`}</small>{predictionMode && probability !== null && <small>{tr(forecast?.aggregation === "maximum_segment_probability" ? "Highest segment probability · uncalibrated" : "Model probability · uncalibrated")}</small>}{!predictionMode && row.sensitivity === "high" && <small className="city-map-sensitivity">{tr("Historically sensitive")}</small>}</button>; })}
+              {panel === "reports" && !predictionMode ? selectedReports.map(row => <Link className="city-map-report" key={row.id} href={`/complaints/${row.id}`}><div><span className={`civic-badge ${row.status}`}>{label(row.status)}</span><span>{label(row.category_code)}</span></div><h3>{row.title}</h3><p>{row.address}</p><span className="city-map-report-link">{tr("View report")} →</span></Link>) : selectedRoads.map(row => { const risk = !scenarioChanged && result?.roads.find(r => r.road_id === row.id); const probability = risk ? hazard === "waterlogging" ? risk.waterlogging_probability : risk.traffic_probability : null; return <button type="button" className="city-map-road" key={row.id} aria-pressed={focus?.id === row.id} onClick={() => selectRoad(row)}><span><strong>{row.name}</strong>{predictionMode ? <span className="road-risk-value">{probability === null ? "—" : `${number(Math.round(probability * 100))}%`}</span> : <span className={`civic-badge ${row.condition}`}>{label(row.condition)}</span>}</span><small>{row.segment_from ? `${row.segment_from} → ${row.segment_to}` : `${number(row.open_complaints)}${tr(" open · ")}${number(row.historical_reports_90d)}${tr(" in 90 days")}`}</small>{predictionMode && probability !== null && <small>{tr(result?.aggregation === "maximum_segment_probability" ? "Highest segment probability · uncalibrated" : "Model probability · uncalibrated")}</small>}{!predictionMode && row.sensitivity === "high" && <small className="city-map-sensitivity">{tr("Historically sensitive")}</small>}</button>; })}
               {!roads.loading && !reports.loading && !(panel === "reports" ? selectedReports.length : selectedRoads.length) && <div className="city-map-empty"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden="true"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg><h3>{tr("Nothing in this view yet")}</h3><p>{tr(query || condition !== "all" ? "Try another search or show all conditions." : panel === "reports" ? "Community reports will appear here as people share updates." : "Roads will appear here when the city road catalog is added.")}</p>{query || condition !== "all" ? <button type="button" onClick={() => { setQuery(""); setCondition("all"); }}>{tr("Clear filters")}</button> : <Link href="/complaints/new">{tr("Share a local update")} →</Link>}</div>}
             </div>
             <details className="city-map-help"><summary>{tr("How are conditions determined?")}</summary><p>{tr("Good reports expire after 24 hours. Open complaints keep a road marked bad until work is confirmed.")}</p><p>{tr("Predictions use a separate model trained on synthetic hourly scenarios. Rainfall is entered by you, not a live weather reading.")}</p><p>{tr("Highlighted roads follow OpenStreetMap geometry. Conditions apply to the selected corridor.")}</p></details>

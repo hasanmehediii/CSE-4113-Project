@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.models.road_risk import CATALOG, RoadRiskModel, features
+from app.models.road_risk import CATALOG, LEGACY_HORIZON_MESSAGE, RoadRiskModel, features
 from app.train_road_risk import generate_dataset, train
 
 
@@ -50,3 +50,19 @@ def test_inference_and_input_validation(road_model):
         app.state.road_risk = None
         assert client.post("/road-risk/predict", json={"at": "2026-10-20T08:00:00+06:00"}).status_code == 503
         assert client.get("/health").status_code == 200
+
+
+def test_legacy_model_only_serves_the_60_minute_horizon(road_model):
+    # A format-1 artifact has no horizon feature: 30 and 120 must be rejected clearly,
+    # not answered with a 60-minute result that omits the requested horizon.
+    with TestClient(app) as client:
+        app.state.road_risk = road_model[0]
+        for horizon in (30, 120):
+            result = client.post("/road-risk/predict", json={"at": "2026-10-20T08:00:00+06:00",
+                                                             "forecast_horizon_min": horizon})
+            assert result.status_code == 422
+            assert result.json()["detail"] == LEGACY_HORIZON_MESSAGE
+        result = client.post("/road-risk/predict", json={"at": "2026-10-20T08:00:00+06:00",
+                                                         "forecast_horizon_min": 60})
+        assert result.status_code == 200
+        assert result.json()["forecast_horizon_min"] == 60

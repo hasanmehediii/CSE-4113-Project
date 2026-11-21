@@ -83,7 +83,8 @@ def test_prediction_proxy_validation_and_unavailability(map_env, monkeypatch):
 
     def upstream(request, timeout):
         captured.append(json.loads(request.data))
-        return io.BytesIO(json.dumps({"data_source": "synthetic", "roads": []}).encode())
+        body = json.loads(request.data)
+        return io.BytesIO(json.dumps(forecast(body["at"], body["forecast_horizon_min"])).encode())
 
     monkeypatch.setattr("app.api.v1.map.urlopen", upstream)
     result = client.get("/api/v1/map/predictions", params={"at": at, "rainfall_mm": 25, "forecast_horizon_min": 30})
@@ -129,10 +130,65 @@ def test_prediction_failures_explain_the_cause(map_env, monkeypatch, failure, st
     assert "Train the road-risk model and start" not in response.json()["detail"]
 
 
-@pytest.mark.parametrize("body", [b"not json", b"[]", b'{"roads": null}'])
+def forecast(at, horizon=60, **changes):
+    """A complete ML prediction body; tests remove or break single fields."""
+    body = {"at": at, "forecast_horizon_min": horizon, "data_source": "synthetic", "roads": [
+        {"road_id": "dhaka-gulshan", "waterlogging_probability": 0.2, "traffic_probability": 0.7}]}
+    body.update(changes)
+    return body
+
+
+AT = "2026-11-21T08:00:00+06:00"
+
+
+@pytest.mark.parametrize("body", [b"not json", b"[]", b'{"roads": null}',
+    # Issue #6: HTTP 200 with a roads list but no `at` crashed the map.
+    json.dumps({"data_source": "synthetic", "roads": []}).encode(),
+    json.dumps(forecast("not a time")).encode(),
+    json.dumps(forecast("2026-11-21T08:00:00")).encode(),          # no timezone
+    json.dumps(forecast(AT, horizon=120)).encode(),                  # another horizon
+    json.dumps(forecast(AT, roads=[{"waterlogging_probability": 0.2, "traffic_probability": 0.7}])).encode(),
+    json.dumps(forecast(AT, roads=[{"road_id": "x", "waterlogging_probability": 1.5, "traffic_probability": 0.1}])).encode(),
+    json.dumps(forecast(AT, roads=[{"road_id": "x", "waterlogging_probability": True, "traffic_probability": 0.1}])).encode(),
+    json.dumps(forecast(AT, roads=["dhaka-gulshan"])).encode(),
+])
 def test_prediction_rejects_malformed_ml_response(map_env, monkeypatch, body):
     client, _ = map_env
     monkeypatch.setattr("app.api.v1.map.urlopen", lambda request, timeout: io.BytesIO(body))
     response = client.get("/api/v1/map/predictions", params={"at": datetime.now(UTC).isoformat()})
     assert response.status_code == 502
     assert "invalid prediction response" in response.json()["detail"]
+
+
+def test_prediction_accepts_a_complete_response(map_env, monkeypatch):
+    client, _ = map_env
+    monkeypatch.setattr("app.api.v1.map.urlopen", lambda request, timeout: io.BytesIO(json.dumps(
+        forecast(json.loads(request.data)["at"])).encode()))
+    response = client.get("/api/v1/map/predictions", params={"at": datetime.now(UTC).isoformat()})
+    assert response.status_code == 200
+    assert response.json()["roads"][0]["road_id"] == "dhaka-gulshan"
+
+
+def test_unsupported_horizon_keeps_the_ml_explanation(map_env, monkeypatch):
+    # Issue #12: a legacy model rejects 30/120 minutes; the map needs that reason, not a 502.
+    client, _ = map_env
+    reason = ("The loaded road-risk model supports only the 60-minute horizon. "
+              "Choose 60 minutes, or retrain the model with the supplied dataset.")
+
+    def upstream(request, timeout):
+        raise HTTPError("http://ml/road-risk/predict", 422, "Unprocessable", {},
+                        io.BytesIO(json.dumps({"detail": reason}).encode()))
+
+    monkeypatch.setattr("app.api.v1.map.urlopen", upstream)
+    response = client.get("/api/v1/map/predictions",
+                          params={"at": datetime.now(UTC).isoformat(), "forecast_horizon_min": 30})
+    assert response.status_code == 422
+    assert response.json()["detail"] == reason
+
+    def invalid_request(request, timeout):
+        raise HTTPError("http://ml/road-risk/predict", 422, "Unprocessable", {},
+                        io.BytesIO(json.dumps({"detail": [{"loc": ["body", "at"], "msg": "bad"}]}).encode()))
+
+    monkeypatch.setattr("app.api.v1.map.urlopen", invalid_request)
+    # A validation list means the API sent a bad request: an internal error, not user input.
+    assert client.get("/api/v1/map/predictions", params={"at": datetime.now(UTC).isoformat()}).status_code == 502

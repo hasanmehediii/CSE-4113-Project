@@ -38,3 +38,4 @@
 @media (prefers-reduced-motion:reduce) { .city-map-activity-list { scroll-behavior:auto; } }
 .road-retry { margin-left:6px; padding:1px 8px; border:1px solid currentColor; border-radius:4px; background:transparent; color:inherit; font:inherit; cursor:pointer; }.road-retry:disabled { opacity:.5; cursor:wait; }
 .road-rain-help { display:block; margin:-8px 0 12px; color:var(--muted); font-size:10px; line-height:16px; }
+.road-form-error p { margin:0; }.road-error-detail { margin-top:6px; color:var(--muted); }.road-error-detail summary { cursor:pointer; }.road-error-detail code { display:block; margin-top:4px; white-space:pre-wrap; overflow-wrap:anywhere; font-size:11px; }
