@@ -915,3 +915,24 @@ test("account service links translate properly between English and Bangla", asyn
   assert.ok(content().includes("সমস্যা জানান"));
   assert.ok(content().includes("সেবাকর্মী আবেদন"));
 });
+
+test("civicValidationMessage formats invalid email address message in English and Bangla (Issue #4)", async () => {
+  const { civicValidationMessage } = await import("../src/lib/civic-i18n");
+  assert.equal(civicValidationMessage({ typeMismatch: true }, { type: "email" }, "en"), "Enter a valid email address.");
+  assert.equal(civicValidationMessage({ typeMismatch: true }, { type: "email" }, "bn"), "একটি সঠিক ইমেইল ঠিকানা দিন।");
+});
+
+test("road prediction failure displays translated error message in Bangla mode and keeps retry (Issue #5)", async () => {
+  mapFixtures = true;
+  predictionFailures = 1;
+  await mount(CityMap);
+  await toggle();
+  await act(async () => { document.querySelectorAll<HTMLButtonElement>(".road-mode-tabs button")[2].click(); });
+  await act(async () => { document.querySelector(".road-prediction-panel form")!.dispatchEvent(new dom.window.Event("submit", { bubbles: true, cancelable: true })); });
+  const alert = document.querySelector(".road-prediction-panel .road-form-error")!;
+  assert.ok(alert.textContent!.includes("রাস্তার পূর্বাভাস সেবা পাওয়া যাচ্ছে না। এমএল সেবা চালু করে আবার চেষ্টা করুন।"));
+  assert.ok(alert.querySelector<HTMLButtonElement>("button.road-retry")?.textContent?.includes("আবার চেষ্টা"));
+  await act(async () => { alert.querySelector<HTMLButtonElement>("button.road-retry")!.click(); });
+  assert.equal(document.querySelector(".road-prediction-panel .road-form-error"), null);
+});
+
