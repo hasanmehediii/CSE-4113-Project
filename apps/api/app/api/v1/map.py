@@ -12,6 +12,7 @@ from app.core.dependencies import Database
 from app.models.civic import Area, Category, Complaint, Road, now
 from app.services.civic_service import OPEN
 from app.services.road_catalog import MAIN_ROADS
+from app.services.road_status import road_status
 
 router = APIRouter(tags=["Public map"])
 
@@ -113,6 +114,15 @@ def roads(
             }
         )
     return results
+
+
+@router.get("/map/road-status")
+def map_road_status(db: Database, at: AwareDatetime | None = None):
+    """Traffic and waterlogging per main road from community reports (last 4 hours),
+    the synthetic historical profile for `at` (default now), and Open-Meteo rainfall."""
+    if at and abs(at.timestamp() - datetime.now(UTC).timestamp()) > 366 * 86400:
+        raise HTTPException(422, "Choose a time within a year of now")
+    return road_status(db, at)
 
 
 @router.get("/map/predictions")
