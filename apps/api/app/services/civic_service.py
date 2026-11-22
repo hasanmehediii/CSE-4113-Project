@@ -24,11 +24,17 @@ from app.models.civic import (
     WorkerLocation,
     now,
 )
-from app.models.user import User
+from app.models.user import AuthSession, User
 
 OPEN = ("open", "assigned", "awaiting_confirmation", "disputed")
 INCIDENT_RADIUS_KM = 0.08
 INCIDENT_WINDOW_SECONDS = 86400
+# A report earns points only after others confirm it: 5 verified citizens or 3 approved workers.
+VERIFY_CITIZEN_LIKES = 5
+VERIFY_WORKER_CONFIRMATIONS = 3
+REPORT_POINTS = 1
+# This many citizen dislikes send the report to an administrator, who may block the reporter.
+DISLIKES_FOR_REVIEW = 5
 
 
 def event(db, event_type, aggregate_id, **payload):
@@ -147,13 +153,9 @@ def create_complaint(db: Session, user: User, data):
             parent.road_id = data.road_id
     db.add_all(ComplaintImage(complaint_id=row.id, url=url) for url in data.images)
     canonical_id = parent.id if parent else row.id
-    previous = db.scalar(select(Complaint.id).where(
-        incident_members(canonical_id), Complaint.author_id == user.id, Complaint.id != row.id
-    ).limit(1)) if row.kind == "complaint" else None
-    row.points_awarded = 0 if previous else 1
-    if not previous:
-        source = f"incident:{canonical_id}:{user.id}" if row.kind == "complaint" else f"report:{row.id}"
-        points(db, user.id, 1, row.kind, source, row.id)
+    row.points_awarded = 0
+    if parent and parent.verified_at and parent.status != "false":
+        row.points_awarded = award_verified(db, parent, [user.id])
     event(
         db,
         "complaint.created",
@@ -190,11 +192,89 @@ def vote_counts(db, model, target_field, target_id):
     return {"likes": counts.get(1, 0), "dislikes": counts.get(-1, 0)}
 
 
+def worker_confirmations(db, incident_id):
+    """Confirmations (likes) from active approved workers who did not report the incident."""
+    return db.scalar(
+        select(func.count())
+        .select_from(ComplaintVote)
+        .join(User, User.id == ComplaintVote.user_id)
+        .join(WorkerApplication, WorkerApplication.user_id == User.id)
+        .where(
+            ComplaintVote.complaint_id == incident_id,
+            ComplaintVote.value == 1,
+            User.is_active.is_(True),
+            User.role == "worker",
+            WorkerApplication.status == "approved",
+            ~select(Complaint.id).where(
+                incident_members(incident_id), Complaint.author_id == User.id
+            ).exists(),
+        )
+    )
+
+
+def report_votes(db, incident_id):
+    return {
+        **vote_counts(db, ComplaintVote, ComplaintVote.complaint_id, incident_id),
+        "worker_confirmations": worker_confirmations(db, incident_id),
+    }
+
+
+def award_verified(db, row, user_ids):
+    """1 point per reporter per verified incident; returns the points given to the last user."""
+    given = 0
+    for user_id in user_ids:
+        source = f"verified:{row.id}:{user_id}"
+        given = 0 if db.scalar(select(PointEntry.id).where(PointEntry.source_key == source)) else REPORT_POINTS
+        points(db, user_id, REPORT_POINTS, "report_verified", source, row.id)
+    return given
+
+
+def check_verified(db, row):
+    """5 verified citizens or 3 approved workers confirming the report verify it; every
+    reporter of the incident then receives points once."""
+    if row.verified_at or row.status == "false":
+        return
+    votes = report_votes(db, row.id)
+    if votes["likes"] < VERIFY_CITIZEN_LIKES and votes["worker_confirmations"] < VERIFY_WORKER_CONFIRMATIONS:
+        return
+    row.verified_at = now()
+    reporters = db.scalars(
+        select(Complaint.author_id).where(incident_members(row.id)).distinct().order_by(Complaint.author_id)
+    ).all()
+    award_verified(db, row, reporters)
+    event(db, "complaint.verified", row.id, reporters=len(reporters))
+
+
+def false_ruling(db, row):
+    """Mark a report false: its author forfeits their points and unfinished work is cancelled."""
+    # Serialize against concurrent credits before reading the balance for forfeiture.
+    db.scalar(select(User).where(User.id == row.author_id).with_for_update())
+    points(
+        db,
+        row.author_id,
+        -balance(db, row.author_id),
+        "false_report_forfeiture",
+        f"false:{row.id}",
+        row.id,
+    )
+    set_incident_status(db, row, "false")
+    for assignment in db.scalars(
+        select(Assignment).where(Assignment.complaint_id == row.id, Assignment.status == "active")
+    ):
+        assignment.status = "cancelled"
+    event(db, "complaint.false", row.id, subject_user_id=row.author_id)
+
+
 def check_false(db, row):
     if row.status == "false":
         return
     if db.scalar(select(ModerationCase.id).where(ModerationCase.source_key == f"false:{row.id}")):
         return  # An administrator's adjudication is final for this report.
+    disliked = db.scalar(
+        select(ModerationCase).where(ModerationCase.source_key == f"disliked:{row.id}").with_for_update()
+    )
+    if disliked and disliked.status != "open":
+        return  # An administrator already reviewed this report.
     votes = vote_counts(db, ComplaintVote, ComplaintVote.complaint_id, row.id)
     workers = db.scalar(
         select(func.count())
@@ -211,32 +291,33 @@ def check_false(db, row):
             ).exists(),
         )
     )
-    if votes["dislikes"] < 5 or workers < 2:
+    if votes["dislikes"] < DISLIKES_FOR_REVIEW:
         return
-    # Serialize against concurrent credits before reading the balance for forfeiture.
-    db.scalar(select(User).where(User.id == row.author_id).with_for_update())
-    points(
-        db,
-        row.author_id,
-        -balance(db, row.author_id),
-        "false_report_forfeiture",
-        f"false:{row.id}",
-        row.id,
-    )
-    set_incident_status(db, row, "false")
-    for assignment in db.scalars(
-        select(Assignment).where(Assignment.complaint_id == row.id, Assignment.status == "active")
-    ):
-        assignment.status = "cancelled"
-    db.add(
-        ModerationCase(
-            subject_user_id=row.author_id,
-            complaint_id=row.id,
-            source_key=f"false:{row.id}",
-            kind="false_complaint",
+    if workers < 2:
+        # Dislikes alone do not mark a report false; an administrator reviews it
+        # and may rule it false and block the reporter.
+        if not disliked:
+            db.add(ModerationCase(
+                subject_user_id=row.author_id,
+                complaint_id=row.id,
+                source_key=f"disliked:{row.id}",
+                kind="disliked_report",
+            ))
+            event(db, "complaint.disliked", row.id, subject_user_id=row.author_id)
+        return
+    false_ruling(db, row)
+    if disliked:
+        # Keep one case per report: the open review becomes the false-report case.
+        disliked.kind, disliked.source_key = "false_complaint", f"false:{row.id}"
+    else:
+        db.add(
+            ModerationCase(
+                subject_user_id=row.author_id,
+                complaint_id=row.id,
+                source_key=f"false:{row.id}",
+                kind="false_complaint",
+            )
         )
-    )
-    event(db, "complaint.false", row.id, subject_user_id=row.author_id)
 
 
 def vote_complaint(db, user, complaint_id, value):
@@ -247,6 +328,10 @@ def vote_complaint(db, user, complaint_id, value):
         raise HTTPException(403, "You cannot vote on your own report")
     if row.status == "false":
         raise HTTPException(409, "This report has been marked false")
+    if user.role == "worker":
+        if value != 1:
+            raise HTTPException(422, "Workers dispute a report with false-information evidence instead")
+        approved_worker(db, user.id)
     vote = db.get(ComplaintVote, (row.id, user.id))
     if vote:
         vote.value = value
@@ -254,7 +339,8 @@ def vote_complaint(db, user, complaint_id, value):
         db.add(ComplaintVote(complaint_id=row.id, user_id=user.id, value=value))
     db.flush()
     check_false(db, row)
-    return vote_counts(db, ComplaintVote, ComplaintVote.complaint_id, row.id)
+    check_verified(db, row)
+    return {**report_votes(db, row.id), "verified": bool(row.verified_at)}
 
 
 def false_report(db, worker, complaint_id, data):
@@ -386,7 +472,8 @@ def public_complaint(db, row, detail=False):
     result["images"] = list(
         db.scalars(select(ComplaintImage.url).where(ComplaintImage.complaint_id == row.id))
     )
-    result.update(vote_counts(db, ComplaintVote, ComplaintVote.complaint_id, root.id))
+    result.update(report_votes(db, root.id))
+    result["verified"] = bool(root.verified_at)
     result["priority"] = db.get(Category, row.category_code).base_priority
     result["priority_source"] = "category_rules"
     prediction = db.get(ComplaintPrediction, root.id)
@@ -678,7 +765,12 @@ def review_case(db, case_id, admin, data):
     )
     if row.status != "open":
         raise HTTPException(409, "Case has already been reviewed")
-    if data.status == "dismissed":
+    if data.block_user and data.status != "actioned":
+        raise HTTPException(422, "Block the reporter only when the case is actioned")
+    if row.kind == "disliked_report":
+        if data.status == "actioned" and complaint.status != "false":
+            false_ruling(db, complaint)
+    elif data.status == "dismissed":
         source = (
             f"false:{complaint.id}"
             if row.kind == "false_complaint"
@@ -722,4 +814,19 @@ def review_case(db, case_id, admin, data):
             )
     row.status, row.note, row.reviewed_by, row.reviewed_at = data.status, data.note, admin.id, now()
     event(db, "moderation.reviewed", row.id, admin_id=admin.id, status=row.status, note=data.note)
-    return {"status": row.status}
+    if data.block_user:
+        set_blocked(db, admin, row.subject_user_id, True, data.note)
+    return {"status": row.status, "subject_blocked": bool(data.block_user)}
+
+
+def set_blocked(db, admin, user_id, blocked, reason):
+    user = db.scalar(select(User).where(User.id == user_id).with_for_update())
+    if not user:
+        raise HTTPException(404, "User not found")
+    if user.role == "admin":
+        raise HTTPException(403, "Administrator accounts cannot be blocked here")
+    user.is_active = not blocked
+    if blocked:
+        db.execute(update(AuthSession).where(AuthSession.user_id == user.id).values(revoked=True))
+    event(db, "user.block_changed", user.id, admin_id=admin.id, blocked=blocked, reason=reason)
+    return user

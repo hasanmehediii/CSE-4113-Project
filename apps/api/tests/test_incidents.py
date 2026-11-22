@@ -11,6 +11,8 @@ from app.models.civic import (
     ModerationCase,
     now,
 )
+from app.models.user import AuthSession, User
+from app.services import civic_service as service
 from app.services.road_catalog import MAIN_ROADS, seed_main_roads
 
 
@@ -40,8 +42,9 @@ def test_many_reports_one_incident_with_all_evidence_and_one_point_per_person(in
     assert len({root["id"], extra["id"], again["id"]}) == 3
     assert extra["incident_id"] == again["incident_id"] == root["id"]
     assert again["incident_report_count"] == 3 and again["incident_reporter_count"] == 2
-    assert [root["points_awarded"], extra["points_awarded"], again["points_awarded"]] == [1, 1, 0]
-    assert client.get("/api/v1/me/points").json()["balance"] == 1
+    # Nothing is earned at submission; see the verification tests.
+    assert [root["points_awarded"], extra["points_awarded"], again["points_awarded"]] == [0, 0, 0]
+    assert client.get("/api/v1/me/points").json()["balance"] == 0
     assert len(client.get("/api/v1/me/complaints").json()) == 2
     assert len(client.get("/api/v1/complaints").json()) == 1
     assert len(client.get("/api/v1/complaints?all_reports=true").json()) == 3
@@ -91,7 +94,7 @@ def test_shared_assignment_completion_and_verification_from_any_report(incident_
         assert detail["status"] == "resolved" and len(detail["resolutions"]) == 1
     later = submit(client, factory, second, description="A new blockage after the earlier incident was resolved.")
     assert later["incident_id"] == later["id"] != root["id"]
-    assert later["points_awarded"] == 1
+    assert later["points_awarded"] == 0
 
 
 def test_separate_override_and_ambiguous_matches_require_a_choice(incident_env):
@@ -187,7 +190,7 @@ def test_road_observations_remain_independent_and_reporters_cannot_work_own_inci
     first = submit(client, factory, citizen, kind="road_update", condition="good")
     second = submit(client, factory, citizen, kind="road_update", condition="good")
     assert first["incident_id"] is None and second["incident_id"] is None
-    assert first["points_awarded"] == second["points_awarded"] == 1
+    assert first["points_awarded"] == second["points_awarded"] == 0
     assert extra["incident_id"] == root["id"]
 
 
@@ -279,3 +282,157 @@ def test_assigned_worker_who_later_reports_requires_reassignment(incident_env):
     test_civic.sign_in(client, factory, replacement)
     assert client.post(url + "/resolutions", headers=test_civic.headers(client),
                        json={"comment": "The blockage has been independently cleared"}).status_code == 201
+
+
+def confirm(client, factory, report_id, prefix, count, role="citizen"):
+    result = None
+    for index in range(count):
+        voter = test_civic.account(factory, f"{prefix}-{index}", role)
+        test_civic.sign_in(client, factory, voter)
+        result = client.put(f"/api/v1/complaints/{report_id}/vote",
+                            headers=test_civic.headers(client), json={"value": 1})
+        assert result.status_code == 200, result.text
+    return result.json()
+
+
+def balance_of(client, factory, user_id):
+    test_civic.sign_in(client, factory, user_id)
+    return client.get("/api/v1/me/points").json()["balance"]
+
+
+def test_five_citizens_verify_a_report_and_every_reporter_earns_once(incident_env):
+    client, factory = incident_env
+    author = test_civic.account(factory, "verified-author")
+    witness = test_civic.account(factory, "verified-witness")
+    root = submit(client, factory, author)
+    submit(client, factory, witness)
+    submit(client, factory, witness, description="A second photo from the same witness.")
+    votes = confirm(client, factory, root["id"], "verifying-citizen", 4)
+    assert votes["likes"] == 4 and not votes["verified"]
+    assert balance_of(client, factory, author) == 0
+    votes = confirm(client, factory, root["id"], "verifying-citizen-last", 1)
+    assert votes["likes"] == 5 and votes["verified"]
+    assert balance_of(client, factory, author) == balance_of(client, factory, witness) == 1
+    # More confirmations never pay twice.
+    confirm(client, factory, root["id"], "verifying-extra", 2)
+    assert balance_of(client, factory, author) == balance_of(client, factory, witness) == 1
+    assert client.get(f"/api/v1/complaints/{root['id']}").json()["verified"] is True
+    # A new reporter joining a verified incident earns at once; a repeat does not.
+    late = test_civic.account(factory, "verified-late")
+    joined = submit(client, factory, late)
+    again = submit(client, factory, late, description="Still flooded an hour later.")
+    assert joined["incident_id"] == root["id"] and joined["points_awarded"] == 1
+    assert again["points_awarded"] == 0 and balance_of(client, factory, late) == 1
+
+
+def test_three_workers_verify_a_report_and_workers_cannot_dislike(incident_env):
+    client, factory = incident_env
+    author = test_civic.account(factory, "worker-verified-author")
+    root = submit(client, factory, author)
+    votes = confirm(client, factory, root["id"], "verifying-worker", 2, "worker")
+    assert votes["worker_confirmations"] == 2 and votes["likes"] == 0 and not votes["verified"]
+    votes = confirm(client, factory, root["id"], "verifying-worker-last", 1, "worker")
+    assert votes["worker_confirmations"] == 3 and votes["verified"]
+    assert balance_of(client, factory, author) == 1
+    worker = test_civic.account(factory, "disliking-worker", "worker")
+    test_civic.sign_in(client, factory, worker)
+    assert client.put(f"/api/v1/complaints/{root['id']}/vote", headers=test_civic.headers(client),
+                      json={"value": -1}).status_code == 422
+    # A worker whose application is not approved does not count.
+    pending = test_civic.account(factory, "pending-worker", "worker")
+    with factory() as db:
+        db.get(test_civic.WorkerApplication, pending).status = "pending"
+        db.commit()
+    test_civic.sign_in(client, factory, pending)
+    assert client.put(f"/api/v1/complaints/{root['id']}/vote", headers=test_civic.headers(client),
+                      json={"value": 1}).status_code == 422
+
+
+def test_road_updates_also_earn_only_when_verified(incident_env):
+    client, factory = incident_env
+    author = test_civic.account(factory, "road-update-author")
+    update = submit(client, factory, author, kind="road_update", condition="good")
+    assert update["points_awarded"] == 0
+    confirm(client, factory, update["id"], "road-update-confirm", 5)
+    assert balance_of(client, factory, author) == 1
+
+
+def dislike(client, factory, report_id, prefix, count=5):
+    for index in range(count):
+        voter = test_civic.account(factory, f"{prefix}-{index}")
+        test_civic.sign_in(client, factory, voter)
+        assert client.put(f"/api/v1/complaints/{report_id}/vote", headers=test_civic.headers(client),
+                          json={"value": -1}).status_code == 200
+
+
+def test_disliked_report_goes_to_admin_who_can_rule_it_false_and_block_the_reporter(incident_env):
+    client, factory = incident_env
+    author = test_civic.account(factory, "disliked-author")
+    root = submit(client, factory, author)
+    other = submit(client, factory, author, separate_incident=True)
+    confirm(client, factory, other["id"], "disliked-author-earns", 5)
+    dislike(client, factory, root["id"], "disliker", 4)
+    with factory() as db:
+        assert db.scalar(select(ModerationCase)) is None
+    dislike(client, factory, root["id"], "disliker-last", 1)
+    with factory() as db:
+        case = db.scalar(select(ModerationCase))
+        assert case.kind == "disliked_report" and case.subject_user_id == author and case.status == "open"
+        case_id = case.id
+    # Dislikes alone do not mark the report false.
+    assert client.get(f"/api/v1/complaints/{root['id']}").json()["status"] == "open"
+    mayor = test_civic.account(factory, "disliked-mayor", "admin")
+    test_civic.sign_in(client, factory, mayor)
+    [listed] = client.get("/api/v1/admin/moderation").json()
+    assert listed["kind"] == "disliked_report" and listed["evidence"] == []
+    assert listed["votes"] == {"likes": 0, "dislikes": 5, "worker_confirmations": 0}
+    url = f"/api/v1/admin/moderation/{case_id}/review"
+    assert client.post(url, headers=test_civic.headers(client), json={
+        "status": "dismissed", "note": "Blocking needs an actioned case", "block_user": True,
+    }).status_code == 422
+    response = client.post(url, headers=test_civic.headers(client), json={
+        "status": "actioned", "note": "Five residents and a site check show this was false", "block_user": True,
+    })
+    assert response.status_code == 200 and response.json() == {"status": "actioned", "subject_blocked": True}
+    assert client.get(f"/api/v1/complaints/{root['id']}").json()["status"] == "false"
+    with factory() as db:
+        assert not db.get(User, author).is_active
+        assert service.balance(db, author) == 0          # the verified point is forfeited
+        assert db.scalars(select(AuthSession.revoked).where(AuthSession.user_id == author)).all() == [True]
+    test_civic.sign_in(client, factory, author)
+    assert client.get("/api/v1/auth/me").status_code == 401
+
+
+def test_dismissed_dislike_review_is_final_and_worker_evidence_reuses_the_open_case(incident_env):
+    client, factory = incident_env
+    author = test_civic.account(factory, "reviewed-author")
+    root = submit(client, factory, author)
+    dislike(client, factory, root["id"], "reviewed-disliker")
+    with factory() as db:
+        case_id = db.scalar(select(ModerationCase.id))
+    mayor = test_civic.account(factory, "reviewed-mayor", "admin")
+    test_civic.sign_in(client, factory, mayor)
+    assert client.post(f"/api/v1/admin/moderation/{case_id}/review", headers=test_civic.headers(client), json={
+        "status": "dismissed", "note": "Checked on site; the report is accurate",
+    }).json() == {"status": "dismissed", "subject_blocked": False}
+    for index in range(2):
+        worker = test_civic.account(factory, f"reviewed-evidence-{index}", "worker")
+        test_civic.sign_in(client, factory, worker)
+        assert client.post(f"/api/v1/complaints/{root['id']}/false-reports", headers=test_civic.headers(client), json={
+            "comment": "Evidence after the review", "image_url": f"https://example.com/after-{index}.jpg",
+        }).status_code == 201
+    assert client.get(f"/api/v1/complaints/{root['id']}").json()["status"] == "open"
+    # Another report: dislikes open a case, then worker evidence marks it false in that same case.
+    second = submit(client, factory, author, separate_incident=True)
+    dislike(client, factory, second["id"], "second-disliker")
+    for index in range(2):
+        worker = test_civic.account(factory, f"second-evidence-{index}", "worker")
+        test_civic.sign_in(client, factory, worker)
+        assert client.post(f"/api/v1/complaints/{second['id']}/false-reports", headers=test_civic.headers(client), json={
+            "comment": "The site is dry and clear", "image_url": f"https://example.com/dry-{index}.jpg",
+        }).status_code == 201
+    assert client.get(f"/api/v1/complaints/{second['id']}").json()["status"] == "false"
+    with factory() as db:
+        cases = db.scalars(select(ModerationCase).where(ModerationCase.complaint_id == second["id"])).all()
+        assert [(case.kind, case.source_key, case.status) for case in cases] == [
+            ("false_complaint", f"false:{second['id']}", "open")]

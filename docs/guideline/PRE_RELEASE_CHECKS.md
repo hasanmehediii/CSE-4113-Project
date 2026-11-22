@@ -70,7 +70,7 @@ production build. Its lifecycle regressions were observed failing before the fix
 The real-browser record above describes the earlier pre-release-polish run; the
 follow-up was verified through API/database and UI interaction regressions.
 
-Apply the current migration head, `20261031_06`, before running the new API.
+Apply the current migration head, `20261122_07`, before running the new API.
 The local development database was backed up and upgraded. See
 [INCIDENTS.md](INCIDENTS.md#completion-lifecycle-and-moderation) for the conservative
 legacy-history reconciliation policy; old completion/vote/ledger records are kept.

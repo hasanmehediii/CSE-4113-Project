@@ -121,6 +121,7 @@ before(async () => {
       : path.endsWith("/admin/moderation") ? [
         { id: "case", complaint_id: "report", subject_name: "Original subject name", kind: "false_complaint", evidence: [{ image_url: "https://example.com/evidence.jpg", comment: "Original evidence comment" }] },
         { id: "worker-case", complaint_id: "report", subject_name: "Original worker name", kind: "worker_dispute", evidence: [{ image_url: "https://example.com/evidence.jpg", comment: "" }] },
+        { id: "disliked-case", complaint_id: "report", subject_name: "Disliked subject name", kind: "disliked_report", evidence: [], votes: { likes: 1, dislikes: 5, worker_confirmations: 0 } },
       ]
       : path.endsWith("/map/roads") && mapFixtures ? [
         { id: "bad-road", name: "Dhanmondi Road 12", condition: "bad", open_complaints: 2, historical_reports_90d: 4, sensitivity: "high", latitude: 23.75, longitude: 90.37, ...(lineFixtures ? { path: [[23.75, 90.37], [23.76, 90.38]], paths: [[[23.75, 90.37], [23.755, 90.375]], [[23.757, 90.377], [23.76, 90.38]]], segment_from: "South junction", segment_to: "North junction" } : {}) },
@@ -499,10 +500,17 @@ test("moderation translates case types, evidence actions and server errors while
   form.querySelector<HTMLTextAreaElement>('textarea[name="note"]')!.value = "My written moderation note";
   form.querySelector<HTMLSelectElement>('select[name="status"]')!.value = "dismissed";
   await submitForm(form);
-  assert.deepEqual(adminMutation?.body, { status: "dismissed", note: "My written moderation note" });
+  assert.deepEqual(adminMutation?.body, { status: "dismissed", note: "My written moderation note", block_user: false });
   assert.ok(document.querySelector('[role="alert"]')?.textContent?.includes("অভিযোগটি আগেই পর্যালোচনা করা হয়েছে"));
   await toggle();
   assert.ok(document.querySelector('[role="alert"]')?.textContent?.includes("Case has already been reviewed"));
+  // A disliked report can be accepted and its reporter blocked from the same form.
+  assert.ok(content().includes("Disliked report") && content().includes("Community votes: 5 dislikes"), content());
+  const disliked = document.querySelectorAll<HTMLFormElement>(".civic-card .civic-form")[2];
+  disliked.querySelector<HTMLTextAreaElement>('textarea[name="note"]')!.value = "Five residents and a site check";
+  disliked.querySelector<HTMLInputElement>('input[name="block_user"]')!.checked = true;
+  await submitForm(disliked);
+  assert.deepEqual(adminMutation?.body, { status: "actioned", note: "Five residents and a site check", block_user: true });
 });
 
 test("road catalog translates forms and validation without changing names, IDs or coordinates", async () => {

@@ -138,6 +138,8 @@ class Complaint(Base):
     longitude: Mapped[float] = mapped_column(Float)
     condition: Mapped[str] = mapped_column(String(10), default="bad")
     status: Mapped[str] = mapped_column(String(30), default="open")
+    # Set on the incident when 5 citizens or 3 workers confirm it; reporters then earn points.
+    verified_at: Mapped[int | None] = mapped_column(BigInteger)
     created_at: Mapped[int] = mapped_column(BigInteger, default=now)
     updated_at: Mapped[int] = mapped_column(BigInteger, default=now, onupdate=now)
 
@@ -258,7 +260,9 @@ class ResolutionVote(Base):
 class ModerationCase(Base):
     __tablename__ = "moderation_cases"
     __table_args__ = (
-        CheckConstraint("kind IN ('false_complaint','worker_dispute')", name="ck_moderation_kind"),
+        CheckConstraint(
+            "kind IN ('false_complaint','worker_dispute','disliked_report')", name="ck_moderation_kind"
+        ),
         CheckConstraint("status IN ('open','dismissed','actioned')", name="ck_moderation_status"),
         Index("ix_moderation_queue", "status", "created_at"),
     )

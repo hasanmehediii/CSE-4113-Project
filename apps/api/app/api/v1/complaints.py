@@ -10,6 +10,8 @@ from app.services import civic_service as service
 router = APIRouter(prefix="/complaints", tags=["Complaints"], dependencies=[Depends(require_csrf)])
 Contributor = Annotated[object, Depends(require_roles("citizen", "worker", "admin"))]
 Citizen = Annotated[object, Depends(require_roles("citizen"))]
+# Citizens vote; approved workers may confirm (like) a report.
+Voter = Annotated[object, Depends(require_roles("citizen", "worker"))]
 Worker = Annotated[object, Depends(require_roles("worker"))]
 
 
@@ -78,7 +80,7 @@ def detail(complaint_id: str, db: Database):
 
 
 @router.put("/{complaint_id}/vote")
-def vote(complaint_id: str, data: VoteInput, user: Citizen, request: Request, db: Database):
+def vote(complaint_id: str, data: VoteInput, user: Voter, request: Request, db: Database):
     enforce(request, "community-vote", user.id, 60, 3600)
     return service.vote_complaint(db, user, complaint_id, data.value)
 

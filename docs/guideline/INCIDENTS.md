@@ -39,14 +39,27 @@ If someone votes or tags false evidence before becoming a reporter, that record
 stays stored but stops counting as independent incident evidence. An assigned
 worker who later contributes a report must request reassignment before completion.
 
-Each person receives at most one complaint contribution point per incident; repeat
-submissions remain evidence but do not increase that person's points or distinct
-reporter count. Road observations keep the existing one-point policy. Reporter
+Submitting a report earns nothing by itself. A report (an incident or a road
+observation) is **verified** when 5 verified citizens or 3 approved workers confirm
+(like) it; reporters and voters who reported the incident do not count. Every
+reporter of the verified incident then receives 1 point, once per person per incident
+(`verified:{incident}:{user}`); a new reporter joining an already verified incident
+earns it on submission. Repeat submissions remain evidence but do not increase that
+person's points or distinct reporter count. Workers can confirm but not dislike a
+report; they dispute it with false-information evidence. Reporter
 counts and these contribution limits use account IDs, not government-verified
 identity. Phone OTP and automatic identity verification remain outside this feature.
 
-False-incident moderation keeps the existing forfeiture policy for the original incident reporter;
-it does not automatically forfeit every corroborating citizen's balance.
+Five citizen dislikes open a `disliked_report` moderation case for the original
+reporter. Dislikes alone do not mark a report false: the mayor reviews it, and
+**actioned** rules it false (the reporter forfeits their points) while **dismissed**
+keeps it and makes the review final. On any actioned case the mayor can also tick
+"block this account", which deactivates the subject and revokes their sessions.
+Five dislikes plus evidence from two approved workers still mark the report false
+automatically, reusing the open case. False-incident moderation keeps the existing
+forfeiture policy for the original incident reporter; it does not automatically
+forfeit every corroborating citizen's balance. Migration `20261122_07` adds
+`complaints.verified_at` and the `disliked_report` case kind.
 
 ### Completion lifecycle and moderation
 
