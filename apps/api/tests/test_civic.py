@@ -132,7 +132,8 @@ def test_public_reads_private_mutations_and_points(civic_env):
     user_id = account(factory, "resident")
     sign_in(client, factory, user_id)
     complaint_id = create_report(client)
-    assert client.get("/api/v1/me/points").json()["balance"] == 1
+    # Points come only after other people verify the report.
+    assert client.get("/api/v1/me/points").json()["balance"] == 0
     assert (
         client.put(
             f"/api/v1/complaints/{complaint_id}/vote", headers=headers(client), json={"value": 1}

@@ -102,7 +102,7 @@ export default function ReportComposer() {
     finally { setBusy(false); }
   }
 
-  return <CivicShell title={tr("A small report. A useful change.")} intro={tr("Tell your community what is happening. Related complaints share one incident, with at most 1 contribution point per person per incident. Road updates earn 1 point. False reports can forfeit your points.")}>
+  return <CivicShell title={tr("A small report. A useful change.")} intro={tr("Tell your community what is happening. Related complaints share one incident. You earn 1 point when 5 verified citizens or 3 approved workers confirm your report. False reports can forfeit your points and get your account blocked.")}>
     <CivicForm className="civic-form report-composer" onSubmit={submit} onInvalidCapture={event => {
       if (event.target instanceof HTMLElement) {
         const details = event.target.closest<HTMLDetailsElement>(".report-coordinates");
@@ -157,7 +157,7 @@ export default function ReportComposer() {
           <small>{tr("At most 5 images total. Photos are public; avoid faces, IDs, and private information.")}</small>
         </section>
 
-        <div className="report-submit-bar"><div className="report-reward"><span aria-hidden="true">✦</span><div><strong>{tr("Your city. Your contribution.")}</strong><small>{tr("Related reports are kept. Complaint points are awarded once per person per incident.")}</small></div></div><button className="button" disabled={busy || !categories.data?.length}>{busy ? tr("Submitting…") : tr("Publish report")}<span aria-hidden="true">↗</span></button></div>
+        <div className="report-submit-bar"><div className="report-reward"><span aria-hidden="true">✦</span><div><strong>{tr("Your city. Your contribution.")}</strong><small>{tr("Points come when others verify your report: 5 citizens or 3 workers, once per incident.")}</small></div></div><button className="button" disabled={busy || !categories.data?.length}>{busy ? tr("Submitting…") : tr("Publish report")}<span aria-hidden="true">↗</span></button></div>
       </fieldset>
       <Feedback error={error} />
     </CivicForm>

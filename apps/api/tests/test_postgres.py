@@ -103,7 +103,7 @@ def test_migration_snapshot_indexes_and_spatial_search(databases):
         assert migrated == fresh
         assert (
             snapshot.execute("SELECT version_num FROM alembic_version").fetchone()[0]
-            == "20261031_06"
+            == "20261122_07"
         )
         indexes = {
             r[0]

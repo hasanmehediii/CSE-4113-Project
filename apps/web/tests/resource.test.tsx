@@ -353,6 +353,28 @@ test("incident votes wait for membership, hide for every reporter, and leave wor
   assert.equal(requests, 4);
 });
 
+test("approved workers can confirm but not dislike a report, and verified reports show it", async t => {
+  const sent: unknown[] = [];
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL, init?: RequestInit) => {
+    const path = new URL(String(url)).pathname;
+    if (path.endsWith("/participation")) return new Response(JSON.stringify({ is_reporter: false }));
+    if (path.endsWith("/auth/csrf")) return new Response(JSON.stringify({ csrf_token: "token" }));
+    if (path.endsWith("/vote")) { sent.push(JSON.parse(String(init?.body))); return new Response(JSON.stringify({ likes: 0, dislikes: 0, worker_confirmations: 3, verified: true })); }
+    const body = path.endsWith("/auth/me") ? { id: "worker", role: "worker", email_verified: true }
+      : { ...report, id: "root", incident_id: "root", likes: 2, worker_confirmations: 3, verified: true, active_assignment: null, resolutions: [] };
+    return new Response(JSON.stringify(body));
+  });
+  const { Providers } = await import("../src/components/Providers");
+  const { default: ComplaintDetail } = await import("../src/components/ComplaintDetail");
+  await renderNode(<Providers><ComplaintDetail id="root"/></Providers>);
+  const buttons = () => Array.from(document.querySelectorAll("button")).map(button => button.textContent);
+  assert.ok(buttons().includes("Confirm report") && !buttons().includes("Disagree") && !buttons().includes("Support"));
+  assert.ok(content()?.includes("Verified") && content()?.includes("2/5 citizens · 3/3 workers confirmed"), content() ?? "");
+  const confirm = Array.from(document.querySelectorAll("button")).find(button => button.textContent === "Confirm report")!;
+  await act(async () => { confirm.click(); });
+  assert.deepEqual(sent, [{ value: 1 }]);
+});
+
 test("historical completions retain evidence and counts but only current work can be verified", async t => {
   t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => {
     const path = new URL(String(url)).pathname;

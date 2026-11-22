@@ -164,6 +164,7 @@ CREATE TABLE complaints (
 	longitude FLOAT NOT NULL,
 	condition VARCHAR(10) NOT NULL,
 	status VARCHAR(30) NOT NULL,
+	verified_at BIGINT,
 	created_at BIGINT NOT NULL,
 	updated_at BIGINT NOT NULL,
 	PRIMARY KEY (id),
@@ -301,7 +302,7 @@ CREATE TABLE moderation_cases (
 	reviewed_at BIGINT,
 	note VARCHAR(1000),
 	PRIMARY KEY (id),
-	CONSTRAINT ck_moderation_kind CHECK (kind IN ('false_complaint','worker_dispute')),
+	CONSTRAINT ck_moderation_kind CHECK (kind IN ('false_complaint','worker_dispute','disliked_report')),
 	CONSTRAINT ck_moderation_status CHECK (status IN ('open','dismissed','actioned')),
 	FOREIGN KEY(subject_user_id) REFERENCES users (id),
 	FOREIGN KEY(complaint_id) REFERENCES complaints (id),
@@ -366,7 +367,8 @@ INSERT INTO complaint_categories (code, label, base_priority) VALUES
 ('sewage_overflow', 'Sewage overflow', 90),
 ('waste_cleaning', 'Waste cleaning', 55),
 ('road_damage', 'Road damage', 65),
+('traffic_jam', 'Traffic jam', 50),
 ('other', 'Other civic issue', 40);
 CREATE TABLE alembic_version (version_num varchar(32) PRIMARY KEY);
-INSERT INTO alembic_version VALUES ('20261031_06');
+INSERT INTO alembic_version VALUES ('20261122_07');
 COMMIT;

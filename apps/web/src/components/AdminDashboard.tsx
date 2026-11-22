@@ -31,6 +31,7 @@ interface Case {
         image_url: string;
         comment: string;
     }[];
+    votes?: { likes: number; dislikes: number; worker_confirmations: number };
 }
 interface Analytics {
     total_reports?: number;
@@ -140,7 +141,7 @@ function Applications() {
     return <><Feedback loading={rows.loading} error={error || rows.error} empty={!rows.data?.length}/><div className="civic-grid">{rows.data?.map(a => <article className="civic-card" key={a.user_id}><h3>{a.name}</h3><p>{a.email}</p><p>{a.has_nid_number ? tr("NID fingerprint supplied") : tr("Image-based application")}</p>{a.nid_image_url && <a href={mediaUrl(a.nid_image_url)} className="text-link" target="_blank" rel="noopener noreferrer">{tr("Inspect private identity document \u2197")}</a>}<CivicForm className="civic-form" onSubmit={e => void review(e, a.user_id)}><label>{tr("Review notes")}<textarea name="note" required minLength={3} maxLength={1000}/></label><label>{tr("Decision")}<select name="decision"><option value="approve">{tr("Approve worker")}</option><option value="reject">{tr("Reject application")}</option></select></label><button className="button" disabled={busy}>{tr("Save decision")}</button></CivicForm></article>)}</div><Pager page={page} setPage={setPage} more={rows.data?.length === 30}/></>;
 }
 function Moderation() {
-    const { tr, label } = useCivicLocale();
+    const { tr, label, number } = useCivicLocale();
     const [page, setPage] = useState(0);
     const rows = useResource<Case[]>(`/admin/moderation?offset=${page * 30}`);
     const [error, setError] = useState("");
@@ -151,7 +152,7 @@ function Moderation() {
         setBusy(true);
         setError("");
         try {
-            await mutate(`/admin/moderation/${id}/review`, { status: data.get("status"), note: data.get("note") });
+            await mutate(`/admin/moderation/${id}/review`, { status: data.get("status"), note: data.get("note"), block_user: data.get("block_user") === "on" });
             await rows.reload();
         }
         catch (e) {
@@ -161,7 +162,7 @@ function Moderation() {
             setBusy(false);
         }
     }
-    return <><p>{tr("Review the original report and image evidence. Account blocks are managed in Users or Workers.")}</p><Feedback loading={rows.loading} error={error || rows.error} empty={!rows.data?.length}/><div className="civic-grid">{rows.data?.map(row => <article key={row.id} className="civic-card"><span className="civic-badge disputed">{label(row.kind)}</span><h3>{row.subject_name}</h3><Link className="text-link" href={`/complaints/${row.complaint_id}`}>{tr("Open original complaint \u2192")}</Link>{row.evidence.map((e, i) => <p key={i}>{e.comment || tr("Image evidence")} · <a className="text-link" href={mediaUrl(e.image_url)} target="_blank" rel="noopener noreferrer">{tr("View image \u2197")}</a></p>)}<CivicForm className="civic-form" onSubmit={e => void review(e, row.id)}><label>{tr("Review notes")}<textarea name="note" required minLength={5} maxLength={1000}/></label><label>{tr("Outcome")}<select name="status"><option value="actioned">{tr("Evidence accepted / reviewed")}</option><option value="dismissed">{tr("Dismiss case")}</option></select></label><button className="button" disabled={busy}>{tr("Save review")}</button></CivicForm></article>)}</div><Pager page={page} setPage={setPage} more={rows.data?.length === 30}/></>;
+    return <><p>{tr("Review the original report, community votes and image evidence. Accepting a disliked report marks it false; you can also block the reported account here.")}</p><Feedback loading={rows.loading} error={error || rows.error} empty={!rows.data?.length}/><div className="civic-grid">{rows.data?.map(row => <article key={row.id} className="civic-card"><span className="civic-badge disputed">{label(row.kind)}</span><h3>{row.subject_name}</h3><Link className="text-link" href={`/complaints/${row.complaint_id}`}>{tr("Open original complaint \u2192")}</Link>{row.votes && <p>{tr("Community votes:")} {number(row.votes.dislikes)} {tr("dislikes")} · {number(row.votes.likes)} {tr("citizen confirmations")} · {number(row.votes.worker_confirmations)} {tr("worker confirmations")}</p>}{row.evidence.map((e, i) => <p key={i}>{e.comment || tr("Image evidence")} · <a className="text-link" href={mediaUrl(e.image_url)} target="_blank" rel="noopener noreferrer">{tr("View image \u2197")}</a></p>)}<CivicForm className="civic-form" onSubmit={e => void review(e, row.id)}><label>{tr("Review notes")}<textarea name="note" required minLength={5} maxLength={1000}/></label><label>{tr("Outcome")}<select name="status"><option value="actioned">{tr("Evidence accepted / reviewed")}</option><option value="dismissed">{tr("Dismiss case")}</option></select></label><label><input type="checkbox" name="block_user"/> {tr("Also block this account and revoke its sessions")}</label><button className="button" disabled={busy}>{tr("Save review")}</button></CivicForm></article>)}</div><Pager page={page} setPage={setPage} more={rows.data?.length === 30}/></>;
 }
 function Catalog() {
     const { tr, label, number } = useCivicLocale();

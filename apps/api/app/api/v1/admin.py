@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import Integer, func, or_, select, update
+from sqlalchemy import Integer, func, or_, select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.dependencies import Database, require_csrf, require_roles
@@ -16,7 +16,7 @@ from app.models.civic import (
     WorkerApplication,
     now,
 )
-from app.models.user import AuthSession, User
+from app.models.user import User
 from app.schemas.civic import (
     AreaInput,
     AssignInput,
@@ -71,22 +71,7 @@ def users(
 
 @router.patch("/users/{user_id}/block")
 def block(user_id: str, data: BlockInput, admin: Admin, db: Database):
-    user = db.scalar(select(User).where(User.id == user_id).with_for_update())
-    if not user:
-        raise HTTPException(404, "User not found")
-    if user.role == "admin":
-        raise HTTPException(403, "Administrator accounts cannot be blocked here")
-    user.is_active = not data.blocked
-    if data.blocked:
-        db.execute(update(AuthSession).where(AuthSession.user_id == user.id).values(revoked=True))
-    service.event(
-        db,
-        "user.block_changed",
-        user.id,
-        admin_id=admin.id,
-        blocked=data.blocked,
-        reason=data.reason,
-    )
+    user = service.set_blocked(db, admin, user_id, data.blocked, data.reason)
     return {"is_active": user.is_active}
 
 
@@ -164,7 +149,7 @@ def moderation(
                     select(FalseReport).where(FalseReport.complaint_id == row.complaint_id)
                 )
             ]
-            if row.kind == "false_complaint"
+            if row.kind in ("false_complaint", "disliked_report")
             else [
                 {"user_id": r.user_id, "image_url": r.image_url, "comment": r.comment}
                 for r in db.scalars(
@@ -184,6 +169,8 @@ def moderation(
                 "kind": row.kind,
                 "status": row.status,
                 "evidence": evidence,
+                # Community votes on the reported incident (dislikes open disliked_report cases).
+                "votes": service.report_votes(db, row.complaint_id),
             }
         )
     return results

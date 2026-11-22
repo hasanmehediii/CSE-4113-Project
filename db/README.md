@@ -3,7 +3,8 @@
 The executable PostgreSQL schema is [`schema.sql`](schema.sql), a **file** under
 `db/`. It targets PostgreSQL 17. The existing auth tables remain compatible; the
 new domain tables are maintained by Alembic, including incident-report grouping
-in revision `20261031_05` and current-completion ownership in `20261031_06`.
+in revision `20261031_05`, current-completion ownership in `20261031_06` and report
+verification in `20261122_07`.
 
 ## Install and migrate
 

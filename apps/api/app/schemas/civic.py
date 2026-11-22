@@ -121,6 +121,8 @@ class BlockInput(Input):
 class CaseReviewInput(Input):
     status: Literal["dismissed", "actioned"]
     note: str = Field(min_length=5, max_length=1000)
+    # Actioned cases only: block the reported user (sessions are revoked).
+    block_user: bool = False
 
 
 class RoadInput(LocationInput):

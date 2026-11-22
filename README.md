@@ -108,8 +108,10 @@ a genuinely different blockage as separate.
 
 Assignment, completion, verification and incident status are shared. Each person's
 evidence stays individually accessible; personal contributions retain every
-submission. Each person receives at most one complaint-contribution point per
-incident, so repeated submissions do not multiply their points or reporter count.
+submission. Points are earned only when a report is verified by 5 verified citizens
+or 3 approved workers; each reporter then gets 1 point, at most once per incident, so
+repeated submissions do not multiply their points or reporter count. Five citizen
+dislikes send a report to the mayor, who can rule it false and block the reporter.
 These limits count accounts, not independently verified human identities.
 Voting and false-incident moderation also apply to the shared blockage; one person
 cannot vote repeatedly by opening different report URLs. The existing false-report
