@@ -353,6 +353,14 @@ test("incident votes wait for membership, hide for every reporter, and leave wor
   assert.equal(requests, 4);
 });
 
+test("every points-ledger reason has a readable label in English and Bangla", async () => {
+  const { civicLabel } = await import("../src/lib/civic-i18n");
+  for (const reason of ["report_verified", "resolution_confirmed", "resolution_disputed", "false_report_forfeiture", "moderation_restoration", "complaint", "road_update"]) {
+    for (const language of ["en", "bn"] as const) assert.notEqual(civicLabel(reason, language), reason.replaceAll("_", " "), `${reason} (${language})`);
+  }
+  assert.equal(civicLabel("report_verified", "en"), "Verified report");
+});
+
 test("approved workers can confirm but not dislike a report, and verified reports show it", async t => {
   const sent: unknown[] = [];
   t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL, init?: RequestInit) => {

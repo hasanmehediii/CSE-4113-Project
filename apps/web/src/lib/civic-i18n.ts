@@ -16,6 +16,7 @@ const labels: Record<string, [string, string]> = {
   road_damage: ["Road damage", "রাস্তার ক্ষতি"], traffic_jam: ["Traffic jam", "যানজট"], other: ["Other civic issue", "অন্যান্য নাগরিক সমস্যা"],
   complaint: ["Complaint", "অভিযোগ"], road_update: ["Road update", "রাস্তার হালনাগাদ তথ্য"],
   resolution_confirmed: ["Resolution confirmed", "সমাধান যাচাইয়ের পয়েন্ট"],
+  report_verified: ["Verified report", "যাচাইকৃত প্রতিবেদনের পয়েন্ট"],
   resolution_disputed: ["Resolution disputed", "সমাধানে আপত্তির জন্য কর্তন"],
   false_report_forfeiture: ["False report forfeiture", "মিথ্যা তথ্যের জন্য পয়েন্ট কর্তন"],
   moderation_restoration: ["Moderation restoration", "পর্যালোচনার পর পয়েন্ট ফেরত"],
