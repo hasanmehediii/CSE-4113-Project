@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from app.core.config import get_settings
 from app.core.dependencies import Database
 from app.models.civic import Area, Category, Complaint, Road, now
-from app.services.civic_service import OPEN
+from app.services.civic_service import OPEN, incident_counts_on_map, report_counts_on_map
 from app.services.road_catalog import MAIN_ROADS
 from app.services.road_status import road_status
 
@@ -50,14 +50,15 @@ def roads(
     ids = [r.id for r in catalog]
     last_reports = dict(db.execute(
         select(Complaint.road_id, func.max(Complaint.created_at))
-        .where(Complaint.road_id.in_(ids), Complaint.status != "false")
+        .where(Complaint.road_id.in_(ids), Complaint.status != "false", report_counts_on_map())
         .group_by(Complaint.road_id)
     ).all()) if ids else {}
     # Restrict observations to selected roads. Reports never expose account contact/NID data.
     reports = (
         db.scalars(
             select(Complaint)
-            .where(Complaint.road_id.in_(ids), Complaint.status != "false", Complaint.incident_id.is_(None))
+            .where(Complaint.road_id.in_(ids), Complaint.status != "false", Complaint.incident_id.is_(None),
+                   incident_counts_on_map())
             .order_by(Complaint.created_at.desc(), Complaint.id)
         ).all()
         if ids

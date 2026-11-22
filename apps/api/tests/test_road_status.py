@@ -217,3 +217,45 @@ def test_endpoint_keeps_other_sources_when_weather_is_down(status_env, monkeypat
     assert roads[ROAD]["historical"]["traffic"]["level"] in {"high", "moderate", "low"}
     assert body["sources"]["historical"]["data_source"] == "synthetic"
     assert client.get("/api/v1/map/road-status", params={"at": "2020-01-01T00:00:00+06:00"}).status_code == 422
+
+
+def vote(client, factory, report_id, value, name, role="citizen"):
+    test_civic.sign_in(client, factory, test_civic.account(factory, name, role))
+    assert client.put(f"/api/v1/complaints/{report_id}/vote", headers=test_civic.headers(client),
+                      json={"value": value}).status_code == 200
+
+
+def test_blocked_reporters_and_reports_under_dislike_review_do_not_drive_the_map(status_env, monkeypatch):
+    client, factory = status_env
+    monkeypatch.setattr(rs, "_fetch_open_meteo", lambda: {"roads": {}, "city": None})
+    blocked = test_civic.account(factory, "blocked-reporter")
+    test_civic.sign_in(client, factory, blocked)
+    report(client, factory, ROAD, "road_flooding")
+    test_civic.sign_in(client, factory, test_civic.account(factory, "honest-reporter"))
+    disputed = report(client, factory, OTHER, "traffic_jam", kind="road_update")
+    body, roads = statuses(client)
+    assert roads[ROAD]["community"]["waterlogging"]["status"] == "reported"
+    with factory() as db:
+        db.get(test_civic.User, blocked).is_active = False       # the mayor blocks the reporter
+        db.commit()
+    for index in range(5):
+        vote(client, factory, disputed, -1, f"road-disliker-{index}")
+    body, roads = statuses(client)
+    assert roads[ROAD]["community"]["waterlogging"]["status"] == "none"
+    assert roads[OTHER]["community"]["traffic"]["status"] == "none"   # paused while the mayor reviews it
+    assert body["avoid_now"] == []
+    assert client.get(f"/api/v1/complaints/{disputed}").json()["under_review"] is True
+
+
+def test_a_verified_report_keeps_counting_even_when_disliked(status_env, monkeypatch):
+    client, factory = status_env
+    monkeypatch.setattr(rs, "_fetch_open_meteo", lambda: {"roads": {}, "city": None})
+    verified = report(client, factory, OTHER, "traffic_jam", kind="road_update")
+    for index in range(3):
+        vote(client, factory, verified, 1, f"road-confirming-worker-{index}", "worker")
+    for index in range(5):
+        vote(client, factory, verified, -1, f"late-disliker-{index}")
+    _, roads = statuses(client)
+    assert roads[OTHER]["community"]["traffic"]["status"] == "reported"
+    detail = client.get(f"/api/v1/complaints/{verified}").json()
+    assert detail["verified"] is True and detail["under_review"] is False

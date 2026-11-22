@@ -22,6 +22,7 @@ from urllib.request import Request, urlopen
 from sqlalchemy import select
 
 from app.models.civic import Complaint
+from app.services.civic_service import report_counts_on_map
 from app.services.road_catalog import CATALOG_PATH, MAIN_ROADS
 
 DHAKA = timezone(timedelta(hours=6), name="Asia/Dhaka")
@@ -61,6 +62,8 @@ def community_status(db, now: int) -> dict[str, dict]:
             Complaint.road_id.in_(list(MAIN_ROADS)),
             Complaint.created_at >= now - COMMUNITY_WINDOW_SECONDS,
             Complaint.status.notin_(("false", "resolved")),
+            # Blocked reporters and reports under dislike review do not describe the road.
+            report_counts_on_map(),
         ).order_by(Complaint.created_at, Complaint.id)
     ).all()
     result = {road_id: {hazard: _blank_community() for hazard in HAZARDS} for road_id in MAIN_ROADS}
