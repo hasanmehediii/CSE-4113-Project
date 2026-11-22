@@ -282,6 +282,7 @@ export const civicTranslations: Record<string, string> = {
   "Community reports will appear here as people share updates.": "এলাকাবাসীর দেওয়া অভিযোগ ও রাস্তার খবর এখানে দেখা যাবে।",
   "Roads will appear here when the city road catalog is added.": "শহরের রাস্তার তালিকা যোগ হলে এখানে দেখা যাবে।",
   "Clear filters": "সব তথ্য দেখুন", "Share a local update": "এলাকার খবর জানান",
+  "Map style": "মানচিত্রের ধরন", "Auto": "স্বয়ংক্রিয়", "Streets": "রাস্তা", "Light": "হালকা", "Dark": "গাঢ়", "Follows the site's light or dark theme": "সাইটের হালকা বা গাঢ় থিম অনুসরণ করে",
   "Road prediction is unavailable because the road-risk model is not loaded. Retrain or reload the model, then try again.": "রাস্তার ঝুঁকির মডেল লোড না থাকায় পূর্বাভাস পাওয়া যাচ্ছে না। মডেলটি আবার প্রশিক্ষণ বা লোড করে আবার চেষ্টা করুন।",
   "The ML service could not complete this prediction. Try again.": "এমএল সেবা এই পূর্বাভাস সম্পন্ন করতে পারেনি। আবার চেষ্টা করুন।",
   "Choose a time within seven days of now": "এখন থেকে সাত দিনের মধ্যে একটি সময় বেছে নিন",

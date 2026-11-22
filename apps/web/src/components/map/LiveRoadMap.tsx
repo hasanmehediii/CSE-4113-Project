@@ -6,6 +6,8 @@ import { useCivicLocale } from "@/hooks/useCivicLocale";
 import { civicLabel, civicNumber } from "@/lib/civic-i18n";
 import { mapProvider, riskColor, roadPaths, type RoadRisk } from "@/lib/road-map";
 import GoogleRoadMap from "./GoogleRoadMap";
+import BaseMapSwitcher from "./BaseMapSwitcher";
+import { useBaseMap } from "@/hooks/useBaseMap";
 
 export interface RoadMapProps { roads: Road[]; complaints: Complaint[]; focus?: Road | null; onSelectRoad?: (road: Road) => void; risks?: RoadRisk[]; hazard?: "waterlogging" | "traffic"; predictionMode?: boolean }
 export default function LiveRoadMap(props: RoadMapProps) {
@@ -16,10 +18,9 @@ function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, pr
   const { language, tr } = useCivicLocale();
   const container = useRef<HTMLDivElement>(null);
   const currentMap = useRef<Leaflet.Map | null>(null);
-  const tiles = useRef<Leaflet.TileLayer | null>(null);
   const currentLanguage = useRef(language);
   const [map, setMap] = useState<Leaflet.Map | null>(null);
-  const [tileError, setTileError] = useState(false);
+  const baseMap = useBaseMap(map);
   useEffect(() => {
     let active = true;
     let instance: Leaflet.Map | undefined;
@@ -27,13 +28,7 @@ function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, pr
       if (!active || !container.current) return;
       instance = L.map(container.current, { scrollWheelZoom: false, minZoom: 11, maxZoom: 16, maxBounds: [[23.66, 90.28], [23.91, 90.51]], maxBoundsViscosity: 1 }).setView([23.785, 90.395], 12);
       currentMap.current = instance;
-      tiles.current = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        // Explicit per-image policy also covers a tab opened before the root
-        // metadata changed. Do not add cache-busting parameters to OSM tiles.
-        referrerPolicy: "strict-origin-when-cross-origin",
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-      }).on("tileerror", () => { if (active) setTileError(true); }).addTo(instance);
+      // The base tile layer (streets, light or dark) is managed by useBaseMap.
       setMap(instance);
       if (typeof ResizeObserver !== "undefined") {
         const observer = new ResizeObserver(() => instance?.invalidateSize());
@@ -41,7 +36,7 @@ function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, pr
         instance.on("unload", () => observer.disconnect());
       }
     });
-    return () => { active = false; if (currentMap.current === instance) { currentMap.current = null; tiles.current = null; } instance?.remove(); };
+    return () => { active = false; if (currentMap.current === instance) currentMap.current = null; instance?.remove(); };
   }, []);
   useEffect(() => {
     currentLanguage.current = language;
@@ -50,12 +45,6 @@ function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, pr
     const zoomOut = map.getContainer().querySelector<HTMLAnchorElement>(".leaflet-control-zoom-out");
     for (const [control, title] of [[zoomIn, language === "bn" ? "বড় করে দেখুন" : "Zoom in"], [zoomOut, language === "bn" ? "ছোট করে দেখুন" : "Zoom out"]] as const) {
       if (control) { control.title = title; control.setAttribute("aria-label", title); }
-    }
-    const layer = tiles.current;
-    if (layer) {
-      if (layer.options.attribution) map.attributionControl.removeAttribution(layer.options.attribution);
-      layer.options.attribution = `&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap ${language === "bn" ? "অবদানকারী" : "contributors"}</a>`;
-      map.attributionControl.addAttribution(layer.options.attribution);
     }
     map.eachLayer(layer => { if (layer.getPopup()?.isOpen()) layer.getPopup()?.update(); });
   }, [map, language]);
@@ -114,5 +103,5 @@ function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, pr
     });
     return () => { active = false; layer?.remove(); };
   }, [map, roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode]);
-  return <div className="live-road-map-frame"><div ref={container} className="live-road-map" aria-label={tr("Interactive Dhaka road condition map")} /><button type="button" className="city-map-reset" disabled={!map} onClick={() => map?.setView([23.77, 90.39], 12, { animate: false })}>{tr("Reset view")}</button>{tileError && <div className="map-load-notice" role="status"><span>{tr("Some street tiles could not load. Reports are still available in the activity panel.")}</span><button type="button" onClick={() => { setTileError(false); tiles.current?.redraw(); }}>{tr("Retry street map")}</button><a href="https://www.openstreetmap.org/#map=12/23.77/90.39" target="_blank" rel="noopener noreferrer">{tr("Open street map ↗")}</a></div>}</div>;
+  return <div className="live-road-map-frame"><div ref={container} className="live-road-map" aria-label={tr("Interactive Dhaka road condition map")} /><button type="button" className="city-map-reset" disabled={!map} onClick={() => map?.setView([23.77, 90.39], 12, { animate: false })}>{tr("Reset view")}</button><BaseMapSwitcher choice={baseMap.choice} onChange={baseMap.setChoice} />{baseMap.tileError && <div className="map-load-notice" role="status"><span>{tr("Some street tiles could not load. Reports are still available in the activity panel.")}</span><button type="button" onClick={baseMap.retry}>{tr("Retry street map")}</button><a href="https://www.openstreetmap.org/#map=12/23.77/90.39" target="_blank" rel="noopener noreferrer">{tr("Open street map ↗")}</a></div>}</div>;
 }
