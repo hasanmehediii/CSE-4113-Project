@@ -31,6 +31,8 @@ Limits: Open-Meteo is weather data on a coarse grid (the 14 road centres fall in
 
 The default uses **Leaflet 1.9.4** and **OpenStreetMap** raster tiles, without a Google API key. Tiles keep OSM attribution, browser caching, and an origin Referer; there is no bulk downloading or offline prefetch. For a larger deployment, choose a tile provider or self-host tiles according to the [OSM tile usage policy](https://operations.osmfoundation.org/policies/tiles/).
 
+Both Leaflet maps (the city map and the report location picker) offer a **map style** switcher: **Auto**, **Streets**, **Light** and **Dark**. Auto shows the street map in the light site theme and the dark style in the dark theme. Every style uses the same OpenStreetMap tiles; Light and Dark are CSS filters on the tile layer only, so road and report colours are unchanged, no API key is needed and switching reuses cached tiles. The choice is remembered per browser (`dubsi-map-base` in local storage). Keyless third-party light/dark basemaps were not used because, for example, CARTO now watermarks its tiles without an API key.
+
 To switch the live map to Google Maps later, put these in `apps/web/.env.local`:
 
 ```dotenv

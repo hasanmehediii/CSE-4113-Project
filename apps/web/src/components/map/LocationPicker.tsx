@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import type * as Leaflet from "leaflet";
 import { useCivicLocale } from "@/hooks/useCivicLocale";
 import { DHAKA_CENTRE, isDhakaLocation, type ReportLocation } from "@/lib/report-location";
+import { useBaseMap } from "@/hooks/useBaseMap";
+import BaseMapSwitcher from "./BaseMapSwitcher";
 
 type Props = {
   value: ReportLocation | null;
@@ -17,10 +19,9 @@ export default function LocationPicker({ value, onChange, onError, disabled = fa
   const container = useRef<HTMLDivElement>(null);
   const instance = useRef<Leaflet.Map | null>(null);
   const marker = useRef<Leaflet.Marker | null>(null);
-  const tiles = useRef<Leaflet.TileLayer | null>(null);
   const latest = useRef({ value, onChange, onError, disabled });
   const [map, setMap] = useState<Leaflet.Map | null>(null);
-  const [tileError, setTileError] = useState(false);
+  const baseMap = useBaseMap(map);
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => { latest.current = { value, onChange, onError, disabled }; }, [value, onChange, onError, disabled]);
@@ -37,11 +38,7 @@ export default function LocationPicker({ value, onChange, onError, disabled = fa
         minZoom: 11,
       }).setView([DHAKA_CENTRE.latitude, DHAKA_CENTRE.longitude], 12);
       instance.current = current;
-      tiles.current = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        referrerPolicy: "strict-origin-when-cross-origin",
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-      }).on("tileerror", () => { if (active) setTileError(true); }).addTo(current);
+      // The base tile layer is managed by useBaseMap.
       current.on("click", (event: Leaflet.LeafletMouseEvent) => {
         if (latest.current.disabled) return;
         const point = { latitude: event.latlng.lat, longitude: event.latlng.lng };
@@ -60,7 +57,6 @@ export default function LocationPicker({ value, onChange, onError, disabled = fa
       if (instance.current === current) {
         instance.current = null;
         marker.current = null;
-        tiles.current = null;
       }
       current?.remove();
     };
@@ -114,12 +110,6 @@ export default function LocationPicker({ value, onChange, onError, disabled = fa
       const control = map.getContainer().querySelector<HTMLAnchorElement>(selector);
       if (control) { control.title = title; control.setAttribute("aria-label", title); }
     }
-    const layer = tiles.current;
-    if (layer) {
-      if (layer.options.attribution) map.attributionControl.removeAttribution(layer.options.attribution);
-      layer.options.attribution = `&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap ${language === "bn" ? "অবদানকারী" : "contributors"}</a>`;
-      map.attributionControl.addAttribution(layer.options.attribution);
-    }
   }, [map, language, tr]);
 
   function chooseCentre() {
@@ -135,9 +125,10 @@ export default function LocationPicker({ value, onChange, onError, disabled = fa
     <span className="report-map-crosshair" aria-hidden="true">+</span>
     <button type="button" className="report-map-centre" disabled={!map || disabled} onClick={chooseCentre}>{tr("Use map centre")}</button>
     {!map && !loadError && <span className="report-map-loading" role="status">{tr("Loading map…")}</span>}
-    {(tileError || loadError) && <div className="report-map-error" role="status">
+    <BaseMapSwitcher choice={baseMap.choice} onChange={baseMap.setChoice} />
+    {(baseMap.tileError || loadError) && <div className="report-map-error" role="status">
       <span>{tr("Map unavailable? Use your current location or enter coordinates below.")}</span>
-      {tileError && <button type="button" onClick={() => { setTileError(false); tiles.current?.redraw(); }}>{tr("Retry street map")}</button>}
+      {baseMap.tileError && <button type="button" onClick={baseMap.retry}>{tr("Retry street map")}</button>}
     </div>}
   </div>;
 }

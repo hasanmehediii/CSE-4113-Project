@@ -282,6 +282,7 @@ export const civicTranslations: Record<string, string> = {
   "Community reports will appear here as people share updates.": "এলাকাবাসীর দেওয়া অভিযোগ ও রাস্তার খবর এখানে দেখা যাবে।",
   "Roads will appear here when the city road catalog is added.": "শহরের রাস্তার তালিকা যোগ হলে এখানে দেখা যাবে।",
   "Clear filters": "সব তথ্য দেখুন", "Share a local update": "এলাকার খবর জানান",
+  "Map style": "মানচিত্রের ধরন", "Auto": "স্বয়ংক্রিয়", "Streets": "রাস্তা", "Light": "হালকা", "Dark": "গাঢ়", "Follows the site's light or dark theme": "সাইটের হালকা বা গাঢ় থিম অনুসরণ করে",
   "Traffic & water": "যানজট ও জলাবদ্ধতা", "Status source": "তথ্যের উৎস", "Waterlogging": "জলাবদ্ধতা",
   "Reported · last 4 h": "অভিযোগ · গত ৪ ঘণ্টা", "Usual at this time": "এই সময়ে সাধারণত", "Live rain · Open-Meteo": "এখনকার বৃষ্টি · Open-Meteo",
   "Reported": "অভিযোগ এসেছে", "Reported clear": "স্বাভাবিক বলে জানানো হয়েছে", "No recent report": "সাম্প্রতিক অভিযোগ নেই",

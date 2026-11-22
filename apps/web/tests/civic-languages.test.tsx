@@ -829,6 +829,32 @@ test("the weather widget says road-risk predictions do not use its reading", asy
   assert.ok(text().includes("আপনার দেওয়া বৃষ্টির পরিমাণ ব্যবহার হয়"));
 });
 
+test("the base map switcher restyles the street tiles and remembers the choice", async () => {
+  mapFixtures = true;
+  await mount(CityMap);
+  const switcher = document.querySelector(".live-road-map-frame .base-map-switcher")!;
+  const buttons = [...switcher.querySelectorAll("button")];
+  assert.deepEqual(buttons.map(button => button.textContent), ["Auto", "Streets", "Light", "Dark"]);
+  assert.equal(switcher.querySelector('[aria-pressed="true"]')!.textContent, "Auto");
+  const tileLayer = async (name: string) => {
+    for (let attempt = 0; attempt < 100 && !document.querySelector(`.live-road-map .base-map-${name}`); attempt++) {
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 20)); });
+    }
+    return document.querySelector(`.live-road-map .base-map-${name}`);
+  };
+  assert.ok(await tileLayer("streets"), "auto uses the street map in light mode");
+  await act(async () => { buttons[3].click(); });
+  const layer = await tileLayer("dark");
+  assert.ok(layer);
+  assert.ok(!layer!.classList.contains("base-map-streets"), "one style at a time");
+  assert.equal(document.querySelectorAll(".live-road-map .leaflet-tile-pane > .leaflet-layer").length, 1, "one base layer, restyled in place");
+  assert.equal(localStorage.getItem("dubsi-map-base"), "dark");
+  assert.ok(document.querySelector(".leaflet-control-attribution")!.textContent!.includes("OpenStreetMap contributors"));
+  await toggle();
+  assert.equal(switcher.querySelector('[aria-pressed="true"]')!.textContent, "গাঢ়");
+  assert.ok(document.querySelector(".leaflet-control-attribution")!.textContent!.includes("অবদানকারী"));
+});
+
 test("traffic & water compares community, historical and Open-Meteo sources", async () => {
   mapFixtures = true;
   await mount(CityMap);
