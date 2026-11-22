@@ -29,7 +29,7 @@ export default function RoadReportForm({ road, onSaved, onClose }: { road: Road;
       const result = await mutate<{ id: string }>("/complaints", {
         road_id: road.id, latitude: road.latitude, longitude: road.longitude,
         kind, condition: kind === "complaint" ? "bad" : condition,
-        category_code: cause, title: `${road.name} — ${cause === "other" ? "Traffic / obstruction" : cause === "road_flooding" ? "Waterlogging" : cause === "blocked_drain" ? "Blocked drain" : "Road damage"} · ${kind === "complaint" || condition === "bad" ? "Needs attention" : "Road is clear"}`.slice(0, 180),
+        category_code: cause, title: `${road.name} — ${cause === "traffic_jam" ? "Traffic / obstruction" : cause === "road_flooding" ? "Waterlogging" : cause === "blocked_drain" ? "Blocked drain" : "Road damage"} · ${kind === "complaint" || condition === "bad" ? "Needs attention" : "Road is clear"}`.slice(0, 180),
         address: `${road.name}${road.segment_from ? ` (${road.segment_from}–${road.segment_to})` : ""}`,
         description, images: [],
         ...(form.get("incident_id") && { incident_id: form.get("incident_id") }),
@@ -47,7 +47,7 @@ export default function RoadReportForm({ road, onSaved, onClose }: { road: Road;
       <div className="road-form-tabs" role="group" aria-label={tr("Report type")}><button type="button" aria-pressed={kind === "road_update"} onClick={() => setKind("road_update")}>{tr("Quick update")}</button><button type="button" aria-pressed={kind === "complaint"} onClick={() => setKind("complaint")}>{tr("File a complaint")}</button></div>
       <form className="road-report-form" onSubmit={submit}>
         {kind === "road_update" && <fieldset><legend>{tr("What is the road like?")}</legend><div className="road-condition-options"><button type="button" aria-pressed={condition === "bad"} onClick={() => setCondition("bad")}>● {tr("Blocked / difficult")}</button><button type="button" aria-pressed={condition === "good"} onClick={() => setCondition("good")}>● {tr("Clear / passable")}</button></div></fieldset>}
-        <label>{tr("What did you observe?")}<select value={cause} onChange={event => setCause(event.target.value)}><option value="road_flooding">{tr("Rainwater / waterlogging")}</option><option value="other">{tr("Traffic jam / obstruction")}</option><option value="blocked_drain">{label("blocked_drain")}</option><option value="road_damage">{label("road_damage")}</option></select></label>
+        <label>{tr("What did you observe?")}<select value={cause} onChange={event => setCause(event.target.value)}><option value="road_flooding">{tr("Rainwater / waterlogging")}</option><option value="traffic_jam">{tr("Traffic jam / obstruction")}</option><option value="blocked_drain">{label("blocked_drain")}</option><option value="road_damage">{label("road_damage")}</option></select></label>
         <label>{tr("A few details")}<textarea required minLength={10} maxLength={5000} rows={3} value={description} placeholder={tr("Mention the direction, nearby landmark and what you saw.")} onChange={event => setDescription(event.target.value)} /></label>
         <p className="road-form-hint">{tr("Updates describe this road segment. A clear update does not close an unresolved complaint.")}</p>
         {kind === "complaint" && <IncidentChoice key={`${road.id}:${cause}`} latitude={road.latitude} longitude={road.longitude} category={cause} roadId={road.id}/>}

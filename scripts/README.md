@@ -101,3 +101,8 @@ python3 -m unittest discover -s scripts/tests -v
 Python is needed for tests only. CI runs them on Ubuntu. Checks cover shell
 syntax/LF endings, paths containing spaces, configuration preservation, argument
 validation, Docker errors and volume-preserving stop commands.
+
+`generate-road-history.py` rebuilds `packages/data/dhaka-road-history.json`, the synthetic
+hourly traffic/waterlogging profile (overall and per rain band) used by the map's **Traffic & water**
+view; the API combines it with live Open-Meteo rain for the "Now" prediction. It uses only
+the standard library and a fixed seed; `--check` fails when the checked-in file is out of date.

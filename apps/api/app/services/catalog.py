@@ -6,5 +6,6 @@ CATEGORIES = [
     ("sewage_overflow", "Sewage overflow", 90),
     ("waste_cleaning", "Waste cleaning", 55),
     ("road_damage", "Road damage", 65),
+    ("traffic_jam", "Traffic jam", 50),
     ("other", "Other civic issue", 40),
 ]

@@ -123,7 +123,7 @@ def create_report(client, **overrides):
 
 def test_public_reads_private_mutations_and_points(civic_env):
     client, factory = civic_env
-    assert len(client.get("/api/v1/categories").json()) == 8
+    assert len(client.get("/api/v1/categories").json()) == len(CATEGORIES)
     assert client.get("/api/v1/complaints").json() == []
     assert (
         client.post("/api/v1/complaints", headers=headers(client), json=payload()).status_code

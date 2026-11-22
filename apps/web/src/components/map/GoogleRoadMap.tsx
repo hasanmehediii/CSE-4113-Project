@@ -34,7 +34,7 @@ function loadGoogle(): Promise<Maps> {
   return loader;
 }
 
-export default function GoogleRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode }: RoadMapProps) {
+export default function GoogleRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode, roadColors }: RoadMapProps) {
   const router = useRouter();
   const { tr } = useCivicLocale();
   const container = useRef<HTMLDivElement>(null);
@@ -58,7 +58,7 @@ export default function GoogleRoadMap({ roads, complaints, focus, onSelectRoad, 
     if (!ready || !map || !G) return;
     const overlays: Overlay[] = [];
     for (const road of roads) {
-      const color = predictionMode ? riskColor(risks?.find(row => row.road_id === road.id), hazard) : road.condition === "bad" ? "#c03938" : road.condition === "good" ? "#22735c" : "#667884";
+      const color = roadColors?.[road.id] ?? (predictionMode ? riskColor(risks?.find(row => row.road_id === road.id), hazard) : road.condition === "bad" ? "#c03938" : road.condition === "good" ? "#22735c" : "#667884");
       const paths = roadPaths(road);
       if (paths.length) {
         for (const points of paths) {
@@ -78,7 +78,7 @@ export default function GoogleRoadMap({ roads, complaints, focus, onSelectRoad, 
       marker.addListener("click", () => { router.push(`/complaints/${encodeURIComponent(row.id)}`); }); overlays.push(marker);
     }
     return () => { overlays.forEach(overlay => { G.event.clearInstanceListeners(overlay); overlay.setMap(null); }); };
-  }, [ready, roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode, router]);
+  }, [ready, roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode, router, roadColors]);
   useEffect(() => {
     const map = instance.current, G = globals().google?.maps;
     if (!ready || !map || !G || !focus) return;

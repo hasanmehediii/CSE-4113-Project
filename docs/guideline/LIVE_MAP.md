@@ -6,13 +6,28 @@ dataset](ROAD_DATASET_TRAINING.md) for the current features, fixed time partitio
 forecast horizons, mapping and deployment commands. The generator described below
 is the optional legacy baseline; select it explicitly with `--generate`.
 
-Open `/map`. The page has three views:
+Open `/map`. The page has four views:
 
 1. **Community reports**: public complaints and recent road observations; refreshed every 20 seconds.
 2. **Road updates**: tap a highlighted corridor or choose a road in the searchable list. The selected segment shows its endpoints and a quick reporting form. Signed-in contributors can report a blocked/difficult or clear/passable road, or file a complaint. Submissions use the existing authenticated, CSRF-protected complaints workflow and persist the selected `road_id`.
 3. **Predicted risk**: choose a date/time in **Asia/Dhaka (UTC+6)** and scenario rainfall in **mm in one hour**, then run inference. Switch between rainwater obstruction and traffic congestion. Dashed lines separate model output visually from observations. Gray means no prediction; green <35%, amber 35–64%, red ≥65%. Changing inputs hides the old result until inference runs again.
+4. **Traffic & water**: traffic and waterlogging for each main road from three separate sources, chosen with the source buttons; see [Traffic & water view](#traffic--water-view).
 
 Only curated Dhaka main roads are selectable. Residential lanes and block roads are excluded from the road catalog for this map. The ordinary base map can still show local streets as geographic context. Existing reports elsewhere in Dhaka remain available in the community view.
+
+## Traffic & water view
+
+`GET /api/v1/map/road-status` returns, for every main road and for both hazards (traffic jam and waterlogging), three independent values. The map colours roads by the selected source and hazard, and the road list shows all three side by side. The view refreshes every minute. A failing source never hides the others.
+
+| Source | What it is | Rule |
+| --- | --- | --- |
+| **Reported · last 4 h** | Citizens' complaints and road updates on that road | Reports from the last 4 hours count; false and resolved reports are excluded. The newest report per road and hazard decides: a problem report shows **Reported** until 4 hours after it, a newer "Clear / passable" update shows **Reported clear**. Waterlogging uses the `road_flooding` and `waterlogging_recurring` categories; traffic uses the new `traffic_jam` category (older "Traffic / obstruction" road updates filed as `other` are still recognised). |
+| **Usual at this time** | A **synthetic** history: `packages/data/dhaka-road-history.json` | Share of simulated hours with a jam or waterlogging for the road, the Dhaka season, the day type (Sunday–Thursday, Friday, Saturday) and the hour. Traffic: high ≥ 60%, moderate ≥ 30%; waterlogging (rarer): high ≥ 25%, moderate ≥ 10%. Optional `?at=` picks another time within a year. |
+| **Now · weather + history** | A **prediction**: current rainfall from [Open-Meteo](https://open-meteo.com/) (an open-source weather API with no key) applied to the synthetic history | One request for all road centres plus the city centre every 10 minutes (cached; a failed refresh shows the last result for up to an hour). The rain in the previous 3 hours sets a band (none < 0.5 mm ≤ light < 8 mm ≤ heavy), and the value is the history's share of hours with a jam or waterlogging for this road, season, day type, hour **and rain band**. Same high/moderate thresholds as above. |
+
+Above the road list, the panel shows **Dhaka now** (condition, temperature and 3-hour rain at the city centre) and **Roads to avoid now** (`avoid_now` in the response). Actual conditions come from the community: roads with a current report (**Jam reported**, **Waterlogging reported**) come first, then roads whose "Now" prediction is high (**Jam likely now**, **Waterlogging likely now**). When Open-Meteo is unavailable the list uses reports only. The focus is the main corridors in the road catalog (Mirpur Road, Airport Road, Pragati Sarani / Rampura–Badda and the other catalog roads), not branch roads.
+
+Limits: Open-Meteo is weather data on a coarse grid (the 14 road centres fall in about two grid cells), so its values are area-level rain estimates, not road measurements, and it has no traffic data. No open or free live traffic feed covers Dhaka (TomTom traffic tiles return no data for Bangladesh). The historical profile is generated, not observed (to be replaced with real observations later): `scripts/generate-road-history.py` simulates two years (2024–2025) of hourly rain, waterlogging and traffic from the catalog's `flood_factor` and `traffic_factor`, rush hours, the Friday/Saturday weekend and Dhaka's monsoon calendar, with a fixed seed. Every value exists overall (`any`) and per rain band (`none`, `light`, `heavy`); rain-band buckets with fewer than 8 simulated hours pool across seasons, then day types. Regenerate it after changing those factors or the catalog, and check it is current with `python scripts/generate-road-history.py --check` (an API test runs the same check).
 
 ## Map provider
 
