@@ -58,7 +58,14 @@ keeps it and makes the review final. On any actioned case the mayor can also tic
 Five dislikes plus evidence from two approved workers still mark the report false
 automatically, reusing the open case. False-incident moderation keeps the existing
 forfeiture policy for the original incident reporter; it does not automatically
-forfeit every corroborating citizen's balance. Migration `20261122_07` adds
+forfeit every corroborating citizen's balance.
+
+Only trustworthy reports shape live road conditions (the road map colours and the
+Traffic & water view): reports by blocked accounts stop counting at once, although a
+shared incident still counts while any of its other reporters is active; and an
+unverified report under dislike review is paused, shown as "Under review" on its page,
+until the mayor decides. A verified report keeps counting even if it is later
+disliked. Migration `20261122_07` adds
 `complaints.verified_at` and the `disliked_report` case kind.
 
 ### Completion lifecycle and moderation

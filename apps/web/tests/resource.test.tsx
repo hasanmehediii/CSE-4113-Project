@@ -361,6 +361,24 @@ test("every points-ledger reason has a readable label in English and Bangla", as
   assert.equal(civicLabel("report_verified", "en"), "Verified report");
 });
 
+test("a report under dislike review says so in both languages", async t => {
+  t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL) => {
+    const path = new URL(String(url)).pathname;
+    if (path.endsWith("/participation")) return new Response(JSON.stringify({ is_reporter: false }));
+    const body = path.endsWith("/auth/me") ? { id: "citizen", role: "citizen", email_verified: true }
+      : { ...report, id: "root", incident_id: "root", dislikes: 5, under_review: true, active_assignment: null, resolutions: [] };
+    return new Response(JSON.stringify(body));
+  });
+  const { Providers } = await import("../src/components/Providers");
+  const { default: ComplaintDetail } = await import("../src/components/ComplaintDetail");
+  const { changePreference } = await import("../src/lib/preferences");
+  await renderNode(<Providers><ComplaintDetail id="root"/></Providers>);
+  assert.ok(content()?.includes("Under review: 5 citizens disagreed with this report."));
+  await act(async () => { changePreference("language", "bn"); });
+  assert.ok(content()?.includes("পর্যালোচনাধীন"));
+  await act(async () => { changePreference("language", "en"); });
+});
+
 test("approved workers can confirm but not dislike a report, and verified reports show it", async t => {
   const sent: unknown[] = [];
   t.mock.method(globalThis, "fetch", async (url: RequestInfo | URL, init?: RequestInit) => {

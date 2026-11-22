@@ -436,3 +436,27 @@ def test_dismissed_dislike_review_is_final_and_worker_evidence_reuses_the_open_c
         cases = db.scalars(select(ModerationCase).where(ModerationCase.complaint_id == second["id"])).all()
         assert [(case.kind, case.source_key, case.status) for case in cases] == [
             ("false_complaint", f"false:{second['id']}", "open")]
+
+
+def test_road_condition_ignores_a_blocked_reporter_unless_another_reporter_is_active(incident_env):
+    client, factory = incident_env
+    with factory() as db:
+        seed_main_roads(db)
+        db.commit()
+    road_id = next(iter(MAIN_ROADS))
+    centre = MAIN_ROADS[road_id]["center"]
+    place = {"road_id": road_id, "latitude": centre[0], "longitude": centre[1]}
+    author = test_civic.account(factory, "condition-author")
+    witness = test_civic.account(factory, "condition-witness")
+    root = submit(client, factory, author, **place)
+
+    def condition():
+        return next(row for row in client.get("/api/v1/map/roads").json() if row["id"] == road_id)["condition"]
+
+    assert condition() == "bad"
+    with factory() as db:
+        db.get(User, author).is_active = False
+        db.commit()
+    assert condition() == "unknown"
+    joined = submit(client, factory, witness, **place)        # an independent, active witness
+    assert joined["incident_id"] == root["id"] and condition() == "bad"

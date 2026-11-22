@@ -3,7 +3,7 @@
 import math
 
 from fastapi import HTTPException
-from sqlalchemy import case, func, or_, select, update
+from sqlalchemy import and_, case, func, or_, select, update
 from sqlalchemy.orm import Session, aliased
 
 from app.models.civic import (
@@ -58,6 +58,39 @@ def get_complaint(db, complaint_id, lock=False):
 
 def incident_members(incident_id):
     return or_(Complaint.id == incident_id, Complaint.incident_id == incident_id)
+
+
+def incident_root():
+    """The incident a report belongs to (its own id for an original report or road update)."""
+    return func.coalesce(Complaint.incident_id, Complaint.id)
+
+
+def under_dislike_review():
+    """Unverified reports that 5 citizens disliked wait for the mayor before they count again."""
+    root = aliased(Complaint)
+    return select(ModerationCase.id).join(root, root.id == ModerationCase.complaint_id).where(
+        ModerationCase.complaint_id == incident_root(),
+        ModerationCase.kind == "disliked_report",
+        ModerationCase.status == "open",
+        root.verified_at.is_(None),
+    ).exists()
+
+
+def report_counts_on_map():
+    """A report shapes live road conditions only while its author is not blocked and it is
+    not under dislike review. False reports are excluded separately by status."""
+    author = aliased(User)
+    active_author = select(author.id).where(author.id == Complaint.author_id, author.is_active.is_(True)).exists()
+    return and_(active_author, ~under_dislike_review())
+
+
+def incident_counts_on_map():
+    """Like report_counts_on_map, for an incident row: it counts while any reporter is active."""
+    member, author = aliased(Complaint), aliased(User)
+    active_reporter = select(member.id).join(author, author.id == member.author_id).where(
+        or_(member.id == Complaint.id, member.incident_id == Complaint.id), author.is_active.is_(True)
+    ).exists()
+    return and_(active_reporter, ~under_dislike_review())
 
 
 def set_incident_status(db, row, status):
@@ -474,6 +507,10 @@ def public_complaint(db, row, detail=False):
     )
     result.update(report_votes(db, root.id))
     result["verified"] = bool(root.verified_at)
+    result["under_review"] = not root.verified_at and bool(db.scalar(select(ModerationCase.id).where(
+        ModerationCase.complaint_id == root.id, ModerationCase.kind == "disliked_report",
+        ModerationCase.status == "open",
+    )))
     result["priority"] = db.get(Category, row.category_code).base_priority
     result["priority_source"] = "category_rules"
     prediction = db.get(ComplaintPrediction, root.id)
