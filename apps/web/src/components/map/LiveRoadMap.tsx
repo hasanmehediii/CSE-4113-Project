@@ -7,12 +7,12 @@ import { civicLabel, civicNumber } from "@/lib/civic-i18n";
 import { mapProvider, riskColor, roadPaths, type RoadRisk } from "@/lib/road-map";
 import GoogleRoadMap from "./GoogleRoadMap";
 
-export interface RoadMapProps { roads: Road[]; complaints: Complaint[]; focus?: Road | null; onSelectRoad?: (road: Road) => void; risks?: RoadRisk[]; hazard?: "waterlogging" | "traffic"; predictionMode?: boolean }
+export interface RoadMapProps { roads: Road[]; complaints: Complaint[]; focus?: Road | null; onSelectRoad?: (road: Road) => void; risks?: RoadRisk[]; hazard?: "waterlogging" | "traffic"; predictionMode?: boolean; roadColors?: Record<string, string> }
 export default function LiveRoadMap(props: RoadMapProps) {
   return mapProvider === "google" ? <GoogleRoadMap {...props} /> : <OpenRoadMap {...props} />;
 }
 
-function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode }: RoadMapProps) {
+function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode, roadColors }: RoadMapProps) {
   const { language, tr } = useCivicLocale();
   const container = useRef<HTMLDivElement>(null);
   const currentMap = useRef<Leaflet.Map | null>(null);
@@ -76,7 +76,7 @@ function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, pr
       if (!active || currentMap.current !== map) return;
       layer = L.layerGroup().addTo(map);
       for (const row of roads) {
-        const color = predictionMode ? riskColor(risks?.find(risk => risk.road_id === row.id), hazard) : row.condition === "bad" ? "#c03938" : row.condition === "good" ? "#22735c" : "#667884";
+        const color = roadColors?.[row.id] ?? (predictionMode ? riskColor(risks?.find(risk => risk.road_id === row.id), hazard) : row.condition === "bad" ? "#c03938" : row.condition === "good" ? "#22735c" : "#667884");
         const selected = row.id === focus?.id;
         const paths = roadPaths(row);
         if (paths.length) {
@@ -113,6 +113,6 @@ function OpenRoadMap({ roads, complaints, focus, onSelectRoad, risks, hazard, pr
       }
     });
     return () => { active = false; layer?.remove(); };
-  }, [map, roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode]);
+  }, [map, roads, complaints, focus, onSelectRoad, risks, hazard, predictionMode, roadColors]);
   return <div className="live-road-map-frame"><div ref={container} className="live-road-map" aria-label={tr("Interactive Dhaka road condition map")} /><button type="button" className="city-map-reset" disabled={!map} onClick={() => map?.setView([23.77, 90.39], 12, { animate: false })}>{tr("Reset view")}</button>{tileError && <div className="map-load-notice" role="status"><span>{tr("Some street tiles could not load. Reports are still available in the activity panel.")}</span><button type="button" onClick={() => { setTileError(false); tiles.current?.redraw(); }}>{tr("Retry street map")}</button><a href="https://www.openstreetmap.org/#map=12/23.77/90.39" target="_blank" rel="noopener noreferrer">{tr("Open street map ↗")}</a></div>}</div>;
 }
