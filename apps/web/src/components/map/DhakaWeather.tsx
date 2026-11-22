@@ -16,7 +16,7 @@ type CurrentWeather = {
 
 const endpoint = "https://api.open-meteo.com/v1/forecast?latitude=23.8103&longitude=90.4125&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m,is_day&timezone=Asia%2FDhaka&timeformat=unixtime&forecast_days=1";
 
-function condition(code: number, day: boolean): [string, string, string] {
+export function condition(code: number, day: boolean): [string, string, string] {
   if (code === 0) return [day ? "☀" : "☾", day ? "Clear sky" : "Clear night", day ? "পরিষ্কার আকাশ" : "পরিষ্কার রাত"];
   if (code <= 2) return [day ? "⛅" : "☁", "Partly cloudy", "আংশিক মেঘলা"];
   if (code === 3) return ["☁", "Overcast", "মেঘাচ্ছন্ন"];

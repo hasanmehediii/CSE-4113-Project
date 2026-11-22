@@ -3,8 +3,10 @@
 No real observations exist for these roads, so this simulates two years of hourly
 conditions (2024-01-01 to 2025-12-31) from documented assumptions and the catalog's
 per-road `flood_factor` and `traffic_factor`, then stores how often each road was jammed
-or waterlogged for every season x day type x hour. The output is synthetic data for a
-demonstration, not a record of Dhaka. Deterministic: the same seed gives the same file.
+or waterlogged for every season x day type x hour, overall ("any") and by the city's rain
+in the previous 3 hours ("none", "light", "heavy"). The rain-conditioned values let the
+API combine current weather with history. Synthetic demonstration data, not a record of
+Dhaka; replace it with real observations later. Deterministic: same seed, same file.
 
     python scripts/generate-road-history.py            # writes packages/data/dhaka-road-history.json
     python scripts/generate-road-history.py --check    # fails if the checked-in file is out of date
@@ -14,6 +16,7 @@ import json
 import math
 import random
 import sys
+from collections import deque
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -30,6 +33,14 @@ DAY_TYPES = {"workday": [6, 0, 1, 2, 3], "friday": [4], "saturday": [5]}
 # Share of days with rain and mean rain-hour intensity (mm/h), a rough monsoon calendar.
 RAIN_DAY = {1: .04, 2: .08, 3: .14, 4: .28, 5: .45, 6: .70, 7: .80, 8: .76, 9: .64, 10: .32, 11: .08, 12: .04}
 RAIN_MM = {1: 2.0, 2: 2.5, 3: 4.0, 4: 6.0, 5: 8.0, 6: 9.0, 7: 9.5, 8: 9.0, 9: 8.5, 10: 6.5, 11: 3.0, 12: 2.0}
+# City rainfall in the previous 3 hours (mm); the API uses the same bands for Open-Meteo data.
+RAIN_BANDS = {"none": 0.5, "light": 8.0}  # none < 0.5 <= light < 8 <= heavy
+# Fewer simulated hours than this in a rain-band bucket pools it across seasons, then day types.
+MIN_HOURS = 8
+
+
+def rain_band(rain_3h: float) -> str:
+    return "none" if rain_3h < RAIN_BANDS["none"] else "light" if rain_3h < RAIN_BANDS["light"] else "heavy"
 
 
 def season_of(month: int) -> str:
@@ -74,12 +85,16 @@ def simulate(roads: list[dict]):
     counts = {road["id"]: {hazard: {} for hazard in ("traffic", "waterlogging")} for road in roads}
     samples: dict[tuple, int] = {}
     water = {road["id"]: 0.0 for road in roads}
+    recent = deque([0.0, 0.0, 0.0], maxlen=3)
     day = START
     while day <= END:
         rain = rain_hours(rng, day)
         for hour in range(24):
-            key = (season_of(day.month), day_type_of(day.weekday()), hour)
-            samples[key] = samples.get(key, 0) + 1
+            recent.append(rain[hour])
+            base = (season_of(day.month), day_type_of(day.weekday()), hour)
+            band = rain_band(sum(recent))
+            for key in (base + ("any",), base + (band,)):
+                samples[key] = samples.get(key, 0) + 1
             for road in roads:
                 flood, busy = road["flood_factor"], road["traffic_factor"]
                 # Standing water builds with rain, more on flood-prone roads, and drains each hour.
@@ -90,19 +105,32 @@ def simulate(roads: list[dict]):
                 jammed = rng.random() < min(0.97, chance)
                 for hazard, happened in (("traffic", jammed), ("waterlogging", waterlogged)):
                     bucket = counts[road["id"]][hazard]
-                    bucket[key] = bucket.get(key, 0) + int(happened)
+                    for key in (base + ("any",), base + (band,)):
+                        bucket[key] = bucket.get(key, 0) + int(happened)
         day += timedelta(days=1)
     return counts, samples
+
+
+def rate(counts: dict, samples: dict, season: str, day_type: str, hour: int, band: str) -> float:
+    """Share of hours with the hazard; sparse rain-band buckets pool across seasons, then day types."""
+    for seasons, day_types in (([season], [day_type]), (list(SEASONS), [day_type]),
+                               (list(SEASONS), list(DAY_TYPES))):
+        keys = [(s, d, hour, band) for s in seasons for d in day_types]
+        hours = sum(samples.get(key, 0) for key in keys)
+        if band == "any" or hours >= MIN_HOURS:
+            return round(sum(counts.get(key, 0) for key in keys) / hours, 2) if hours else 0.0
+    return rate(counts, samples, season, day_type, hour, "any")
 
 
 def build() -> dict:
     roads = json.loads(CATALOG.read_text("utf-8"))
     counts, samples = simulate(roads)
+    bands = ("any", "none", "light", "heavy")
     profile = {}
     for road in roads:
         profile[road["id"]] = {
-            hazard: {season: {day_type: [round(counts[road["id"]][hazard][(season, day_type, hour)]
-                                                / samples[(season, day_type, hour)], 2) for hour in range(24)]
+            hazard: {season: {day_type: {band: [rate(counts[road["id"]][hazard], samples, season, day_type, hour, band)
+                                               for hour in range(24)] for band in bands}
                               for day_type in DAY_TYPES} for season in SEASONS}
             for hazard in ("traffic", "waterlogging")
         }
@@ -113,10 +141,15 @@ def build() -> dict:
         "seed": SEED,
         "simulated_period": f"{START.isoformat()} to {END.isoformat()}, hourly",
         "value": "share of simulated hours with a traffic jam or waterlogging",
+        "layout": "roads[road][hazard][season][day_type][rain_band][hour]",
+        "rain_bands": {"any": "all hours", "none": "< 0.5 mm in the previous 3 h",
+                       "light": "0.5-8 mm in the previous 3 h", "heavy": ">= 8 mm in the previous 3 h"},
+        "pooling": f"rain-band buckets with fewer than {MIN_HOURS} simulated hours pool across seasons, then day types",
         "timezone": "Asia/Dhaka",
         "seasons": SEASONS,
         "day_types": {"workday": "Sunday-Thursday", "friday": "Friday", "saturday": "Saturday"},
-        "hours_per_bucket": {f"{s}/{d}": min(samples[(s, d, h)] for h in range(24)) for s in SEASONS for d in DAY_TYPES},
+        "hours_per_bucket": {f"{s}/{d}": min(samples[(s, d, h, "any")] for h in range(24))
+                             for s in SEASONS for d in DAY_TYPES},
         "roads": profile,
     }
 

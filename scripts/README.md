@@ -103,5 +103,6 @@ syntax/LF endings, paths containing spaces, configuration preservation, argument
 validation, Docker errors and volume-preserving stop commands.
 
 `generate-road-history.py` rebuilds `packages/data/dhaka-road-history.json`, the synthetic
-hourly traffic/waterlogging profile used by the map's **Traffic & water** view. It uses only
+hourly traffic/waterlogging profile (overall and per rain band) used by the map's **Traffic & water**
+view; the API combines it with live Open-Meteo rain for the "Now" prediction. It uses only
 the standard library and a fixed seed; `--check` fails when the checked-in file is out of date.

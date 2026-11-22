@@ -76,10 +76,10 @@ before(async () => {
       return new Response(JSON.stringify({ generated_at: new Date().toISOString(), sources: {
         community: { window_hours: 4 },
         historical: { at: "2026-07-13T18:00:00+06:00", season: "monsoon", day_type: "workday", hour: 18, notice: "Simulated", data_source: "synthetic" },
-        weather: weather ? { status: "live", fetched_at: new Date().toISOString() } : { status: "unavailable", fetched_at: null, message: "Live rainfall from Open-Meteo is not available right now." },
-      }, roads: [
-        { road_id: "bad-road", community: { traffic: community("reported", 2), waterlogging: community("none") }, historical: { traffic: { probability: .88, level: "high" }, waterlogging: { probability: .12, level: "moderate" } }, weather: weather ? { rain_mm_1h: 6, rain_mm_3h: 18.5, observed_at: "2026-07-13T18:00", traffic: { level: "moderate" }, waterlogging: { level: "high" } } : null },
-        { road_id: "good-road", community: { traffic: community("clear"), waterlogging: community("none") }, historical: { traffic: { probability: .2, level: "low" }, waterlogging: { probability: 0, level: "low" } }, weather: weather ? { rain_mm_1h: 0, rain_mm_3h: 0, observed_at: "2026-07-13T18:00", traffic: { level: "low" }, waterlogging: { level: "low" } } : null },
+        weather: weather ? { status: "live", fetched_at: new Date().toISOString(), city: { temperature_c: 28.6, weather_code: 63, rain_mm_1h: 6, rain_mm_3h: 18.5, observed_at: "2026-07-13T18:00" } } : { status: "unavailable", fetched_at: null, message: "Live rainfall from Open-Meteo is not available right now." },
+      }, avoid_now: [{ road_id: "bad-road", reasons: weather ? ["reported_traffic", "likely_waterlogging"] : ["reported_traffic"] }], roads: [
+        { road_id: "bad-road", community: { traffic: community("reported", 2), waterlogging: community("none") }, historical: { traffic: { probability: .88, level: "high" }, waterlogging: { probability: .12, level: "moderate" } }, weather: weather ? { rain_mm_1h: 6, rain_mm_3h: 18.5, observed_at: "2026-07-13T18:00", rain_band: "heavy", traffic: { probability: .55, level: "moderate" }, waterlogging: { probability: .95, level: "high" } } : null },
+        { road_id: "good-road", community: { traffic: community("clear"), waterlogging: community("none") }, historical: { traffic: { probability: .2, level: "low" }, waterlogging: { probability: 0, level: "low" } }, weather: weather ? { rain_mm_1h: 0, rain_mm_3h: 0, observed_at: "2026-07-13T18:00", rain_band: "none", traffic: { probability: .1, level: "low" }, waterlogging: { probability: .02, level: "low" } } : null },
       ] }));
     }
     if (path.endsWith("/map/predictions")) {
@@ -865,10 +865,10 @@ test("traffic & water compares community, historical and Open-Meteo sources", as
   const badges = () => [...document.querySelectorAll(".road-status-list .road-status-badge")].map(element => element.textContent);
   const sources = () => [...document.querySelectorAll<HTMLButtonElement>(".road-status-sources button")];
   const hazards = () => [...document.querySelectorAll<HTMLButtonElement>(".road-status-panel > .road-form-tabs:not(.road-status-sources) button")];
-  assert.deepEqual(sources().map(button => button.textContent), ["Reported · last 4 h", "Usual at this time", "Live rain · Open-Meteo"]);
+  assert.deepEqual(sources().map(button => button.textContent), ["Reported · last 4 h", "Usual at this time", "Now · weather + history"]);
   assert.deepEqual(badges(), ["Reported", "Reported clear"]);
   const first = document.querySelector(".road-status-list .road-status-row")!.textContent!;
-  assert.ok(first.includes("Usual: 88%") && first.includes("Rain 3 h: 18.5 mm"), first);
+  assert.ok(first.includes("Usual: 88%") && first.includes("Now: 55% · heavy rain (18.5 mm)"), first);
   await act(async () => { sources()[1].click(); });
   assert.deepEqual(badges(), ["High", "Low"]);
   assert.ok(content().includes("SYNTHETIC HISTORY"));
@@ -876,10 +876,13 @@ test("traffic & water compares community, historical and Open-Meteo sources", as
   assert.deepEqual(badges(), ["Moderate", "Low"]);
   await act(async () => { sources()[2].click(); });
   assert.deepEqual(badges(), ["High", "Low"]);
-  assert.ok(content().includes("it does not measure traffic"));
+  assert.ok(content().includes("A prediction, not a measurement"));
+  const avoid = () => [...document.querySelectorAll(".road-avoid-list li")].map(item => item.textContent);
+  assert.ok(avoid()[0]!.includes("Jam reported") && avoid()[0]!.includes("Waterlogging likely now"), avoid()[0]!);
+  assert.ok(content().includes("Dhaka now") && content().includes("Rain · 29°C"));
   await toggle();
   assert.deepEqual(badges(), ["বেশি", "কম"]);
-  assert.ok(content().includes("এখনকার বৃষ্টি · Open-Meteo"));
+  assert.ok(content().includes("এখন · আবহাওয়া + ইতিহাস") && content().includes("এখন জলাবদ্ধতার সম্ভাবনা"));
 });
 
 test("an Open-Meteo outage leaves the other sources working", async () => {
@@ -892,6 +895,8 @@ test("an Open-Meteo outage leaves the other sources working", async () => {
   }
   await act(async () => { document.querySelectorAll<HTMLButtonElement>(".road-status-sources button")[2].click(); });
   assert.ok(content().includes("Live rainfall from Open-Meteo is not available right now."));
+  assert.ok(content().includes("Weather is unavailable, so this list uses reports only."));
+  assert.ok(!content().includes("Dhaka now"));
   assert.deepEqual([...document.querySelectorAll(".road-status-list .road-status-badge")].map(element => element.textContent), ["No data", "No data"]);
   await act(async () => { document.querySelectorAll<HTMLButtonElement>(".road-status-sources button")[0].click(); });
   assert.deepEqual([...document.querySelectorAll(".road-status-list .road-status-badge")].map(element => element.textContent), ["Reported", "Reported clear"]);

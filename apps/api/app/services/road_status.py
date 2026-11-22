@@ -3,8 +3,10 @@
 - community: citizens' reports on the road in the last 4 hours (observations);
 - historical: a synthetic hourly profile (packages/data/dhaka-road-history.json, made by
   scripts/generate-road-history.py) for the season, day type and hour;
-- weather: recent rainfall from the open-source Open-Meteo API, turned into a
-  rain-based estimate (Open-Meteo has no traffic data; no open live traffic feed covers Dhaka).
+- weather (shown as "Now"): current rainfall from the open-source Open-Meteo API picks the
+  matching part of the history (this hour, this much rain) to predict each road now; with
+  community reports it drives the "avoid now" list. Open-Meteo has no traffic data, and no
+  open live traffic feed covers Dhaka.
 
 Each source is reported separately and never presented as another; a weather failure
 does not hide the other two.
@@ -95,7 +97,13 @@ def level_for(hazard: str, value: float) -> str:
     return "high" if value >= high else "moderate" if value >= moderate else "low"
 
 
-def historical_status(at: datetime) -> tuple[dict, dict[str, dict]]:
+def rain_band(rain_3h: float) -> str:
+    """Same bands as scripts/generate-road-history.py."""
+    return "none" if rain_3h < 0.5 else "light" if rain_3h < 8 else "heavy"
+
+
+def profile_status(at: datetime, band: str) -> tuple[dict, dict[str, dict]]:
+    """Probability and level per road from the synthetic history for `at` and a rain band."""
     local = at.astimezone(DHAKA)
     season, day_type = season_of(local.month), day_type_of(local.weekday())
     period = {"season": season, "day_type": day_type, "hour": local.hour}
@@ -103,50 +111,58 @@ def historical_status(at: datetime) -> tuple[dict, dict[str, dict]]:
     for road_id in MAIN_ROADS:
         profile = HISTORY["roads"].get(road_id)
         result[road_id] = {
-            hazard: ({"probability": (value := profile[hazard][season][day_type][local.hour]),
+            hazard: ({"probability": (value := profile[hazard][season][day_type][band][local.hour]),
                       "level": level_for(hazard, value)} if profile else {"probability": None, "level": "unknown"})
             for hazard in HAZARDS
         }
     return period, result
 
 
-def rain_levels(rain_1h: float, rain_3h: float, flood_factor: float) -> dict:
-    """Rain-based estimate. Flood-prone roads (higher flood_factor) are flagged at lower totals."""
-    weighted = rain_3h * (0.5 + flood_factor)
-    water = "high" if weighted >= 20 or rain_1h >= 15 else "moderate" if weighted >= 7 or rain_1h >= 5 else "low"
-    traffic = "high" if rain_1h >= 10 else "moderate" if rain_1h >= 2.5 else "low"
-    return {"waterlogging": {"level": water}, "traffic": {"level": traffic}}
+def historical_status(at: datetime) -> tuple[dict, dict[str, dict]]:
+    """What usually happens at this time in any weather."""
+    return profile_status(at, "any")
 
 
 _weather_lock = threading.Lock()
 _weather_cache: dict = {}
 
 
-def _fetch_open_meteo() -> dict[str, dict]:
+DHAKA_CENTRE = (23.8103, 90.4125)
+
+
+def _rain(location: dict) -> tuple[float, float, str]:
+    current_time = location["current"]["time"]
+    hourly = [value or 0.0 for time_, value in zip(location["hourly"]["time"], location["hourly"]["precipitation"],
+                                                     strict=True) if time_ <= current_time]
+    return float(sum(hourly[-1:])), float(sum(hourly[-3:])), current_time
+
+
+def _fetch_open_meteo() -> dict:
+    """One Open-Meteo request: each road centre plus the city centre for a "Dhaka now" summary."""
     road_ids = list(MAIN_ROADS)
-    centres = [MAIN_ROADS[road_id]["center"] for road_id in road_ids]
+    points = [MAIN_ROADS[road_id]["center"] for road_id in road_ids] + [DHAKA_CENTRE]
     query = urlencode({
-        "latitude": ",".join(f"{lat:.4f}" for lat, _ in centres),
-        "longitude": ",".join(f"{lon:.4f}" for _, lon in centres),
+        "latitude": ",".join(f"{lat:.4f}" for lat, _ in points),
+        "longitude": ",".join(f"{lon:.4f}" for _, lon in points),
         "hourly": "precipitation", "past_hours": 6, "forecast_hours": 1,
-        "current": "precipitation", "timezone": "Asia/Dhaka",
+        "current": "precipitation,temperature_2m,weather_code", "timezone": "Asia/Dhaka",
     })
     request = Request(f"{OPEN_METEO_URL}?{query}", headers={"User-Agent": "DubsiBhai road status"})
     with urlopen(request, timeout=10) as response:
         data = json.load(response)
     locations = data if isinstance(data, list) else [data]
-    if len(locations) != len(road_ids):
+    if len(locations) != len(points):
         raise ValueError("Open-Meteo returned an unexpected number of locations")
     roads = {}
-    for road_id, location in zip(road_ids, locations, strict=True):
-        current_time = location["current"]["time"]
-        hourly = [value or 0.0 for time_, value in zip(location["hourly"]["time"], location["hourly"]["precipitation"],
-                                                         strict=True) if time_ <= current_time]
-        rain_1h, rain_3h = float(sum(hourly[-1:])), float(sum(hourly[-3:]))
-        roads[road_id] = {"rain_mm_1h": round(rain_1h, 1), "rain_mm_3h": round(rain_3h, 1),
-                          "observed_at": current_time,
-                          **rain_levels(rain_1h, rain_3h, MAIN_ROADS[road_id]["flood_factor"])}
-    return roads
+    for road_id, location in zip(road_ids, locations, strict=False):
+        rain_1h, rain_3h, observed = _rain(location)
+        roads[road_id] = {"rain_mm_1h": round(rain_1h, 1), "rain_mm_3h": round(rain_3h, 1), "observed_at": observed}
+    centre = locations[-1]
+    rain_1h, rain_3h, observed = _rain(centre)
+    city = {"temperature_c": centre["current"].get("temperature_2m"),
+            "weather_code": centre["current"].get("weather_code"),
+            "rain_mm_1h": round(rain_1h, 1), "rain_mm_3h": round(rain_3h, 1), "observed_at": observed}
+    return {"roads": roads, "city": city}
 
 
 def clear_weather_cache():
@@ -163,38 +179,69 @@ def weather_status(fetch=None, clock=time.time) -> dict:
         if cached and age < WEATHER_TTL_SECONDS:
             return {**cached, "status": "live"}
         try:
-            roads = fetch()
+            fetched = fetch()
         except (URLError, TimeoutError, OSError, ValueError, KeyError, TypeError):
             if cached and age < WEATHER_STALE_SECONDS:
                 return {**cached, "status": "stale"}
-            return {"status": "unavailable", "fetched_at": None, "roads": {},
+            return {"status": "unavailable", "fetched_at": None, "roads": {}, "city": None,
                     "message": "Live rainfall from Open-Meteo is not available right now."}
-        value = {"fetched_at": datetime.now(UTC).isoformat(), "roads": roads}
+        value = {"fetched_at": datetime.now(UTC).isoformat(), "roads": fetched["roads"], "city": fetched.get("city")}
         _weather_cache.update(value=value, at=clock())
         return {**value, "status": "live"}
 
 
+def predicted_now(live: dict, now: datetime) -> dict[str, dict | None]:
+    """Combine current Open-Meteo rain with the history for this hour and that much rain."""
+    result = {}
+    for road_id in MAIN_ROADS:
+        weather = live["roads"].get(road_id)
+        if not weather:
+            result[road_id] = None
+            continue
+        band = rain_band(weather["rain_mm_3h"])
+        _, profile = profile_status(now, band)
+        result[road_id] = {**weather, "rain_band": band, **profile[road_id]}
+    return result
+
+
+def avoid_now(community: dict, predicted: dict) -> list[dict]:
+    """Roads to avoid: reported problems first (actual conditions), then high predicted risk."""
+    avoid = []
+    for road_id in MAIN_ROADS:
+        reasons = [f"reported_{hazard}" for hazard in HAZARDS if community[road_id][hazard]["status"] == "reported"]
+        now = predicted.get(road_id)
+        reasons += [f"likely_{hazard}" for hazard in HAZARDS if now and now[hazard]["level"] == "high"]
+        if reasons:
+            avoid.append({"road_id": road_id, "reasons": reasons})
+    return sorted(avoid, key=lambda row: (not any(r.startswith("reported") for r in row["reasons"]),
+                                          -len(row["reasons"])))
+
+
 def road_status(db, at: datetime | None = None) -> dict:
     now = int(time.time())
-    at = at or datetime.now(UTC)
+    current = datetime.now(UTC)
+    at = at or current
     community = community_status(db, now)
     period, historical = historical_status(at)
     live = weather_status()
+    predicted = predicted_now(live, current)
     roads = [{
         "road_id": road_id,
         "community": community[road_id],
         "historical": historical[road_id],
-        "weather": live["roads"].get(road_id),
+        "weather": predicted[road_id],
     } for road_id in MAIN_ROADS]
     return {
-        "generated_at": datetime.now(UTC).isoformat(),
+        "generated_at": current.isoformat(),
         "sources": {
             "community": {"window_hours": COMMUNITY_WINDOW_SECONDS // 3600, "data_source": "citizen reports"},
             "historical": {"data_source": HISTORY["data_source"], "notice": HISTORY["notice"],
                            "at": at.astimezone(DHAKA).isoformat(), **period, "bands": BANDS},
-            "weather": {"data_source": "Open-Meteo", "status": live["status"], "fetched_at": live["fetched_at"],
-                        "estimate": "rain-based; Open-Meteo provides weather, not traffic",
+            "weather": {"data_source": "Open-Meteo + synthetic history", "status": live["status"],
+                        "fetched_at": live["fetched_at"], "city": live.get("city"),
+                        "estimate": "current rain from Open-Meteo applied to the history for this hour and rain",
                         **({"message": live["message"]} if "message" in live else {})},
         },
+        "avoid_now": avoid_now(community, predicted),
         "roads": roads,
     }
