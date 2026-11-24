@@ -115,7 +115,8 @@ data. No `down -v` is needed for upgrades.
    land on their application-status page; worker tools require mayor approval.
 3. Open **Report an issue**. Enter a precise Dhaka location or choose a catalogued
    road. Upload an optional JPEG/PNG/WebP (max 5 MB) or supply HTTPS image links.
-4. View **My contributions** for reports and the points ledger.
+4. View **My contributions** for reports and the points ledger. A report earns 1 point
+   only after 5 verified citizens or 3 approved workers confirm it on its detail page.
 5. Existing citizens can still apply under **Become a worker**. Worker signups have
    already submitted their application. The mayor reviews applications at `/admin`.
    Approved accounts gain access to `/worker` on the next account refresh/sign-in.
@@ -131,8 +132,10 @@ data. No `down -v` is needed for upgrades.
    unfinished work behind the first page.
 7. The assigned worker submits a completion comment and optional photo. Citizens
    verify the work on the complaint detail page; 5 confirmations award 5 points.
-8. Evidence-backed disputes and qualifying false reports appear under Moderation.
-   The mayor can block/unblock accounts under Users/Workers and review aggregate
+8. Evidence-backed disputes, qualifying false reports and reports with 5 citizen
+   dislikes appear under Moderation. Accepting a disliked report marks it false, and
+   any accepted case can also block the reported account. The mayor can also
+   block/unblock accounts under Users/Workers and review aggregate
    analytics, category/status charts, area totals and points leaders.
 
 Public pages: `/`, `/map`, `/complaints`, `/complaints/{id}`.
