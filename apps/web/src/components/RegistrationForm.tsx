@@ -19,7 +19,7 @@ export default function RegistrationForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [submitted, setSubmitted] = useState<{ phoneProvided: boolean } | null>(null);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,12 +36,13 @@ export default function RegistrationForm() {
       setFailure("Add your NID number or a private HTTPS link to your NID image.");
       return;
     }
+    const phone = String(form.get("phone") || "").trim();
     const data: Record<string, unknown> = {
       account_type: accountType,
       name: String(form.get("name") || "").trim(),
       email: String(form.get("email") || "").trim(),
       password: String(form.get("password") || ""),
-      phone: String(form.get("phone") || "").trim() || null,
+      phone: phone || null,
       date_of_birth: form.get("date_of_birth") || null,
       blood_group: form.get("blood_group") || null,
     };
@@ -49,7 +50,7 @@ export default function RegistrationForm() {
     setBusy(true);
     try {
       await mutate("/auth/register", data);
-      setSuccess(true);
+      setSubmitted({ phoneProvided: Boolean(phone) });
     } catch (error) {
       setFailure(error instanceof ApiError && error.status === 429
         ? "Too many attempts. Wait a few minutes and try again."
@@ -74,12 +75,13 @@ export default function RegistrationForm() {
         <h2>{t("You are already signed in.", "আপনি ইতিমধ্যেই লগইন করেছেন।")}</h2>
         <p>{t("Citizens can apply to become workers from their existing account.", "নাগরিকরা তাদের বর্তমান অ্যাকাউন্ট থেকেই সেবাকর্মী হওয়ার আবেদন করতে পারেন।")}</p>
         <div className="registration-actions"><Link className="button" href={accountHome(user)}>{t("Open my workspace", "আমার কর্মক্ষেত্র খুলুন")}</Link>{user.role === "citizen" && <Link className="button secondary" href="/workers/apply">{t("Apply as a worker", "সেবাকর্মী হওয়ার আবেদন")}</Link>}</div>
-      </div> : success ? <div className="registration-success" role="status">
+      </div> : submitted ? <div className="registration-success" role="status">
         <span className="check-icon">✓</span>
         <h2>{t("Check your inbox.", "আপনার ইমেইল দেখুন।")}</h2>
         <p>{t("If your account is eligible, a verification email will arrive shortly. Check your spam folder too.", "অ্যাকাউন্ট উপযুক্ত হলে শিগগিরই যাচাইকরণ ইমেইল আসবে। স্প্যাম ফোল্ডারও দেখুন।")}</p>
+        {submitted.phoneProvided && <p>{t("If the email doesn’t arrive and your phone number is already linked to an account, sign in to that account or try again with the phone field blank.", "ইমেইল না এলে এবং ফোন নম্বরটি আগে থেকেই কোনো অ্যাকাউন্টের সঙ্গে যুক্ত থাকলে, সেই অ্যাকাউন্টে লগইন করুন অথবা ফোন নম্বরের ঘরটি খালি রেখে আবার চেষ্টা করুন।")}</p>}
         {accountType === "worker" && <p className="registration-approval-note">{t("Worker signup includes an application for the mayor to review. Verify your email and sign in to track approval. Worker tools unlock after approval.", "সেবাকর্মী নিবন্ধনের আবেদন মেয়র পর্যালোচনা করবেন। ইমেইল যাচাই করে লগইন করুন। অনুমোদনের পর সেবাকর্মীর সুবিধা চালু হবে।")}</p>}
-        <div className="registration-actions"><Link className="button" href="/verify-email">{t("Verify email", "ইমেইল যাচাই করুন")}</Link><Link className="button secondary" href="/login">{t("Sign in", "লগইন")}</Link></div>
+        <div className="registration-actions"><Link className="button" href="/verify-email">{t("Verify email", "ইমেইল যাচাই করুন")}</Link><Link className="button secondary" href="/login">{t("Sign in", "লগইন")}</Link>{submitted.phoneProvided && <button className="button secondary" type="button" onClick={() => setSubmitted(null)}>{t("Try signing up again", "আবার নিবন্ধনের চেষ্টা করুন")}</button>}</div>
         <Link className="text-link" href="/resend-verification">{t("Resend verification email", "আবার যাচাইকরণ ইমেইল পাঠান")}</Link>
       </div> : <>
         <CivicForm onSubmit={submit} className="registration-form" aria-busy={busy}>
@@ -103,7 +105,10 @@ export default function RegistrationForm() {
               <div className="registration-grid">
                 <label className="field-wide" htmlFor="signup-name">{t("Full name", "পুরো নাম")}<input id="signup-name" name="name" required maxLength={100} pattern=".*\S.*" autoComplete="name" /></label>
                 <label htmlFor="signup-email">{t("Email address", "ইমেইল ঠিকানা")}<input id="signup-email" name="email" type="email" required maxLength={320} autoComplete="email" placeholder="you@example.com" /></label>
-                <label htmlFor="signup-phone">{t("Phone number (optional)", "ফোন নম্বর (ঐচ্ছিক)")}<input id="signup-phone" name="phone" type="tel" autoComplete="tel" maxLength={30} placeholder="+8801712345678" /></label>
+                <label htmlFor="signup-phone">{t("Phone number (optional)", "ফোন নম্বর (ঐচ্ছিক)")}
+                  <input id="signup-phone" name="phone" type="tel" autoComplete="tel" maxLength={30} placeholder="+8801712345678" aria-describedby="signup-phone-help" />
+                  <small id="signup-phone-help">{t("Leave this blank if your number is already linked to an account.", "নম্বরটি আগে থেকেই কোনো অ্যাকাউন্টের সঙ্গে যুক্ত থাকলে এই ঘরটি খালি রাখুন।")}</small>
+                </label>
                 <label htmlFor="signup-dob">{t("Date of birth (optional)", "জন্মতারিখ (ঐচ্ছিক)")}<input id="signup-dob" name="date_of_birth" type="date" min="1900-01-01" max={new Date().toISOString().slice(0, 10)} /></label>
                 <label htmlFor="signup-blood">{t("Blood group (optional)", "রক্তের গ্রুপ (ঐচ্ছিক)")}<select id="signup-blood" name="blood_group" defaultValue=""><option value="">{t("Prefer not to say", "জানাতে চাই না")}</option>{["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(group => <option key={group}>{group}</option>)}</select></label>
               </div>
