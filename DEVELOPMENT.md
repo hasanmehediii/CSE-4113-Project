@@ -197,7 +197,7 @@ Use **http://localhost:3000** consistently in the browser for auth and cookies.
 | API | http://localhost:8000/ | HTML overview, live process health and links to `/docs` |
 | ML | http://localhost:8001/ | HTML model overview and Bengali classification playground |
 | Mailpit | http://localhost:8025 | Development verification/reset email inbox |
-| PostgreSQL | `localhost:5432` | Accounts, reports, assignments, points and transactional source of truth |
+| PostgreSQL | `localhost:5432` (or `POSTGRES_HOST_PORT`) | Accounts, reports, assignments, points and transactional source of truth |
 | MongoDB | `localhost:27017` | Flexible complaint/event projections |
 | Redis | `localhost:6379` | Shared rate limiting and short-lived auth state |
 | SMTP | `localhost:1025` | Mailpit mail capture |
@@ -319,6 +319,10 @@ See [apps/web/e2e/README.md](apps/web/e2e/README.md) for fixtures, options and f
 - **Port already in use:** stop the existing app in its original terminal or stop
   the existing Docker stack. The launchers do not kill unrelated processes.
   Required data ports are 5432, 27017, 6379, 1025 and 8025; Docker apps also use 8080.
+  If a locally installed PostgreSQL (for example the Windows service
+  `postgresql-x64-18`) already uses 5432, Docker reports "ports are not available ...
+  5432". Either stop that service, or set `POSTGRES_HOST_PORT=5433` in `.env` and use
+  port 5433 in `DATABASE_URL`; the containers still talk to each other on 5432.
 - **Dependency install fails:** inspect the package-manager output, check network
   access and the installed Node/Python versions, then rerun. Existing environment
   files and database volumes are retained.
