@@ -104,9 +104,16 @@ is queued once for the incident, with its existing category-confidence fallback.
 - `GET /api/v1/complaints/{report_id}/reports?limit=10&offset=0` returns preserved
   submissions for that report's incident without exposing private account fields.
 - Complaint responses include `incident_id`, `incident_report_count` and
-  `incident_reporter_count`. Creation also returns `points_awarded` (0 or 1).
+  `incident_reporter_count`, plus `likes`, `dislikes`, `worker_confirmations`,
+  `verified` and `under_review`. Creation also returns `points_awarded`: 1 only when
+  the report joins an already verified incident and earns its point at once, else 0.
+- `PUT /api/v1/complaints/{report_id}/vote` accepts verified citizens (`value` 1 or -1)
+  and approved workers (`value` 1 only) and returns the vote counts and `verified`.
+- `POST /api/v1/admin/moderation/{case_id}/review` accepts `block_user: true` with
+  `status: "actioned"` to block the case's subject and revoke their sessions;
+  `GET /api/v1/admin/moderation` includes each case's community `votes`.
 
-Apply migrations through `20261031_06` with `uv run alembic upgrade head` before using the
+Apply migrations through `20261122_07` with `uv run alembic upgrade head` before using the
 updated API. The root launchers do this automatically. Back up shared databases
 before upgrading. The nullable link preserves existing data; the SQL snapshot is
 stamped at the current migration head and its generator no longer rewrites history.
