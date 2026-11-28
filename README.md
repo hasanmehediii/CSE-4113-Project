@@ -7,7 +7,7 @@
 <p align="center"><strong><em>Help Dhaka stay moving, one report at a time.</em></strong></p>
 
 <p align="center">
-  <img src="./docs/dubsibhai-badges.svg" width="291" alt="API v0.1.0; City: Dhaka; Interface: EN + BN">
+  <img src="./docs/dubsibhai-badges.svg" width="517" alt="API: v0.1.0; city: Dhaka; interface: EN + BN; frontend: Next.js 16; backend: FastAPI; database: PostgreSQL; reports: photo + location; incidents: shared workflow; workers: assign + resolve; maps: Leaflet / OSM; ML: category suggestions; runtime: Docker Compose">
 </p>
 
 <p align="center">
