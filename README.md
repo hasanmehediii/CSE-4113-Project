@@ -1,7 +1,7 @@
-<p align="center">
-  <img src="./docs/icon.png" width="180" alt="DubsiBhai logo">
-  <h1 align="center">DubsiBhai</h1>
-</p>
+<h1 align="center">
+  <img src="./docs/icon.png" width="180" alt="DubsiBhai logo"><br>
+  DubsiBhai
+</h1>
 
 <p align="center">
   <strong><em>Help Dhaka stay moving, one report at a time.</em></strong>
