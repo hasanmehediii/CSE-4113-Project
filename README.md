@@ -1,12 +1,24 @@
-# DubsiBhai - Drainage Waterlogging Management for Dhaka
-
 <p align="center">
-  <img src="docs/icon.png" alt="Logo" width="180" height="180"/>
-  <br>
-  <strong>Collaborative Community Platform</strong>
+  <img src="./docs/icon.png" width="152" height="152" alt="DubsiBhai logo">
 </p>
 
-Urban waterlogging and drainage management for Dhaka. This repository contains the frontend, backend, and machine learning service for the DubsiBhai project. The frontend is built with Next.js, while the backend and ML service are built with FastAPI.
+<h1 align="center">DubsiBhai</h1>
+
+<p align="center"><strong><em>Help Dhaka stay moving, one report at a time.</em></strong></p>
+
+<p align="center">
+  <img src="./docs/dubsibhai-badges.svg" width="291" alt="API v0.1.0; City: Dhaka; Interface: EN + BN">
+</p>
+
+<p align="center">
+  <a href="#run-on-windows">Quick start</a> ·
+  <a href="#project-status">Features</a> ·
+  <a href="#high-level-architecture">Architecture</a> ·
+  <a href="#configuration-and-checks">Testing</a> ·
+  <a href="#partially-implemented--remaining-work">Roadmap</a>
+</p>
+
+DubsiBhai helps Dhaka communities report waterlogging and drainage problems, share location and photo evidence, and track a shared incident through resolution. Citizens verify reports, workers manage assignments, and the mayor workspace coordinates responses. The repository includes a Next.js frontend, a FastAPI backend, and a separate machine learning service.
 
 The repository root is `CSE-4113-Project/`.
 
