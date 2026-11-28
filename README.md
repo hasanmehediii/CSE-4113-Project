@@ -1,26 +1,58 @@
 <p align="center">
-  <img src="./docs/icon.png" width="152" height="152" alt="DubsiBhai logo">
-</p>
-
-<h1 align="center">DubsiBhai</h1>
-
-<p align="center"><strong><em>Help Dhaka stay moving, one report at a time.</em></strong></p>
-
-<p align="center">
-  <img src="./docs/dubsibhai-badges.svg" width="517" alt="API: v0.1.0; city: Dhaka; interface: EN + BN; frontend: Next.js 16; backend: FastAPI; database: PostgreSQL; reports: photo + location; incidents: shared workflow; workers: assign + resolve; maps: Leaflet / OSM; ML: category suggestions; runtime: Docker Compose">
+  <img src="./docs/icon.png" width="180" alt="DubsiBhai logo">
+  <h1 align="center">DubsiBhai</h1>
 </p>
 
 <p align="center">
-  <a href="#run-on-windows">Quick start</a> ·
-  <a href="#project-status">Features</a> ·
-  <a href="#high-level-architecture">Architecture</a> ·
-  <a href="#configuration-and-checks">Testing</a> ·
+  <strong><em>Help Dhaka stay moving, one report at a time.</em></strong>
+</p>
+
+<p align="center">
+  Report waterlogging and drainage problems with a photo and a location. Track each shared incident from verification to assignment to resolution, across citizen, worker, and mayor workspaces.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/API-v0.1.0-blue?style=flat-square" alt="API v0.1.0">
+  <img src="https://img.shields.io/badge/city-Dhaka-006A4E?style=flat-square" alt="City: Dhaka">
+  <img src="https://img.shields.io/badge/interface-EN%20%2B%20BN-F42A41?style=flat-square" alt="English and Bangla interface">
+  <img src="https://img.shields.io/badge/ML-category%20suggestions-8A2BE2?style=flat-square" alt="ML category suggestions">
+  <img src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs" alt="Next.js 16">
+  <img src="https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white" alt="FastAPI">
+  <img src="https://img.shields.io/badge/PostgreSQL-4169E1?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Leaflet-OSM-199900?style=flat-square&logo=leaflet&logoColor=white" alt="Leaflet / OpenStreetMap">
+  <img src="https://img.shields.io/badge/Docker-Compose-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker Compose">
+</p>
+
+<p align="center">
+  <a href="#run-on-windows"><b>Quick start</b></a> &nbsp;·&nbsp;
+  <a href="#project-status">Features</a> &nbsp;·&nbsp;
+  <a href="#high-level-architecture">Architecture</a> &nbsp;·&nbsp;
+  <a href="#configuration-and-checks">Testing</a> &nbsp;·&nbsp;
   <a href="#partially-implemented--remaining-work">Roadmap</a>
 </p>
 
-DubsiBhai helps Dhaka communities report waterlogging and drainage problems, share location and photo evidence, and track a shared incident through resolution. Citizens verify reports, workers manage assignments, and the mayor workspace coordinates responses. The repository includes a Next.js frontend, a FastAPI backend, and a separate machine learning service.
+<table width="100%" align="center">
+  <tr>
+    <td align="center" width="33%">
+      <h3>📍 Citizens report</h3>
+      Photo + location evidence<br>Community verification
+    </td>
+    <td align="center" width="33%">
+      <h3>🛠️ Workers resolve</h3>
+      Assign, update, and close<br>one shared incident workflow
+    </td>
+    <td align="center" width="33%">
+      <h3>🏛️ Mayor coordinates</h3>
+      City-wide response view<br>Map-based overview
+    </td>
+  </tr>
+</table>
 
-The repository root is `CSE-4113-Project/`.
+<p align="center">
+  <sub>Next.js frontend · FastAPI backend · separate ML service · repository root: <code>CSE-4113-Project/</code></sub>
+</p>
+
+---
 
 - [Project structure](docs/architecture/MONOREPO_ARCHITECTURE.md)
 - [System design](docs/architecture/SYSTEM_DESIGN.md)
@@ -32,6 +64,26 @@ The repository root is `CSE-4113-Project/`.
 - [Database schema, normalization and indexes](db/README.md)
 - [Incident grouping: matching, preserved evidence and shared work](docs/guideline/INCIDENTS.md)
 - [Pre-release checks and verified browser flows](docs/guideline/PRE_RELEASE_CHECKS.md)
+
+## High-level architecture
+
+The target architecture combines a FastAPI modular monolith with a separate ML
+service. The core API owns business data, authorization, and workflow decisions;
+an API-owned background worker calls ML over HTTP and saves versioned results.
+
+
+![DubsiBhai high-level architecture](<docs/Client-Driven Next.js-2026-10-09-203929.svg>)
+
+The civic implementation includes authenticated reports and road updates, public
+map overlays, worker approval/assignment/completion, community verification,
+points, moderation and mayor analytics. Background workers project transactional
+events into **MongoDB** and obtain category suggestions from the existing ML service.
+PostgreSQL remains the source of truth; Redis provides shared rate limits and
+short-lived auth state. Rule-based incident grouping preserves corroborating reports
+under one work item. Improved road-risk prediction, semantic matching, ML geographic
+clustering, IoT ingestion and production HTTPS remain future work.
+The diagram predates these additions; the linked database/workflow guides describe
+the implementation. External integrations provide Google sign-in, map tiles and email.
 
 ## Project status
 
@@ -133,24 +185,6 @@ Road observations remain independent. A resolved or false incident is not reused
 for a new blockage. Public map/queue/hotspot/analytics work counts count an incident
 once, while report totals retain the full number of submissions.
 
-## High-level architecture
-
-The target architecture combines a FastAPI modular monolith with a separate ML
-service. The core API owns business data, authorization, and workflow decisions;
-an API-owned background worker calls ML over HTTP and saves versioned results.
-
-![DubsiBhai high-level architecture](<docs/Client-Driven Next.js-2026-10-09-203929.svg>)
-
-The civic implementation includes authenticated reports and road updates, public
-map overlays, worker approval/assignment/completion, community verification,
-points, moderation and mayor analytics. Background workers project transactional
-events into **MongoDB** and obtain category suggestions from the existing ML service.
-PostgreSQL remains the source of truth; Redis provides shared rate limits and
-short-lived auth state. Rule-based incident grouping preserves corroborating reports
-under one work item. Improved road-risk prediction, semantic matching, ML geographic
-clustering, IoT ingestion and production HTTPS remain future work.
-The diagram predates these additions; the linked database/workflow guides describe
-the implementation. External integrations provide Google sign-in, map tiles and email.
 
 ## Run the published Docker images
 
